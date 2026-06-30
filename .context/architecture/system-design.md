@@ -5,7 +5,7 @@ last_updated: 2026-06-30
 tags: [nextjs, supabase, fiber-node, monorepo]
 ---
 
-# System Design — Fiber Gateway
+# System Design — FiberGate
 
 ## Tech Stack
 
@@ -13,7 +13,7 @@ tags: [nextjs, supabase, fiber-node, monorepo]
 |-------|-----------|-------|
 | Frontend + API | Next.js 14 App Router | Full-stack, deploy Vercel dễ |
 | Database | Supabase (PostgreSQL) | Auth built-in, realtime, free tier |
-| Styling | Tailwind CSS + shadcn/ui | Nhanh, đẹp, component ready |
+| Styling | Tailwind CSS + Antd | Nhanh, đẹp, component ready |
 | SDK package | TypeScript + tsup | Zero-config bundler, ESM+CJS |
 | Fiber Node | FNN binary trên VPS | Railway hoặc Fly.io |
 | Package manager | pnpm workspaces | Monorepo standard |
@@ -23,7 +23,7 @@ tags: [nextjs, supabase, fiber-node, monorepo]
 ```
 ┌─────────────────────────────────────────────────────┐
 │  Developer's App                                     │
-│  import { FiberGateway } from '@fiber-gateway/sdk'  │
+│  import { FiberGate } from '@fibergate/sdk'          │
 └──────────────────┬──────────────────────────────────┘
                    │ HTTPS (Bearer token)
 ┌──────────────────▼──────────────────────────────────┐
@@ -86,7 +86,7 @@ tags: [nextjs, supabase, fiber-node, monorepo]
 ## Monorepo Structure
 
 ```
-fiber-gateway/
+fibergate/
 ├── apps/
 │   └── web/                    ← Next.js app
 │       ├── app/
@@ -105,7 +105,7 @@ fiber-gateway/
 │       │   └── fiber/          ← Fiber RPC client
 │       └── components/
 ├── packages/
-│   └── sdk/                    ← @fiber-gateway/sdk
+│   └── sdk/                    ← @fibergate/sdk
 │       ├── src/
 │       │   ├── index.ts
 │       │   ├── client.ts

@@ -36,7 +36,7 @@ Payment không cần channel trực tiếp giữa sender và receiver. Đi qua i
 Capacity khả dụng trong channel. Inbound liquidity = có thể nhận. Outbound liquidity = có thể gửi. Mỗi side phải reserve 99 CKB (không dùng được cho payment).
 
 ## LSP (Lightning Service Provider)
-Đơn vị cung cấp dịch vụ infrastructure cho payment channel network: quản lý node, liquidity, routing. Đây là vai trò của Fiber Gateway.
+Đơn vị cung cấp dịch vụ infrastructure cho payment channel network: quản lý node, liquidity, routing. Đây là vai trò của FiberGate.
 
 ## UDT (User Defined Token)
 Token tùy chỉnh trên CKB. Ví dụ: RUSD (stablecoin), SEAL.
@@ -59,5 +59,5 @@ JSON-RPC 2.0 API của FNN node. Default port: `8227`. Các method quan trọng:
 ## CKBoost
 Platform tổ chức hackathon, dùng CKB testnet tokens để đăng ký và submit.
 
-## API Key (trong Fiber Gateway)
+## API Key (trong FiberGate)
 Gồm hai phần: `client_id` (public, định danh merchant, prefix `pk_`) và `api_secret` (private, dùng để authenticate API calls, prefix `sk_`). Lưu ý: `api_secret` chỉ hiển thị một lần khi tạo — sau đó chỉ lưu hash trong DB.

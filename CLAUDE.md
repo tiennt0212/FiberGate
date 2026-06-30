@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Đây là project gì?
 
-**Fiber Gateway** là LSP (Lightning Service Provider) prototype cho Fiber Network hackathon (1–15 July 2026).
+**FiberGate** là LSP (Lightning Service Provider) prototype cho Fiber Network hackathon (1–15 July 2026).
 Tương tự Stripe nhưng cho Fiber payments: developer đăng ký → nhận API key → gọi REST API để tạo invoice và nhận thanh toán — không cần tự chạy Fiber node.
 
 Đọc `.context/INDEX.md` trước tiên, sau đó đọc theo thứ tự:

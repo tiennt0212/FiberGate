@@ -4,13 +4,13 @@ version: 1.0
 last_updated: 2026-06-30
 ---
 
-# Fiber Gateway — Context Index
+# FiberGate — Context Index
 
 Đây là Single Source of Truth cho toàn bộ project. Claude Code nên đọc file này trước tiên.
 
 ## Dự án là gì?
 
-**Fiber Gateway** là một Lighting Service Provider (LSP) prototype cho Fiber Network (CKB blockchain). Tương tự Stripe nhưng cho Fiber payments: developer đăng ký → nhận API key → gọi REST API để tạo invoice và nhận thanh toán — không cần tự chạy Fiber node.
+**FiberGate** là một Lighting Service Provider (LSP) prototype cho Fiber Network (CKB blockchain). Tương tự Stripe nhưng cho Fiber payments: developer đăng ký → nhận API key → gọi REST API để tạo invoice và nhận thanh toán — không cần tự chạy Fiber node.
 
 Dự án được xây dựng cho **Gone in 60ms: Fiber Network Infrastructure Hackathon** (1–15 July 2026), category: Merchant, Liquidity, LSP, and Multi-Asset Infrastructure.
 
@@ -31,7 +31,7 @@ Dự án được xây dựng cho **Gone in 60ms: Fiber Network Infrastructure H
 ## Monorepo layout
 
 - `apps/web` — Next.js 14 App Router, dashboard + API routes
-- `packages/sdk` — npm package `@fiber-gateway/sdk`, TypeScript
+- `packages/sdk` — npm package `@fibergate/sdk`, TypeScript
 
 ## Quy ước code
 

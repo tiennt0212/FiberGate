@@ -5,10 +5,10 @@ last_updated: 2026-06-30
 tags: [rest-api, endpoints, authentication]
 ---
 
-# REST API Specification — Fiber Gateway
+# REST API Specification — FiberGate
 
 ## Base URL
-`https://fiber-gateway.vercel.app/api/v1`
+`https://fibergate.vercel.app/api/v1`
 
 ## Authentication
 

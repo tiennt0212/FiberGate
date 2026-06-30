@@ -5,7 +5,7 @@ last_updated: 2026-06-30
 tags: [decisions, architecture, business-logic, open-questions]
 ---
 
-# Decisions Log — Fiber Gateway
+# Decisions Log — FiberGate
 
 > Ghi lại các quyết định đã được **human xác nhận**.
 > Claude Code cập nhật file này **sau khi** human confirm trong cuộc hội thoại.

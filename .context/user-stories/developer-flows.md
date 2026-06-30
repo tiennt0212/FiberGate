@@ -12,7 +12,7 @@ tags: [integration, onboarding, webhook, sdk]
 
 **As a** developer muốn nhận Fiber payments,
 **I want to** đăng ký tài khoản và lấy API key,
-**So that** tôi có thể gọi Fiber Gateway API.
+**So that** tôi có thể gọi FiberGate API.
 
 **Acceptance criteria:**
 - Đăng ký bằng email/password qua Supabase Auth
@@ -30,11 +30,11 @@ tags: [integration, onboarding, webhook, sdk]
 
 **Acceptance criteria:**
 ```bash
-npm install @fiber-gateway/sdk
+npm install @fibergate/sdk
 ```
 ```typescript
 // Tạo invoice (server-side)
-const gateway = new FiberGateway({ apiSecret: process.env.FIBER_API_SECRET })
+const gateway = new FiberGate({ apiSecret: process.env.FIBER_API_SECRET })
 const invoice = await gateway.invoices.create({ amount: 1, asset: 'CKB' })
 
 // Verify webhook (trong route handler)

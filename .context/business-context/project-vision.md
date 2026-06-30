@@ -5,7 +5,7 @@ last_updated: 2026-06-30
 tags: [vision, scope, hackathon, lsp]
 ---
 
-# Project Vision — Fiber Gateway
+# Project Vision — FiberGate
 
 ## Vấn đề đang giải quyết
 
@@ -19,7 +19,7 @@ Hiện tại, để nhận thanh toán qua Fiber Network, developer phải:
 
 ## Giải pháp
 
-Fiber Gateway là một managed LSP (Lightning Service Provider):
+FiberGate là một managed LSP (Lightning Service Provider):
 - Developer đăng ký → nhận `client_id` + `api_secret`
 - Gọi `POST /api/v1/invoices` → nhận invoice ngay lập tức
 - Nhận webhook notification khi payment thành công
@@ -31,7 +31,7 @@ Fiber Gateway là một managed LSP (Lightning Service Provider):
 - Developer dashboard (đăng ký, quản lý API keys, xem transactions, cấu hình webhooks)
 - REST API: tạo invoice, query status, list invoices
 - Webhook system: fire events khi invoice paid/expired
-- npm SDK: `@fiber-gateway/sdk` với TypeScript support
+- npm SDK: `@fibergate/sdk` với TypeScript support
 - Một Fiber node trên testnet (custodial prototype)
 - Kết nối đến public testnet nodes
 
@@ -58,7 +58,7 @@ Fiber Gateway là một managed LSP (Lightning Service Provider):
 
 ## So sánh với fiber-checkout
 
-| | fiber-checkout | Fiber Gateway |
+| | fiber-checkout | FiberGate |
 |---|---|---|
 | Developer cần chạy node? | Có | Không |
 | Developer cần quản lý liquidity? | Có | Không |
