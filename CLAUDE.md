@@ -30,6 +30,13 @@ packages/sdk/      — npm package @fiber-gateway/sdk (TypeScript, tsup)
 .context/design/   — UI mockups và design decisions
 ```
 
+## Project IDs
+
+| Service | ID | Ghi chú |
+|---------|-----|---------|
+| Supabase | `YOUR_SUPABASE_PROJECT_REF` | Dùng cho MCP + `supabase gen types` |
+| Canva (Design) | `YOUR_CANVA_PROJECT_ID` | UI mockups |
+
 ## Commands
 
 ```bash
@@ -92,6 +99,7 @@ Tất cả API responses theo format:
 - **KHÔNG** hardcode bất kỳ secret hay URL nào — dùng env vars (xem list trong `.context/architecture/system-design.md`)
 - **KHÔNG** tự sửa database schema mà không update `.context/data-dictionary/database-schema.md`
 - Tất cả Supabase types phải được generate từ schema thực tế (`supabase gen types`)
+- Mọi API route `/api/v1/*` phải validate authentication **trước** khi thực hiện bất kỳ logic nào khác
 - Error handling phải explicit — không dùng `try/catch` rỗng
 - TypeScript strict mode toàn bộ — không dùng `any`
 

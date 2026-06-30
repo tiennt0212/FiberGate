@@ -1,0 +1,24 @@
+# env files — KHÔNG commit secrets
+.env
+.env.local
+.env*.local
+.env.production
+
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+.next/
+dist/
+out/
+build/
+
+# Supabase local
+supabase/.branches/
+supabase/.temp/
+
+# Misc
+.DS_Store
+*.log
+.turbo/
