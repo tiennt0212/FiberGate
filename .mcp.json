@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "ckb-ai": {
+      "type": "http",
+      "url": "https://mcp.ckbdev.com/ckbai"
+    },
+    "supabase": {
+      "type": "http",
+      "url": "https://mcp.supabase.com/mcp?project_ref=YOUR_PROJECT_REF"
+    }
+  }
+}
