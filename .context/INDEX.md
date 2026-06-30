@@ -25,6 +25,8 @@ Dự án được xây dựng cho **Gone in 60ms: Fiber Network Infrastructure H
 | `api/rest-api-spec.md` | REST API spec đầy đủ (request/response/errors) |
 | `business-rules/payment-rules.md` | Logic xử lý invoice, webhook, rate limiting |
 | `user-stories/developer-flows.md` | User stories từ góc nhìn developer tích hợp |
+| `processes/decisions-log.md` | Quyết định kiến trúc và nghiệp vụ đã được human chốt |
+| `processes/definition-of-done.md` | DoD và checklist tự verify cuối mỗi AI coding session |
 
 ## Monorepo layout
 

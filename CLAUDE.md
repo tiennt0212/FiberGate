@@ -15,6 +15,8 @@ Tương tự Stripe nhưng cho Fiber payments: developer đăng ký → nhận A
 4. `.context/data-dictionary/database-schema.md` — Supabase tables, columns, relations
 5. `.context/api/rest-api-spec.md` — API spec đầy đủ (request/response/errors)
 6. `.context/business-rules/payment-rules.md` — Logic nghiệp vụ, rate limits, security rules
+7. `.context/processes/decisions-log.md` — Quyết định đã được human chốt
+8. `.context/processes/definition-of-done.md` — DoD và checklist cuối phiên
 
 ## Monorepo layout
 
@@ -113,6 +115,31 @@ Khi cần thông tin về CKB protocol hoặc Fiber Network, tra cứu theo th�
 4. `https://www.fiber.world/docs` — Fiber docs chính thức
 
 **Fiber Gateway chỉ dùng Fiber ở application layer (JSON-RPC calls). KHÔNG viết CKB Scripts. KHÔNG cần hiểu Cell Model trừ khi debug channel issues.**
+
+## Nguyên tắc làm việc với AI Agent
+
+### Hỏi trước khi làm
+Khi gặp yêu cầu chưa rõ hoặc có nhiều cách tiếp cận, Claude Code
+**KHÔNG tự suy đoán rồi implement**. Thay vào đó:
+
+1. Nêu rõ phần nào còn ambiguous
+2. Đặt câu hỏi cụ thể để làm rõ
+3. Nếu cần, đề xuất 2-3 options và hỏi chọn cái nào
+4. Chỉ implement sau khi nhận được câu trả lời
+
+**Ví dụ tình huống cần hỏi:**
+- Yêu cầu mô tả feature nhưng không rõ edge case
+- Có thể implement theo nhiều cách với trade-off khác nhau
+- Không chắc scope: "tạo webhook" là chỉ backend hay cả UI?
+- Không rõ behavior khi error: retry hay fail ngay?
+
+### Không tự quyết định các vấn đề sau (dừng và hỏi):
+- Thay đổi database schema
+- Thay đổi API response format (breaking change)
+- Cài thêm dependency mới
+- Xóa code hoặc file hiện có
+- Bất kỳ logic liên quan đến security, auth, signing, hashing
+- Chọn kiến trúc khi có nhiều hướng khả thi
 
 ## Khi implement một feature mới
 
