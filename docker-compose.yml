@@ -1,0 +1,55 @@
+# FiberGate — self-hosted bundle. Merchant runs `docker compose up -d`.
+# Three services on an internal network: postgres, fiber-node (FNN), fibergate-core.
+# Only fibergate-core exposes a port to the host.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-fibergate}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fibergate}
+      POSTGRES_DB: ${POSTGRES_DB:-fibergate}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-fibergate}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Fiber Network Node (FNN). Set FIBER_NODE_IMAGE to the FNN image/tag you run,
+  # and mount your node config into ./docker/fiber-node (see its README).
+  # It binds only on the internal docker network — no host port is published.
+  fiber-node:
+    image: ${FIBER_NODE_IMAGE:-nervosnetwork/fiber:latest}
+    restart: unless-stopped
+    volumes:
+      - ./docker/fiber-node:/fiber/config:ro
+      - fiberdata:/fiber/data
+    expose:
+      - "8227" # JSON-RPC (internal only)
+      - "8228" # P2P
+
+  fibergate-core:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.web
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-fibergate}:${POSTGRES_PASSWORD:-fibergate}@postgres:5432/${POSTGRES_DB:-fibergate}
+      FIBER_NODE_URL: ${FIBER_NODE_URL:-http://fiber-node:8227}
+    ports:
+      - "${FIBERGATE_PORT:-3000}:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      fiber-node:
+        condition: service_started
+
+volumes:
+  pgdata:
+  fiberdata:

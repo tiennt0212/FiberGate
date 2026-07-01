@@ -1,0 +1,23 @@
+{
+  "name": "fibergate",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Self-hosted, open-source merchant payment gateway framework for Fiber Network (CKB)",
+  "license": "MIT",
+  "packageManager": "pnpm@9.12.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "pnpm --filter web dev",
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "db:generate": "pnpm --filter web db:generate",
+    "db:migrate": "pnpm --filter web db:migrate",
+    "sdk:build": "pnpm --filter @fibergate/sdk build"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.4"
+  }
+}
