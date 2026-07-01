@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#f7f7f8;-webkit-font-smoothing:antialiased}
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#d4d4d8;border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:#a1a1aa}
+@keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:.4}}
+</style>
+</helmet>
+
+<!-- HEADER -->
+<div style="background:white;border-bottom:1px solid #e4e4e7;height:52px;padding:0 48px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:10;font-family:'DM Sans',system-ui,sans-serif">
+  <div style="width:28px;height:28px;background:#4f46e5;border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+    <svg width="16" height="16" viewBox="0 0 18 18" fill="none">
+      <circle cx="4.5" cy="9" r="3" fill="white" opacity=".95"/>
+      <circle cx="14" cy="4.5" r="2" fill="white" opacity=".7"/>
+      <circle cx="14" cy="13.5" r="2" fill="white" opacity=".7"/>
+      <line x1="7.4" y1="7.8" x2="12.1" y2="5.3" stroke="white" stroke-width="1.1" opacity=".55"/>
+      <line x1="7.4" y1="10.2" x2="12.1" y2="12.7" stroke="white" stroke-width="1.1" opacity=".55"/>
+    </svg>
+  </div>
+  <span style="font-size:14px;font-weight:700;color:#141414">FiberGate</span>
+  <span style="font-size:13px;color:#a1a1aa">Component Catalog</span>
+  <div style="width:1px;height:18px;background:#e4e4e7;margin:0 6px;flex-shrink:0"></div>
+  <span style="font-size:12px;color:#a1a1aa">11 patterns · Ant Design v5 · DESIGN.md tokens</span>
+  <span style="margin-left:auto;font-size:11px;background:#f3f4f6;color:#71717a;padding:3px 10px;border-radius:9999px">Self-Hosted Payment Gateway</span>
+</div>
+
+<!-- CONTENT -->
+<div style="max-width:1100px;margin:0 auto;padding:40px 48px 96px;display:flex;flex-direction:column;gap:20px;font-family:'DM Sans',system-ui,sans-serif">
+
+  <!-- label helper style: font-size:10.5px;font-weight:600;color:#c0bfcc;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:8px -->
+
+  <!-- ═══ 01 CARD ═══ -->
+  <div>
+    <div style="font-size:10.5px;font-weight:600;color:#c0bfcc;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:8px">01 / Card</div>
+    <div style="background:white;border:1px solid #e4e4e7;border-radius:8px;overflow:hidden;display:grid;grid-template-columns:1fr 1fr">
+      <div style="padding:32px;background:#f9f9fb;border-right:1px solid #e4e4e7;display:flex;align-items:center;justify-content:center">
+        <div style="background:white;border:1px solid #e4e4e7;border-radius:8px;padding:18px 20px;width:260px">
+          <div style="font-size:11.5px;font-weight:600;color:#9898a8;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px">Total Volume (30d)</div>
+          <div style="font-size:27px;font-weight:700;color:#141414;line-height:1;margin-bottom:4px">12,450 CKB</div>
+          <div style="font-size:12px;color:#a1a1aa;margin-bottom:8px">+ 142 RUSD</div>
+          <div style="font-size:12px;font-weight:500;color:#16a34a">↑ 12.4% vs last period</div>
+        </div>
+      </div>
+      <div style="background:#0f172a;padding:24px 28px">
+        <div style="font-size:10px;font-weight:600;color:#475569;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:12px">Antd v5 → override</div>
+        <pre style="font-family:'JetBrains Mono',monospace;font-size:11.5px;line-height:1.65;color:#e2e8f0;white-space:pre-wrap;word-break:break-word;margin:0">{{ code01 }}</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ 02 STATUS BADGE ═══ -->
+  <div>
+    <div style="font-size:10.5px;font-weight:600;color:#c0bfcc;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:8px">02 / Status Badge (pill)</div>
+    <div style="background:white;border:1px solid #e4e4e7;border-radius:8px;overflow:hidden;display:grid;grid-template-columns:1fr 1fr">
+      <div style="padding:32px;background:#f9f9fb;border-right:1px solid #e4e4e7;display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:8px">
+        <span style="display:inline-block;padding:3px 10px;border-radius:9999px;font-size:12px;font-weight:500;background:#dcfce7;color:#15803d">Paid</span>
+        <span style="display:inline-block;padding:3px 10px;border-radius:9999px;font-size:12px;font-weight:500;background:#fef9c3;color:#854d0e">Pending</span>
+        <span style="display:inline-block;padding:3px 10px;border-radius:9999px;font-size:12px;font-weight:500;background:#f3f4f6;color:#374151">Expired</span>
+        <span style="display:inline-block;padding:3px 10px;border-radius:9999px;font-size:12px;font-weight:500;background:#fee2e2;color:#991b1b">Failed</span>
+        <span style="display:inline-block;padding:3px 10px;border-radius:9999px;font-size:12px;font-weight:500;background:#dcfce7;color:#15803d">Active</span>
+        <span style="display:inline-block;padding:3px 10px;border-radius:9999px;font-size:12px;font-weight:500;background:#f3f4f6;color:#71717a">Disabled</span>
+      </div>
+      <div style="background:#0f172a;padding:24px 28px">
+        <div style="font-size:10px;font-weight:600;color:#475569;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:12px">Antd v5 → override</div>
+        <pre style="font-family:'JetBrains Mono',monospace;font-size:11.5px;line-height:1.65;color:#e2e8f0;white-space:pre-wrap;word-break:break-word;margin:0">{{ code02 }}</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ 03 ASSET TAG ═══ -->
+  <div>
+    <div style="font-size:10.5px;font-weight:600;color:#c0bfcc;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:8px">03 / Asset Tag (monospace rectangle)</div>
+    <div style="background:white;border:1px solid #e4e4e7;border-radius:8px;overflow:hidden;display:grid;grid-template-columns:1fr 1fr">
+      <div style="padding:32px;background:#f9f9fb;border-right:1px solid #e4e4e7;display:flex;align-items:center;justify-content:center;gap:10px">
+        <span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:11.5px;font-weight:600;background:#f3f4f6;color:#374151;font-family:'JetBrains Mono',monospace">CKB</span>
+        <span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:11.5px;font-weight:600;background:#f3f4f6;color:#374151;font-family:'JetBrains Mono',monospace">RUSD</span>
+      </div>
+      <div style="background:#0f172a;padding:24px 28px">
+        <div style="font-size:10px;font-weight:600;color:#475569;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:12px">Antd v5 → override</div>
+        <pre style="font-family:'JetBrains Mono',monospace;font-size:11.5px;line-height:1.65;color:#e2e8f0;white-space:pre-wrap;word-break:break-word;margin:0">{{ code03 }}</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ 04 TABLE ═══ (stacked) -->
+  <div>
+    <div style="font-size:10.5px;font-weight:600;color:#c0bfcc;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:8px">04 / Table</div>
+    <div style="background:white;border:1px solid #e4e4e7;border-radius:8px;overflow:hidden">
+      <div style="padding:24px 28px;background:#f9f9fb;border-bottom:1px solid #e4e4e7">
+        <div style="background:white;border:1px solid #e4e4e7;border-radius:8px;overflow:hidden">
+          <table style="width:100%;border-collapse:collapse">
+            <thead>
+              <tr style="background:#f9f9fb">
+                <th style="padding:10px 20px;text-align:left;font-size:11.5px;font-weight:600;color:#9898a8;border-bottom:1px solid #e4e4e7;text-transform:uppercase;letter-spacing:0.04em">Invoice ID</th>
+                <th style="padding:10px 16px;text-align:left;font-size:11.5px;font-weight:600;color:#9898a8;border-bottom:1px solid #e4e4e7;text-transform:uppercase;letter-spacing:0.04em">Description</th>
+                <th style="padding:10px 16px;text-align:right;font-size:11.5px;font-weight:600;color:#9898a8;border-bottom:1px solid #e4e4e7;text-transform:uppercase;letter-spacing:0.04em">Amount</th>
+                <th style="padding:10px 20px 10px 16px;text-align:left;font-size:11.5px;font-weight:600;color:#9898a8;border-bottom:1px solid #e4e4e7;text-transform:uppercase;letter-spacing:0.04em">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="padding:12px 20px;border-bottom:1px solid #f3f4f6;font-family:'JetBrains Mono',monospace;font-size:12px;color:#71717a">inv_8A7K9</td>
+                <td style="padding:12px 16px;border-bottom:1px solid #f3f4f6;font-size:13px;color:#141414">Order #4821</td>
+                <td style="padding:12px 16px;border-bottom:1px solid #f3f4f6;text-align:right;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:500;color:#141414">1,200.00 CKB</td>
+                <td style="padding:12px 20px 12px 16px;border-bottom:1px solid #f3f4f6"><span style="padding:2px 8px;border-radius:9999px;font-size:11.5px;font-weight:500;background:#dcfce7;color:#15803d">Paid</span></td>
+              </tr>
+              <tr>
+                <td style="padding:12px 20px;border-bottom:1px solid #f3f4f6;font-family:'JetBrains Mono',monospace;font-size:12px;color:#71717a">inv_9K4L2</td>
+                <td style="padding:12px 16px;border-bottom:1px solid #f3f4f6;font-size:13px;color:#141414">API access – Sept</td>
+                <td style="padding:12px 16px;border-bottom:1px solid #f3f4f6;text-align:right;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:500;color:#141414">800.00 CKB</td>
+                <td style="padding:12px 20px 12px 16px;border-bottom:1px solid #f3f4f6"><span style="padding:2px 8px;border-radius:9999px;font-size:11.5px;font-weight:500;background:#fef9c3;color:#854d0e">Pending</span></td>
+              </tr>
+              <tr>
+                <td style="padding:12px 20px;font-family:'JetBrains Mono',monospace;font-size:12px;color:#71717a">inv_2R5T6</td>
+                <td style="padding:12px 16px;font-size:13px;color:#141414">Course: Advanced Rust</td>
+                <td style="padding:12px 16px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:500;color:#141414">45.50 CKB</td>
+                <td style="padding:12px 20px 12px 16px"><span style="padding:2px 8px;border-radius:9999px;font-size:11.5px;font-weight:500;background:#fee2e2;color:#991b1b">Failed</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div style="background:#0f172a;padding:24px 28px">
+        <div style="font-size:10px;font-weight:600;color:#475569;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:12px">Antd v5 → override</div>
+        <pre style="font-family:'JetBrains Mono',monospace;font-size:11.5px;line-height:1.65;color:#e2e8f0;white-space:pre-wrap;word-break:break-word;margin:0">{{ code04 }}</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ 05 BUTTONS ═══ -->
+  <div>
+    <div style="font-size:10.5px;font-weight:600;color:#c0bfcc;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:8px">05 / Primary / Secondary / Danger Button</div>
+    <div style="background:white;border:1px solid #e4e4e7;border-radius:8px;overflow:hidden;display:grid;grid-template-columns:1fr 1fr">
+      <div style="padding:32px;background:#f9f9fb;border-right:1px solid #e4e4e7;display:flex;flex-direction:column;justify-content:center;gap:20px">
+        <div style="display:flex;flex-direction:column;gap:7px">
+          <code style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#a1a1aa">type="primary"</code>
+          <div>
+            <button style="display:inline-flex;align-items:center;gap:6px;padding:7px 16px;background:#4f46e5;color:white;border:none;border-radius:6px;font-size:13px;font-weight:500;cursor:pointer;font-family:'DM Sans',system-ui,sans-serif">
+              <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="5.5" y1="1" x2="5.5" y2="10"/><line x1="1" y1="5.5" x2="10" y2="5.5"/></svg>
+              Create Invoice
+            </button>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:7px">
+          <code style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#a1a1aa">type="default"</code>
+          <div>
+            <button style="display:inline-flex;align-items:center;padding:7px 16px;background:white;color:#374151;border:1px solid #e4e4e7;border-radius:6px;font-size:13px;cursor:pointer;font-family:'DM Sans',system-ui,sans-serif">Cancel</button>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:7px">
+          <code style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#a1a1aa">danger size="small" — table rows</code>
+          <div style="display:flex;align-items:center;gap:10px">
+            <button style="display:inline-flex;align-items:center;padding:4px 10px;background:#fff5f5;color:#dc2626;border:1px solid #fca5a5;border-radius:5px;font-size:11.5px;cursor:pointer;font-family:'DM Sans',system-ui,sans-serif">Revoke</button>
+            <button style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;background:white;color:#52525b;border:1px solid #e4e4e7;border-radius:5px;font-size:11.5px;cursor:pointer;font-family:'DM Sans',system-ui,sans-serif">Receipt</button>
+          </div>
+        </div>
+      </div>
+      <div style="background:#0f172a;padding:24px 28px">
+        <div style="font-size:10px;font-weight:600;color:#475569;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:12px">Antd v5 → override</div>
+        <pre style="font-family:'JetBrains Mono',monospace;font-size:11.5px;line-height:1.65;color:#e2e8f0;white-space:pre-wrap;word-break:break-word;margin:0">{{ code05 }}</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ 06 FILTER BUTTON GROUP ═══ -->
+  <div>
+    <div style="font-size:10.5px;font-weight:600;color:#c0bfcc;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:8px">06 / Filter Button Group</div>
+    <div style="background:white;border:1px solid #e4e4e7;border-radius:8px;overflow:hidden;display:grid;grid-template-columns:1fr 1fr">
+      <div style="padding:32px;background:#f9f9fb;border-right:1px solid #e4e4e7;display:flex;flex-direction:column;justify-content:center;gap:16px">
+        <div style="display:flex;flex-direction:column;gap:7px">
+          <code style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#a1a1aa">status filter — "Paid" active</code>
+          <div style="display:flex;background:white;border:1px solid #e4e4e7;border-radius:6px;overflow:hidden;width:fit-content">
+            <span style="padding:6px 12px;border-right:1px solid #e4e4e7;font-size:12.5px;font-weight:500;color:#52525b">All</span>
+            <span style="padding:6px 12px;border-right:1px solid #e4e4e7;font-size:12.5px;font-weight:500;background:#4f46e5;color:white">Paid</span>
+            <span style="padding:6px 12px;border-right:1px solid #e4e4e7;font-size:12.5px;font-weight:500;color:#52525b">Pending</span>
+            <span style="padding:6px 12px;border-right:1px solid #e4e4e7;font-size:12.5px;font-weight:500;color:#52525b">Expired</span>
+            <span style="padding:6px 12px;font-size:12.5px;font-weight:500;color:#52525b">Failed</span>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:7px">
+          <code style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#a1a1aa">asset filter — "CKB" active</code>
+          <div style="display:flex;background:white;border:1px solid #e4e4e7;border-radius:6px;overflow:hidden;width:fit-content">
+            <span style="padding:6px 12px;border-right:1px solid #e4e4e7;font-size:12.5px;font-weight:500;color:#52525b">All assets</span>
+            <span style="padding:6px 12px;border-right:1px solid #e4e4e7;font-size:12.5px;font-weight:600;background:#141414;color:white;font-family:'JetBrains Mono',monospace">CKB</span>
+            <span style="padding:6px 12px;font-size:12.5px;font-weight:600;color:#52525b;font-family:'JetBrains Mono',monospace">RUSD</span>
+          </div>
+        </div>
+      </div>
+      <div style="background:#0f172a;padding:24px 28px">
+        <div style="font-size:10px;font-weight:600;color:#475569;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:12px">Antd v5 → override</div>
+        <pre style="font-family:'JetBrains Mono',monospace;font-size:11.5px;line-height:1.65;color:#e2e8f0;white-space:pre-wrap;word-break:break-word;margin:0">{{ code06 }}</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ 07 CAPACITY BAR ═══ -->
+  <div>
+    <div style="font-size:10.5px;font-weight:600;color:#c0bfcc;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:8px">07 / Capacity Bar</div>
+    <div style="background:white;border:1px solid #e4e4e7;border-radius:8px;overflow:hidden;display:grid;grid-template-columns:1fr 1fr">
+      <div style="padding:32px;background:#f9f9fb;border-right:1px solid #e4e4e7;display:flex;align-items:center;justify-content:center">
+        <div style="width:250px;display:flex;flex-direction:column;gap:14px">
+          <div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:5px">
+              <span style="font-size:12px;color:#71717a">Inbound</span>
+              <span style="font-size:12px;font-weight:500;color:#141414">45,200 CKB</span>
+            </div>
+            <div style="height:5px;background:#f3f4f6;border-radius:9999px;overflow:hidden">
+              <div style="height:100%;width:72%;background:#4f46e5;border-radius:9999px"></div>
+            </div>
+            <div style="font-size:11px;color:#a1a1aa;margin-top:3px">72% of capacity · strokeColor #4f46e5</div>
+          </div>
+          <div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:5px">
+              <span style="font-size:12px;color:#71717a">Outbound</span>
+              <span style="font-size:12px;font-weight:500;color:#141414">18,500 CKB</span>
+            </div>
+            <div style="height:5px;background:#f3f4f6;border-radius:9999px;overflow:hidden">
+              <div style="height:100%;width:30%;background:#7c3aed;border-radius:9999px"></div>
+            </div>
+            <div style="font-size:11px;color:#a1a1aa;margin-top:3px">30% of capacity · strokeColor #7c3aed</div>
+          </div>
+        </div>
+      </div>
+      <div style="background:#0f172a;padding:24px 28px">
+        <div style="font-size:10px;font-weight:600;color:#475569;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:12px">Antd v5 → override</div>
+        <pre style="font-family:'JetBrains Mono',monospace;font-size:11.5px;line-height:1.65;color:#e2e8f0;white-space:pre-wrap;word-break:break-word;margin:0">{{ code07 }}</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ 08 WARNING BANNER ═══ (stacked) -->
+  <div>
+    <div style="font-size:10.5px;font-weight:600;color:#c0bfcc;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:8px">08 / Warning Banner</div>
+    <div style="background:white;border:1px solid #e4e4e7;border-radius:8px;overflow:hidden">
+      <div style="padding:28px 32px;background:#f9f9fb;border-bottom:1px solid #e4e4e7">
+        <div style="display:flex;align-items:flex-start;gap:10px;padding:12px 16px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#d97706" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px"><path d="M8 1.5L1.5 14.5h13L8 1.5z"/><line x1="8" y1="6.5" x2="8" y2="9.5"/><circle cx="8" cy="11.5" r="0.6" fill="#d97706" stroke="none"/></svg>
+          <div>
+            <div style="font-size:13px;font-weight:600;color:#92400e">Treat API keys like passwords</div>
+            <div style="font-size:12.5px;color:#a16207;margin-top:2px">Secret keys are only shown <strong>once</strong> at creation. Use environment variables — never commit keys to source control.</div>
+          </div>
+        </div>
+      </div>
+      <div style="background:#0f172a;padding:24px 28px">
+        <div style="font-size:10px;font-weight:600;color:#475569;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:12px">Antd v5 → override</div>
+        <pre style="font-family:'JetBrains Mono',monospace;font-size:11.5px;line-height:1.65;color:#e2e8f0;white-space:pre-wrap;word-break:break-word;margin:0">{{ code08 }}</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ 09 NODE STATUS INDICATOR ═══ -->
+  <div>
+    <div style="font-size:10.5px;font-weight:600;color:#c0bfcc;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:8px">09 / Node Status Indicator</div>
+    <div style="background:white;border:1px solid #e4e4e7;border-radius:8px;overflow:hidden;display:grid;grid-template-columns:1fr 1fr">
+      <div style="padding:32px;background:#f9f9fb;border-right:1px solid #e4e4e7;display:flex;flex-direction:column;justify-content:center;gap:10px">
+        <div style="display:flex;align-items:center;gap:9px;padding:10px 14px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px">
+          <div style="width:8px;height:8px;border-radius:50%;background:#16a34a;animation:pulse-dot 2s ease-in-out infinite;flex-shrink:0"></div>
+          <div>
+            <div style="font-size:13px;font-weight:600;color:#15803d">Online</div>
+            <div style="font-size:11.5px;color:#4ade80">All systems operational</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:9px;padding:10px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:6px">
+          <div style="width:8px;height:8px;border-radius:50%;background:#f59e0b;flex-shrink:0"></div>
+          <div>
+            <div style="font-size:13px;font-weight:600;color:#92400e">Degraded</div>
+            <div style="font-size:11.5px;color:#a16207">Partial outage detected</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:9px;padding:10px 14px;background:#fff5f5;border:1px solid #fca5a5;border-radius:6px">
+          <div style="width:8px;height:8px;border-radius:50%;background:#dc2626;flex-shrink:0"></div>
+          <div>
+            <div style="font-size:13px;font-weight:600;color:#991b1b">Offline</div>
+            <div style="font-size:11.5px;color:#ef4444">Node unreachable</div>
+          </div>
+        </div>
+      </div>
+      <div style="background:#0f172a;padding:24px 28px">
+        <div style="font-size:10px;font-weight:600;color:#475569;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:12px">Antd v5 → override</div>
+        <pre style="font-family:'JetBrains Mono',monospace;font-size:11.5px;line-height:1.65;color:#e2e8f0;white-space:pre-wrap;word-break:break-word;margin:0">{{ code09 }}</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ 10 MODAL ═══ (stacked) -->
+  <div>
+    <div style="font-size:10.5px;font-weight:600;color:#c0bfcc;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:8px">10 / Modal</div>
+    <div style="background:white;border:1px solid #e4e4e7;border-radius:8px;overflow:hidden">
+      <div style="padding:32px;background:#e8e8f0;border-bottom:1px solid #e4e4e7;display:flex;align-items:center;justify-content:center">
+        <div style="background:white;border-radius:12px;width:440px;box-shadow:0 12px 40px rgba(0,0,0,0.14);overflow:hidden">
+          <div style="padding:20px 24px 16px;border-bottom:1px solid #f3f4f6;display:flex;align-items:center;justify-content:space-between">
+            <span style="font-size:14px;font-weight:600;color:#141414">New Webhook Endpoint</span>
+            <div style="width:26px;height:26px;border-radius:5px;border:1px solid #e4e4e7;display:flex;align-items:center;justify-content:center">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="#71717a" stroke-width="1.8" stroke-linecap="round"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg>
+            </div>
+          </div>
+          <div style="padding:20px 24px;display:flex;flex-direction:column;gap:12px">
+            <div>
+              <label style="display:block;font-size:12px;font-weight:500;color:#374151;margin-bottom:5px">Endpoint URL</label>
+              <div style="padding:7px 10px;border:1px solid #e4e4e7;border-radius:6px;font-size:13px;font-family:'JetBrains Mono',monospace;color:#a1a1aa">https://yourdomain.com/webhooks/…</div>
+            </div>
+            <div>
+              <label style="display:block;font-size:12px;font-weight:500;color:#374151;margin-bottom:8px">Events</label>
+              <div style="display:flex;flex-wrap:wrap;gap:6px">
+                <label style="display:flex;align-items:center;gap:5px;padding:4px 9px;border:1px solid #4f46e5;border-radius:5px;background:#eef2ff;font-size:12px;color:#4f46e5"><input type="checkbox" defaultChecked style="accent-color:#4f46e5" /> payment.paid</label>
+                <label style="display:flex;align-items:center;gap:5px;padding:4px 9px;border:1px solid #e4e4e7;border-radius:5px;font-size:12px;color:#374151"><input type="checkbox" style="accent-color:#4f46e5" /> invoice.expired</label>
+                <label style="display:flex;align-items:center;gap:5px;padding:4px 9px;border:1px solid #e4e4e7;border-radius:5px;font-size:12px;color:#374151"><input type="checkbox" style="accent-color:#4f46e5" /> invoice.failed</label>
+              </div>
+            </div>
+          </div>
+          <div style="padding:14px 24px 18px;border-top:1px solid #f3f4f6;display:flex;justify-content:flex-end;gap:8px">
+            <button style="padding:7px 14px;border:1px solid #e4e4e7;border-radius:6px;background:white;color:#374151;font-size:13px;cursor:pointer;font-family:'DM Sans',system-ui,sans-serif">Cancel</button>
+            <button style="padding:7px 14px;background:#4f46e5;color:white;border:none;border-radius:6px;font-size:13px;font-weight:500;cursor:pointer;font-family:'DM Sans',system-ui,sans-serif">Add Endpoint</button>
+          </div>
+        </div>
+      </div>
+      <div style="background:#0f172a;padding:24px 28px">
+        <div style="font-size:10px;font-weight:600;color:#475569;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:12px">Antd v5 → override</div>
+        <pre style="font-family:'JetBrains Mono',monospace;font-size:11.5px;line-height:1.65;color:#e2e8f0;white-space:pre-wrap;word-break:break-word;margin:0">{{ code10 }}</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ 11 SIDEBAR NAVIGATION ═══ -->
+  <div>
+    <div style="font-size:10.5px;font-weight:600;color:#c0bfcc;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:8px">11 / Sidebar Navigation</div>
+    <div style="background:white;border:1px solid #e4e4e7;border-radius:8px;overflow:hidden;display:grid;grid-template-columns:1fr 1fr">
+      <div style="padding:32px;background:#f9f9fb;border-right:1px solid #e4e4e7;display:flex;align-items:center;justify-content:center">
+        <div style="background:white;border:1px solid #e4e4e7;border-radius:8px;width:196px;overflow:hidden">
+          <div style="padding:14px 12px;border-bottom:1px solid #f0f0f2;display:flex;align-items:center;gap:8px">
+            <div style="width:24px;height:24px;background:#4f46e5;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+              <svg width="12" height="12" viewBox="0 0 18 18" fill="none"><circle cx="4.5" cy="9" r="3" fill="white" opacity=".95"/><circle cx="14" cy="4.5" r="2" fill="white" opacity=".7"/><circle cx="14" cy="13.5" r="2" fill="white" opacity=".7"/><line x1="7.4" y1="7.8" x2="12.1" y2="5.3" stroke="white" stroke-width="1.1" opacity=".55"/><line x1="7.4" y1="10.2" x2="12.1" y2="12.7" stroke="white" stroke-width="1.1" opacity=".55"/></svg>
+            </div>
+            <span style="font-size:12.5px;font-weight:700;color:#141414">FiberGate</span>
+          </div>
+          <div style="padding:8px">
+            <div style="font-size:9.5px;font-weight:600;color:#c0bfcc;letter-spacing:0.07em;text-transform:uppercase;padding:4px 6px;margin-bottom:2px">Main</div>
+            <div style="display:flex;align-items:center;gap:8px;padding:6px 9px;border-radius:6px;background:#eef2ff;margin-bottom:1px">
+              <svg width="13" height="13" viewBox="0 0 15 15" fill="none" stroke="#4f46e5" stroke-width="1.5" stroke-linecap="round"><rect x="1.5" y="1.5" width="5" height="5" rx="1"/><rect x="8.5" y="1.5" width="5" height="5" rx="1"/><rect x="1.5" y="8.5" width="5" height="5" rx="1"/><rect x="8.5" y="8.5" width="5" height="5" rx="1"/></svg>
+              <span style="font-size:12.5px;font-weight:600;color:#4f46e5">Overview</span>
+              <span style="font-size:9.5px;color:#a1a1aa;margin-left:auto">active</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;padding:6px 9px;border-radius:6px;margin-bottom:1px">
+              <svg width="13" height="13" viewBox="0 0 15 15" fill="none" stroke="#52525b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 1.5L3.5 8H8L6 13.5L13.5 6H9.5z"/></svg>
+              <span style="font-size:12.5px;color:#52525b">Webhooks</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;padding:6px 9px;border-radius:6px">
+              <svg width="13" height="13" viewBox="0 0 15 15" fill="none" stroke="#52525b" stroke-width="1.5" stroke-linecap="round"><rect x="2" y="1.5" width="11" height="12" rx="1.5"/><line x1="5" y1="5" x2="10" y2="5"/><line x1="5" y1="7.8" x2="10" y2="7.8"/><line x1="5" y1="10.5" x2="8" y2="10.5"/></svg>
+              <span style="font-size:12.5px;color:#52525b">Transactions</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="background:#0f172a;padding:24px 28px">
+        <div style="font-size:10px;font-weight:600;color:#475569;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:12px">Antd v5 → override</div>
+        <pre style="font-family:'JetBrains Mono',monospace;font-size:11.5px;line-height:1.65;color:#e2e8f0;white-space:pre-wrap;word-break:break-word;margin:0">{{ code11 }}</pre>
+      </div>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1280,&quot;height&quot;:900}}">
+class Component extends DCLogic {
+  renderVals() {
+    return {
+
+code01:
+`<Card
+  className="bg-white border-[#e4e4e7]
+    rounded-[8px] hover:border-[#c9c7e5]"
+  styles={{ body: { padding: '18px 20px' } }}
+>
+  {children}
+</Card>
+
+// styles={{ body }} — NOT bodyStyle
+// bodyStyle is deprecated in Antd v5`,
+
+code02:
+`const STATUS_CLS = {
+  paid:     'bg-[#dcfce7] text-[#15803d]',
+  pending:  'bg-[#fef9c3] text-[#854d0e]',
+  expired:  'bg-[#f3f4f6] text-[#374151]',
+  failed:   'bg-[#fee2e2] text-[#991b1b]',
+  active:   'bg-[#dcfce7] text-[#15803d]',
+  disabled: 'bg-[#f3f4f6] text-[#71717a]',
+}
+
+<Tag
+  className={'border-0! rounded-full! px-2! py-0! '
+    + 'text-[11.5px]! font-medium! ' + STATUS_CLS[status]}
+>
+  {label}
+</Tag>
+
+// ❌ Do NOT use Tag color prop — use className`,
+
+code03:
+`<Tag
+  className="border-0! rounded! bg-[#f3f4f6]!
+    text-[#374151]! font-mono text-[11.5px]!
+    font-semibold! px-2! py-0!"
+>
+  CKB
+</Tag>
+
+// rounded! (4px) — rectangle, not rounded-full!
+// same <Tag> base as status badge, different shape`,
+
+code04:
+`<Table
+  dataSource={rows}
+  columns={columns}
+  pagination={false}
+  rowKey="id"
+  className="fibergate-table"
+  onRow={() => ({ className: 'hover:bg-[#f9f9fb]!' })}
+/>
+
+// globals.css:
+// .fibergate-table .ant-table-thead th {
+//   background: #f9f9fb !important;
+//   text-transform: uppercase;
+//   letter-spacing: 0.04em;
+//   font-size: 11.5px; color: #9898a8; }
+// .fibergate-table .ant-table-tbody td {
+//   font-size: 13px; color: #141414;
+//   border-bottom: 1px solid #f3f4f6 !important; }
+
+// ❌ Never hand-roll <table> — use Antd Table`,
+
+code05:
+`// Primary
+<Button type="primary"
+  className="bg-[#4f46e5]! hover:bg-[#4338ca]!
+    border-0! rounded-[6px]! h-auto!
+    px-[16px]! py-[7px]! text-[13px]!">
+  Create Invoice
+</Button>
+
+// Secondary
+<Button type="default"
+  className="border-[#e4e4e7]! rounded-[6px]!
+    hover:bg-[#f4f4f5]! h-auto!">
+  Cancel
+</Button>
+
+// Danger — small, inside table rows
+<Button danger type="default" size="small"
+  className="bg-[#fff5f5]! border-[#fca5a5]!
+    text-[#dc2626]! rounded-[5px]!
+    h-auto! px-[10px]! py-[4px]!">
+  Revoke
+</Button>
+
+// ❌ Never use raw <button> in table rows`,
+
+code06:
+`// Status filter
+<Segmented
+  value={txStatus}
+  onChange={setTxStatus}
+  options={['all','paid','pending','expired','failed']}
+  className="bg-white! border border-[#e4e4e7]!
+             rounded-[6px]! text-[12.5px]!"
+/>
+
+// ConfigProvider for active state:
+// Segmented: {
+//   itemSelectedBg:    '#4f46e5',
+//   itemSelectedColor: '#ffffff',
+//   trackBg:           '#ffffff',
+// }
+
+// Asset filter: same pattern, separate <Segmented>
+// Use Radio.Group optionType="button" if you
+// need form integration via useForm()`,
+
+code07:
+`// Two separate <Progress> rows:
+<Progress percent={72} showInfo={false}
+  strokeColor="#4f46e5" trailColor="#f3f4f6"
+  strokeLinecap="round"
+  className="[&_.ant-progress-bg]:h-[5px]!"
+/>
+
+<Progress percent={30} showInfo={false}
+  strokeColor="#7c3aed" trailColor="#f3f4f6"
+  strokeLinecap="round"
+  className="[&_.ant-progress-bg]:h-[5px]!"
+/>
+
+// Antd Progress does NOT support 2 fills in 1 bar.
+// → Inbound + Outbound are 2 separate rows.
+// If dual-fill ever needed: keep custom div + tokens
+//   #4f46e5 (inbound) / #7c3aed (outbound)`,
+
+code08:
+`<Alert
+  type="warning"
+  showIcon
+  message="Treat API keys like passwords"
+  description="Secret keys are only shown once..."
+  className="bg-[#fffbeb]! border-[#fde68a]!
+    rounded-[8px]!
+    [&_.ant-alert-message]:text-[13px]!
+    [&_.ant-alert-message]:font-semibold!
+    [&_.ant-alert-message]:text-[#92400e]!
+    [&_.ant-alert-description]:text-[12.5px]!
+    [&_.ant-alert-description]:text-[#a16207]!"
+/>
+
+// ❌ Do NOT hand-roll the banner div
+// Alert provides ARIA role="alert" for free`,
+
+code09:
+`{/* Pulsing dot — Online state */}
+<Badge
+  status="success"
+  text="Online"
+  className="
+    [&_.ant-badge-status-dot]:w-[8px]!
+    [&_.ant-badge-status-dot]:h-[8px]!
+    [&_.ant-badge-status-dot]:
+      animate-[pulse-dot_2s_ease-in-out_infinite]!"
+/>
+
+// pulse-dot keyframes in globals.css:
+// @keyframes pulse-dot {
+//   0%, 100% { opacity: 1; }
+//   50%       { opacity: 0.4; }
+// }
+// Antd Badge has NO built-in pulse — custom only.
+// Degraded/Offline: status="warning"/"error"`,
+
+code10:
+`<Modal
+  open={showModal}
+  onCancel={() => setShowModal(false)}
+  title="New Webhook Endpoint"
+  width={480}
+  styles={{
+    header: { padding: '20px 24px 16px',
+              borderBottom: '1px solid #f3f4f6' },
+    body:   { padding: '20px 24px' },
+    footer: { padding: '14px 24px 18px',
+              borderTop: '1px solid #f3f4f6' },
+  }}
+  className="[&_.ant-modal-content]:rounded-[12px]!
+             [&_.ant-modal-content]:p-0!"
+  footer={[
+    <Button key="cancel" onClick={close}>Cancel</Button>,
+    <Button key="ok" type="primary">Add Endpoint</Button>,
+  ]}
+>
+  {/* form content */}
+</Modal>
+
+// styles={{ header/body/footer }} only
+// ❌ NOT bodyStyle / headerStyle (deprecated v5)`,
+
+code11:
+`<Menu
+  mode="inline"
+  selectedKeys={[currentScreen]}
+  items={navItems}
+  inlineIndent={0}
+  className="border-0! bg-transparent!
+    [&_.ant-menu-item]:rounded-[6px]!
+    [&_.ant-menu-item]:mx-[4px]!
+    [&_.ant-menu-item-selected]:bg-[#eef2ff]!
+    [&_.ant-menu-item-selected]:text-[#4f46e5]!
+    [&_.ant-menu-item]:text-[#52525b]!
+    [&_.ant-menu-item]:text-[13.5px]!"
+/>
+
+// Section groups:
+// { type: 'group', label: 'Main', children: [...] }
+
+// Wrap Next.js <Link> — reset color:
+// { label: <Link className="text-inherit! no-underline!">… } }
+
+// inlineIndent={0} — remove default 24px indent
+// Bottom "Admin" row: keep as custom markup,
+//   NOT a Menu item`,
+
+    };
+  }
+}
+</script>
+</body>
+</html>

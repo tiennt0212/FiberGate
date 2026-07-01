@@ -36,7 +36,7 @@ FiberGate là một **self-hosted, open-source Fiber payment gateway framework**
 - Webhook system: fire events khi invoice paid/expired (HMAC-signed)
 - npm SDK: `@fibergate/sdk` với TypeScript support
 - Một Fiber node trên testnet
-- **Demo merchant checkout flow**: 1 trang storefront giả lập (VD: bán 1 khóa học/API key) dùng SDK/API để tạo invoice, hiện QR, và nhận webhook khi thanh toán xong
+- **Demo merchant checkout flow**: 1 trang storefront giả lập (VD: bán 1 khóa học/API key) dùng SDK/API để tạo invoice, hiện QR, và nhận webhook khi thanh toán xong (chưa có mockup trong Claude Design — cần tự thiết kế/code trực tiếp khi implement)
 - **1 instance demo được deploy public** (VPS/cloud của team) cho giám khảo bấm thử trực tiếp — bắt buộc theo deliverables hackathon ("demo link... plus a hosted demo"), ngoài docker-compose instructions cho người muốn tự deploy
 - **Receipts**: view/download tóm tắt 1 invoice đã `paid` (amount, asset, payment_hash, timestamp) — dùng dữ liệu đã có sẵn trong bảng `invoices`, không cần bảng mới
 - **Accounting export**: nút export CSV danh sách invoices trên trang transactions, lọc theo khoảng ngày/status — dùng dữ liệu đã có sẵn

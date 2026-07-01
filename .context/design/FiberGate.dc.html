@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#f7f7f8;-webkit-font-smoothing:antialiased}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#d4d4d8;border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:#a1a1aa}
+@keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:.4}}
+@keyframes fade-in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+</style>
+</helmet>
+
+<div style="display:flex;min-height:100vh;font-family:'DM Sans',system-ui,sans-serif;font-size:14px;color:#141414;background:#f7f7f8">
+
+  <!-- ═══════════════ SIDEBAR ═══════════════ -->
+  <aside style="width:240px;min-height:100vh;background:white;border-right:1px solid #e4e4e7;display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:30">
+
+    <!-- Logo -->
+    <div style="padding:18px 16px 14px;border-bottom:1px solid #f0f0f2">
+      <div style="display:flex;align-items:center;gap:9px">
+        <div style="width:32px;height:32px;background:#4f46e5;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+            <circle cx="4.5" cy="9" r="3" fill="white" opacity=".95"/>
+            <circle cx="14" cy="4.5" r="2" fill="white" opacity=".7"/>
+            <circle cx="14" cy="13.5" r="2" fill="white" opacity=".7"/>
+            <line x1="7.4" y1="7.8" x2="12.1" y2="5.3" stroke="white" stroke-width="1.1" opacity=".55"/>
+            <line x1="7.4" y1="10.2" x2="12.1" y2="12.7" stroke="white" stroke-width="1.1" opacity=".55"/>
+          </svg>
+        </div>
+        <div>
+          <div style="font-weight:700;font-size:14.5px;color:#141414;line-height:1.2">FiberGate</div>
+          <div style="font-size:11px;color:#a1a1aa;line-height:1.3;margin-top:1px">Self-Hosted Payment Gateway</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Navigation -->
+    <nav style="flex:1;padding:10px 10px 8px;display:flex;flex-direction:column;gap:1px;overflow-y:auto">
+      <div style="padding:4px 6px 4px;font-size:10.5px;font-weight:600;color:#c0bfcc;letter-spacing:0.07em;text-transform:uppercase">Main</div>
+
+      <button onClick="{{ goOverview }}" style="display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:6px;border:none;cursor:pointer;width:100%;text-align:left;font-family:inherit;font-size:13.5px;background:{{ noOBg }};color:{{ noOC }};font-weight:{{ noOW }}" style-hover="opacity:0.85">
+        <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="1.5" y="1.5" width="5" height="5" rx="1"/><rect x="8.5" y="1.5" width="5" height="5" rx="1"/><rect x="1.5" y="8.5" width="5" height="5" rx="1"/><rect x="8.5" y="8.5" width="5" height="5" rx="1"/></svg>
+        Overview
+      </button>
+
+      <button onClick="{{ goWebhooks }}" style="display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:6px;border:none;cursor:pointer;width:100%;text-align:left;font-family:inherit;font-size:13.5px;background:{{ nWBg }};color:{{ nWC }};font-weight:{{ nWW }}" style-hover="opacity:0.85">
+        <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 1.5L3.5 8H8L6 13.5L13.5 6H9.5z"/></svg>
+        Webhooks
+      </button>
+
+      <button onClick="{{ goTransactions }}" style="display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:6px;border:none;cursor:pointer;width:100%;text-align:left;font-family:inherit;font-size:13.5px;background:{{ nTBg }};color:{{ nTC }};font-weight:{{ nTW }}" style-hover="opacity:0.85">
+        <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="2" y="1.5" width="11" height="12" rx="1.5"/><line x1="5" y1="5" x2="10" y2="5"/><line x1="5" y1="7.8" x2="10" y2="7.8"/><line x1="5" y1="10.5" x2="8" y2="10.5"/></svg>
+        Transactions
+      </button>
+
+      <div style="padding:8px 6px 4px;font-size:10.5px;font-weight:600;color:#c0bfcc;letter-spacing:0.07em;text-transform:uppercase;margin-top:4px">Setup</div>
+
+      <button onClick="{{ goQuickStart }}" style="display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:6px;border:none;cursor:pointer;width:100%;text-align:left;font-family:inherit;font-size:13.5px;background:{{ nQBg }};color:{{ nQC }};font-weight:{{ nQW }}" style-hover="opacity:0.85">
+        <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7.5 1.5C7.5 1.5 11.5 3.5 11.5 7.5L9 10H6L3.5 7.5C3.5 3.5 7 1.5 7.5 1.5z"/><circle cx="7.5" cy="6.5" r="1" fill="currentColor" stroke="none"/><path d="M5.5 10.5L4.5 13.5M9.5 10.5L10.5 13.5"/></svg>
+        Quick Start
+        <span style="margin-left:auto;font-size:10.5px;background:#ede9fe;color:#5b21b6;padding:2px 7px;border-radius:9999px;font-weight:600">2/5</span>
+      </button>
+    </nav>
+
+    <!-- Bottom: docs + admin indicator -->
+    <div style="padding:10px 10px 12px;border-top:1px solid #f0f0f2;display:flex;flex-direction:column;gap:2px">
+      <a href="#" style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:6px;color:#71717a;font-size:13px;text-decoration:none" style-hover="background:#f4f4f5;color:#374151">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 1H3C2 1 1 2 1 3v8c0 1 1 2 2 2h8c1 0 2-1 2-2V7"/><path d="M8 1H13V6M13 1L8 6"/></svg>
+        Documentation
+      </a>
+      <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:6px">
+        <div style="width:7px;height:7px;border-radius:50%;background:#16a34a;flex-shrink:0"></div>
+        <span style="font-size:12.5px;font-weight:500;color:#374151">Admin</span>
+        <span style="margin-left:auto;font-size:11px;color:#a1a1aa">self-hosted</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ═══════════════ MAIN AREA ═══════════════ -->
+  <div style="margin-left:240px;flex:1;display:flex;flex-direction:column;min-height:100vh">
+
+    <!-- Sticky header -->
+    <header style="height:52px;background:white;border-bottom:1px solid #e4e4e7;display:flex;align-items:center;padding:0 28px;justify-content:space-between;position:sticky;top:0;z-index:20">
+      <span style="font-size:15px;font-weight:600;color:#141414">{{ pageTitle }}</span>
+      <div style="display:flex;align-items:center;gap:8px">
+        <button onClick="{{ headerCtaAction }}" style="display:flex;align-items:center;gap:6px;padding:6px 14px;background:#4f46e5;color:white;border:none;border-radius:6px;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit" style-hover="background:#4338ca">
+          {{ ctaLabel }}
+        </button>
+      </div>
+    </header>
+
+    <!-- Content -->
+    <main style="flex:1;padding:28px 28px 56px;position:relative">
+
+      <!-- ───── OVERVIEW ───── -->
+      <sc-if value="{{ isOverview }}" hint-placeholder-val="{{ true }}">
+        <div style="animation:fade-in .2s ease-out forwards">
+
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+            <div style="font-size:13px;color:#71717a">fiber-mainnet-01 · Updated just now</div>
+            <div style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:#52525b;background:white;border:1px solid #e4e4e7;border-radius:6px;padding:5px 11px;cursor:pointer" style-hover="background:#f4f4f5">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="6" cy="6" r="4.5"/><path d="M6 3.5v2.5l1.5 1"/></svg>
+              Last 30 days
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M2.5 3.5l3 3 3-3"/></svg>
+            </div>
+          </div>
+
+          <!-- Stats cards -->
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px">
+            <sc-for list="{{ statsCards }}" as="card" hint-placeholder-count="4">
+              <div style="background:white;border:1px solid #e4e4e7;border-radius:8px;padding:18px 20px" style-hover="border-color:#c9c7e5">
+                <div style="font-size:11.5px;font-weight:600;color:#9898a8;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px">{{ card.label }}</div>
+                <div style="font-size:27px;font-weight:700;color:#141414;line-height:1;margin-bottom:4px">{{ card.value }}</div>
+                <div style="font-size:12px;color:#a1a1aa;margin-bottom:8px">{{ card.sub }}</div>
+                <div style="font-size:12px;font-weight:500;color:{{ card.dColor }}">{{ card.delta }} vs last period</div>
+              </div>
+            </sc-for>
+          </div>
+
+          <!-- Two-col: Node Status + Recent Transactions -->
+          <div style="display:grid;grid-template-columns:272px 1fr;gap:14px">
+
+            <!-- Node Status -->
+            <div style="background:white;border:1px solid #e4e4e7;border-radius:8px;padding:18px 20px;align-self:start">
+              <div style="font-size:13px;font-weight:600;color:#141414;margin-bottom:14px">Node Status</div>
+
+              <div style="display:flex;align-items:center;gap:9px;padding:10px 12px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;margin-bottom:14px">
+                <div style="width:8px;height:8px;border-radius:50%;background:#16a34a;animation:pulse-dot 2s ease-in-out infinite;flex-shrink:0"></div>
+                <div>
+                  <div style="font-size:13px;font-weight:600;color:#15803d">Online</div>
+                  <div style="font-size:11.5px;color:#4ade80">All systems operational</div>
+                </div>
+              </div>
+
+              <div style="display:flex;flex-direction:column;gap:9px;margin-bottom:14px">
+                <div style="display:flex;justify-content:space-between;align-items:center">
+                  <span style="font-size:12.5px;color:#71717a">Node ID</span>
+                  <span style="font-size:12px;font-weight:500;color:#141414;font-family:'JetBrains Mono',monospace">mainnet-01</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center">
+                  <span style="font-size:12.5px;color:#71717a">Version</span>
+                  <span style="font-size:12px;font-weight:500;color:#141414;font-family:'JetBrains Mono',monospace">v0.12.3</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center">
+                  <span style="font-size:12.5px;color:#71717a">Uptime</span>
+                  <span style="font-size:12.5px;font-weight:500;color:#141414">99.98%</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center">
+                  <span style="font-size:12.5px;color:#71717a">Peers</span>
+                  <span style="font-size:12.5px;font-weight:500;color:#141414">8</span>
+                </div>
+              </div>
+
+              <div style="border-top:1px solid #f3f4f6;padding-top:14px;display:flex;flex-direction:column;gap:11px">
+                <div>
+                  <div style="display:flex;justify-content:space-between;margin-bottom:5px">
+                    <span style="font-size:12px;color:#71717a">Inbound</span>
+                    <span style="font-size:12px;font-weight:500;color:#141414">45,200 CKB</span>
+                  </div>
+                  <div style="height:5px;background:#f3f4f6;border-radius:9999px;overflow:hidden">
+                    <div style="height:100%;width:{{ inboundPct }};background:#4f46e5;border-radius:9999px"></div>
+                  </div>
+                  <div style="font-size:11px;color:#a1a1aa;margin-top:3px">72% of capacity</div>
+                </div>
+                <div>
+                  <div style="display:flex;justify-content:space-between;margin-bottom:5px">
+                    <span style="font-size:12px;color:#71717a">Outbound</span>
+                    <span style="font-size:12px;font-weight:500;color:#141414">18,500 CKB</span>
+                  </div>
+                  <div style="height:5px;background:#f3f4f6;border-radius:9999px;overflow:hidden">
+                    <div style="height:100%;width:{{ outboundPct }};background:#7c3aed;border-radius:9999px"></div>
+                  </div>
+                  <div style="font-size:11px;color:#a1a1aa;margin-top:3px">30% of capacity</div>
+                </div>
+              </div>
+
+              <!-- Internal secret note -->
+              <div style="border-top:1px solid #f3f4f6;padding-top:12px;margin-top:12px;display:flex;align-items:flex-start;gap:7px">
+                <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="#a1a1aa" stroke-width="1.4" stroke-linecap="round" style="flex-shrink:0;margin-top:1px"><rect x="3" y="6" width="7" height="5.5" rx="1"/><path d="M4.5 6V4.5a2 2 0 014 0V6"/></svg>
+                <div>
+                  <div style="font-size:11.5px;font-weight:500;color:#52525b">Internal API secret</div>
+                  <div style="font-size:11px;color:#a1a1aa;margin-top:1px">Configured via env var</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Recent Transactions -->
+            <div style="background:white;border:1px solid #e4e4e7;border-radius:8px;overflow:hidden">
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:15px 20px;border-bottom:1px solid #f3f4f6">
+                <span style="font-size:13px;font-weight:600;color:#141414">Recent Transactions</span>
+                <button onClick="{{ goTransactions }}" style="font-size:12.5px;color:#4f46e5;background:none;border:none;cursor:pointer;font-family:inherit;font-weight:500" style-hover="color:#4338ca">View all →</button>
+              </div>
+              <table style="width:100%;border-collapse:collapse">
+                <thead>
+                  <tr style="background:#f9f9fb">
+                    <th style="padding:9px 20px;text-align:left;font-size:11.5px;font-weight:600;color:#9898a8;border-bottom:1px solid #f3f4f6;white-space:nowrap;text-transform:uppercase;letter-spacing:0.04em">Invoice ID</th>
+                    <th style="padding:9px 16px;text-align:left;font-size:11.5px;font-weight:600;color:#9898a8;border-bottom:1px solid #f3f4f6;text-transform:uppercase;letter-spacing:0.04em">Description</th>
+                    <th style="padding:9px 16px;text-align:right;font-size:11.5px;font-weight:600;color:#9898a8;border-bottom:1px solid #f3f4f6;white-space:nowrap;text-transform:uppercase;letter-spacing:0.04em">Amount</th>
+                    <th style="padding:9px 16px;text-align:left;font-size:11.5px;font-weight:600;color:#9898a8;border-bottom:1px solid #f3f4f6;text-transform:uppercase;letter-spacing:0.04em">Status</th>
+                    <th style="padding:9px 20px 9px 16px;text-align:left;font-size:11.5px;font-weight:600;color:#9898a8;border-bottom:1px solid #f3f4f6;white-space:nowrap;text-transform:uppercase;letter-spacing:0.04em">Date</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <sc-for list="{{ recentTxns }}" as="tx" hint-placeholder-count="5">
+                    <tr style-hover="background:#f9f9fb">
+                      <td style="padding:11px 20px;border-bottom:1px solid #f3f4f6;font-family:'JetBrains Mono',monospace;font-size:12px;color:#71717a;white-space:nowrap">{{ tx.id }}</td>
+                      <td style="padding:11px 16px;border-bottom:1px solid #f3f4f6;font-size:13px;color:#141414">{{ tx.desc }}</td>
+                      <td style="padding:11px 16px;border-bottom:1px solid #f3f4f6;text-align:right;white-space:nowrap">
+                        <span style="font-size:13px;font-weight:500;color:#141414;font-family:'JetBrains Mono',monospace">{{ tx.amount }}</span>
+                        <span style="font-size:11px;color:#a1a1aa;margin-left:4px">{{ tx.asset }}</span>
+                      </td>
+                      <td style="padding:11px 16px;border-bottom:1px solid #f3f4f6">
+                        <span style="display:inline-block;padding:2px 8px;border-radius:9999px;font-size:11.5px;font-weight:500;background:{{ tx.badge.bg }};color:{{ tx.badge.color }}">{{ tx.badge.label }}</span>
+                      </td>
+                      <td style="padding:11px 20px 11px 16px;border-bottom:1px solid #f3f4f6;font-size:12px;color:#71717a;white-space:nowrap">{{ tx.date }}</td>
+                    </tr>
+                  </sc-for>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+
+      <!-- ───── WEBHOOKS ───── -->
+      <sc-if value="{{ isWebhooks }}" hint-placeholder-val="{{ false }}">
+        <div style="animation:fade-in .2s ease-out forwards">
+
+          <div style="margin-bottom:22px">
+            <div style="font-size:12.5px;color:#71717a">Real-time event notifications sent to your endpoints</div>
+          </div>
+
+          <!-- Add endpoint form -->
+          <sc-if value="{{ showAddWebhook }}" hint-placeholder-val="{{ false }}">
+            <div style="background:white;border:1px solid #c7d2fe;border-radius:8px;padding:20px;margin-bottom:14px;animation:fade-in .15s ease-out">
+              <div style="font-size:13.5px;font-weight:600;color:#141414;margin-bottom:16px">New Webhook Endpoint</div>
+              <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:16px">
+                <div>
+                  <label style="display:block;font-size:12px;font-weight:500;color:#374151;margin-bottom:5px">Endpoint URL</label>
+                  <input placeholder="https://yourdomain.com/webhooks/fibergate" style="width:100%;padding:7px 10px;border:1px solid #e4e4e7;border-radius:6px;font-size:13px;font-family:'JetBrains Mono',monospace;color:#141414;outline:none;background:white" />
+                </div>
+                <div>
+                  <label style="display:block;font-size:12px;font-weight:500;color:#374151;margin-bottom:8px">Events to listen for</label>
+                  <div style="display:flex;flex-wrap:wrap;gap:7px">
+                    <label style="display:flex;align-items:center;gap:6px;padding:5px 10px;border:1px solid #e4e4e7;border-radius:6px;cursor:pointer;font-size:12.5px;color:#374151"><input type="checkbox" defaultChecked style="accent-color:#4f46e5" /> payment.paid</label>
+                    <label style="display:flex;align-items:center;gap:6px;padding:5px 10px;border:1px solid #e4e4e7;border-radius:6px;cursor:pointer;font-size:12.5px;color:#374151"><input type="checkbox" defaultChecked style="accent-color:#4f46e5" /> invoice.expired</label>
+                    <label style="display:flex;align-items:center;gap:6px;padding:5px 10px;border:1px solid #e4e4e7;border-radius:6px;cursor:pointer;font-size:12.5px;color:#374151"><input type="checkbox" style="accent-color:#4f46e5" /> invoice.failed</label>
+                    <label style="display:flex;align-items:center;gap:6px;padding:5px 10px;border:1px solid #e4e4e7;border-radius:6px;cursor:pointer;font-size:12.5px;color:#374151"><input type="checkbox" style="accent-color:#4f46e5" /> * all events</label>
+                  </div>
+                </div>
+              </div>
+              <div style="display:flex;gap:8px;justify-content:flex-end">
+                <button onClick="{{ toggleAddWebhook }}" style="padding:7px 14px;border:1px solid #e4e4e7;border-radius:6px;background:white;color:#374151;font-size:13px;cursor:pointer;font-family:inherit" style-hover="background:#f4f4f5">Cancel</button>
+                <button style="padding:7px 14px;background:#4f46e5;color:white;border:none;border-radius:6px;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit" style-hover="background:#4338ca">Add Endpoint</button>
+              </div>
+            </div>
+          </sc-if>
+
+          <!-- Two-col: endpoints + delivery history -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+
+            <div style="background:white;border:1px solid #e4e4e7;border-radius:8px;overflow:hidden;align-self:start">
+              <div style="padding:14px 18px;border-bottom:1px solid #f3f4f6;font-size:13px;font-weight:600;color:#141414">Endpoints</div>
+              <sc-for list="{{ webhooks }}" as="wh" hint-placeholder-count="3">
+                <div onClick="{{ wh.onSelect }}" style="padding:14px 18px;border-bottom:1px solid #f3f4f6;cursor:pointer;background:{{ wh.selectedBg }};border-left:2px solid {{ wh.selectedBorder }}" style-hover="background:#f9f9fb">
+                  <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:6px">
+                    <code style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#141414;word-break:break-all;line-height:1.4;flex:1">{{ wh.url }}</code>
+                    <span style="flex-shrink:0;display:inline-block;padding:2px 7px;border-radius:9999px;font-size:11px;font-weight:500;background:{{ wh.statusBadge.bg }};color:{{ wh.statusBadge.color }}">{{ wh.statusBadge.label }}</span>
+                  </div>
+                  <div style="font-size:11.5px;color:#71717a;margin-bottom:5px">{{ wh.events }}</div>
+                  <div style="display:flex;justify-content:space-between">
+                    <span style="font-size:11.5px;color:#a1a1aa">Last: {{ wh.lastDelivery }}</span>
+                    <span style="font-size:11.5px;color:#a1a1aa">{{ wh.rate }} success</span>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+
+            <div style="background:white;border:1px solid #e4e4e7;border-radius:8px;overflow:hidden;align-self:start">
+              <div style="padding:14px 18px;border-bottom:1px solid #f3f4f6;display:flex;align-items:center;justify-content:space-between">
+                <span style="font-size:13px;font-weight:600;color:#141414">Delivery History</span>
+                <span style="font-size:12px;color:#71717a;font-family:'JetBrains Mono',monospace;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ selURL }}</span>
+              </div>
+              <sc-if value="{{ hasDeliveries }}" hint-placeholder-val="{{ true }}">
+                <sc-for list="{{ selDeliveries }}" as="dl" hint-placeholder-count="5">
+                  <div style="padding:11px 18px;border-bottom:1px solid #f3f4f6;display:flex;align-items:center;gap:12px">
+                    <div style="width:7px;height:7px;border-radius:50%;background:{{ dl.dot }};flex-shrink:0"></div>
+                    <div style="flex:1;min-width:0">
+                      <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#141414">{{ dl.event }}</div>
+                      <div style="font-size:11.5px;color:#a1a1aa;margin-top:2px">{{ dl.time }}</div>
+                    </div>
+                    <span style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;color:{{ dl.codeColor }}">{{ dl.code }}</span>
+                    <button style="padding:3px 9px;border:1px solid #e4e4e7;border-radius:5px;background:white;cursor:pointer;font-size:11px;color:#71717a;font-family:inherit" style-hover="background:#f4f4f5">Retry</button>
+                  </div>
+                </sc-for>
+              </sc-if>
+              <sc-if value="{{ noDeliveries }}" hint-placeholder-val="{{ false }}">
+                <div style="padding:32px 18px;text-align:center;color:#a1a1aa;font-size:13px">No deliveries yet for this endpoint.</div>
+              </sc-if>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+
+      <!-- ───── TRANSACTIONS ───── -->
+      <sc-if value="{{ isTransactions }}" hint-placeholder-val="{{ false }}">
+        <div style="animation:fade-in .2s ease-out forwards">
+
+          <div style="margin-bottom:18px">
+            <div style="font-size:15px;font-weight:600;color:#141414">Transactions</div>
+            <div style="font-size:12.5px;color:#71717a;margin-top:2px">All invoices and payment events</div>
+          </div>
+
+          <!-- Tab switcher -->
+          <div style="display:flex;gap:0;margin-bottom:16px;border-bottom:1px solid #e4e4e7">
+            <button onClick="{{ setTabInvoices }}" style="padding:8px 18px;border:none;border-bottom:2px solid {{ tabInvBorder }};cursor:pointer;font-size:13px;font-weight:500;font-family:inherit;background:transparent;color:{{ tabInvColor }};margin-bottom:-1px" style-hover="color:#141414">Invoices</button>
+            <button onClick="{{ setTabSettlement }}" style="padding:8px 18px;border:none;border-bottom:2px solid {{ tabSetBorder }};cursor:pointer;font-size:13px;font-weight:500;font-family:inherit;background:transparent;color:{{ tabSetColor }};margin-bottom:-1px" style-hover="color:#141414">Settlement log</button>
+          </div>
+
+          <!-- ── Invoices tab ── -->
+          <sc-if value="{{ isTabInvoices }}" hint-placeholder-val="{{ true }}">
+            <div>
+              <!-- Filter bar -->
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+                <div style="display:flex;background:white;border:1px solid #e4e4e7;border-radius:6px;overflow:hidden">
+                  <button onClick="{{ setStatusAll }}"  style="padding:6px 12px;border:none;border-right:1px solid #e4e4e7;cursor:pointer;font-size:12.5px;font-family:inherit;font-weight:500;background:{{ fsAllBg }};color:{{ fsAllC }}" style-hover="opacity:0.88">All</button>
+                  <button onClick="{{ setStatusPaid }}" style="padding:6px 12px;border:none;border-right:1px solid #e4e4e7;cursor:pointer;font-size:12.5px;font-family:inherit;font-weight:500;background:{{ fsPdBg }};color:{{ fsPdC }}" style-hover="opacity:0.88">Paid</button>
+                  <button onClick="{{ setStatusPend }}" style="padding:6px 12px;border:none;border-right:1px solid #e4e4e7;cursor:pointer;font-size:12.5px;font-family:inherit;font-weight:500;background:{{ fsPnBg }};color:{{ fsPnC }}" style-hover="opacity:0.88">Pending</button>
+                  <button onClick="{{ setStatusExp }}"  style="padding:6px 12px;border:none;border-right:1px solid #e4e4e7;cursor:pointer;font-size:12.5px;font-family:inherit;font-weight:500;background:{{ fsExBg }};color:{{ fsExC }}" style-hover="opacity:0.88">Expired</button>
+                  <button onClick="{{ setStatusFail }}" style="padding:6px 12px;border:none;cursor:pointer;font-size:12.5px;font-family:inherit;font-weight:500;background:{{ fsFaBg }};color:{{ fsFaC }}" style-hover="opacity:0.88">Failed</button>
+                </div>
+                <div style="display:flex;background:white;border:1px solid #e4e4e7;border-radius:6px;overflow:hidden">
+                  <button onClick="{{ setAssetAll }}"  style="padding:6px 12px;border:none;border-right:1px solid #e4e4e7;cursor:pointer;font-size:12.5px;font-family:inherit;font-weight:500;background:{{ faAllBg }};color:{{ faAllC }}" style-hover="opacity:0.88">All assets</button>
+                  <button onClick="{{ setAssetCKB }}"  style="padding:6px 12px;border:none;border-right:1px solid #e4e4e7;cursor:pointer;font-size:12.5px;font-family:'JetBrains Mono',monospace;font-weight:600;background:{{ faCkbBg }};color:{{ faCkbC }}" style-hover="opacity:0.88">CKB</button>
+                  <button onClick="{{ setAssetRUSD }}" style="padding:6px 12px;border:none;cursor:pointer;font-size:12.5px;font-family:'JetBrains Mono',monospace;font-weight:600;background:{{ faRusdBg }};color:{{ faRusdC }}" style-hover="opacity:0.88">RUSD</button>
+                </div>
+                <div style="margin-left:auto;font-size:12.5px;color:#71717a">{{ filteredCount }} transactions</div>
+              </div>
+
+              <div style="background:white;border:1px solid #e4e4e7;border-radius:8px;overflow:hidden">
+                <table style="width:100%;border-collapse:collapse">
+                  <thead>
+                    <tr style="background:#f9f9fb;border-bottom:1px solid #e4e4e7">
+                      <th style="padding:10px 20px;text-align:left;font-size:11.5px;font-weight:600;color:#9898a8;text-transform:uppercase;letter-spacing:0.04em;white-space:nowrap">Invoice ID</th>
+                      <th style="padding:10px 16px;text-align:left;font-size:11.5px;font-weight:600;color:#9898a8;text-transform:uppercase;letter-spacing:0.04em">Description</th>
+                      <th style="padding:10px 16px;text-align:right;font-size:11.5px;font-weight:600;color:#9898a8;text-transform:uppercase;letter-spacing:0.04em;white-space:nowrap">Amount</th>
+                      <th style="padding:10px 16px;text-align:left;font-size:11.5px;font-weight:600;color:#9898a8;text-transform:uppercase;letter-spacing:0.04em">Asset</th>
+                      <th style="padding:10px 16px;text-align:left;font-size:11.5px;font-weight:600;color:#9898a8;text-transform:uppercase;letter-spacing:0.04em">Status</th>
+                      <th style="padding:10px 20px 10px 16px;text-align:left;font-size:11.5px;font-weight:600;color:#9898a8;text-transform:uppercase;letter-spacing:0.04em;white-space:nowrap">Date</th>
+                      <th style="padding:10px 16px;text-align:right;font-size:11.5px;font-weight:600;color:#9898a8;text-transform:uppercase;letter-spacing:0.04em"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <sc-for list="{{ filteredTxs }}" as="tx" hint-placeholder-count="8">
+                      <tr style-hover="background:#f9f9fb">
+                        <td style="padding:12px 20px;border-bottom:1px solid #f3f4f6;font-family:'JetBrains Mono',monospace;font-size:12px;color:#71717a;white-space:nowrap">{{ tx.id }}</td>
+                        <td style="padding:12px 16px;border-bottom:1px solid #f3f4f6;font-size:13px;color:#141414">{{ tx.desc }}</td>
+                        <td style="padding:12px 16px;border-bottom:1px solid #f3f4f6;text-align:right;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:500;color:#141414;white-space:nowrap">{{ tx.amount }}</td>
+                        <td style="padding:12px 16px;border-bottom:1px solid #f3f4f6">
+                          <span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:11.5px;font-weight:600;background:#f3f4f6;color:#374151;font-family:'JetBrains Mono',monospace">{{ tx.asset }}</span>
+                        </td>
+                        <td style="padding:12px 16px;border-bottom:1px solid #f3f4f6">
+                          <span style="display:inline-block;padding:2px 8px;border-radius:9999px;font-size:11.5px;font-weight:500;background:{{ tx.badge.bg }};color:{{ tx.badge.color }}">{{ tx.badge.label }}</span>
+                        </td>
+                        <td style="padding:12px 20px 12px 16px;border-bottom:1px solid #f3f4f6;font-size:12px;color:#71717a;white-space:nowrap">{{ tx.date }}</td>
+                        <td style="padding:12px 16px;border-bottom:1px solid #f3f4f6;text-align:right;white-space:nowrap">
+                          <sc-if value="{{ tx.isPaid }}" hint-placeholder-val="{{ false }}">
+                            <button onClick="{{ tx.onReceipt }}" style="padding:4px 10px;border:1px solid #e4e4e7;border-radius:5px;background:white;cursor:pointer;font-size:11.5px;color:#52525b;font-family:inherit;display:inline-flex;align-items:center;gap:5px" style-hover="background:#f4f4f5">
+                              <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="1.5" y="1" width="8" height="9" rx="1"/><line x1="3.5" y1="3.5" x2="7.5" y2="3.5"/><line x1="3.5" y1="5.5" x2="7.5" y2="5.5"/><line x1="3.5" y1="7.5" x2="5.5" y2="7.5"/></svg>
+                              Receipt
+                            </button>
+                          </sc-if>
+                        </td>
+                      </tr>
+                    </sc-for>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </sc-if>
+
+          <!-- ── Settlement tab ── -->
+          <sc-if value="{{ isTabSettlement }}" hint-placeholder-val="{{ false }}">
+            <div style="background:white;border:1px solid #e4e4e7;border-radius:8px;overflow:hidden">
+              <div style="padding:14px 20px;border-bottom:1px solid #f3f4f6;display:flex;align-items:center;justify-content:space-between">
+                <div>
+                  <span style="font-size:13px;font-weight:600;color:#141414">Webhook Delivery Log</span>
+                  <span style="font-size:12px;color:#a1a1aa;margin-left:10px">Payment events sent to your endpoints</span>
+                </div>
+              </div>
+              <table style="width:100%;border-collapse:collapse">
+                <thead>
+                  <tr style="background:#f9f9fb;border-bottom:1px solid #e4e4e7">
+                    <th style="padding:10px 20px;text-align:left;font-size:11.5px;font-weight:600;color:#9898a8;text-transform:uppercase;letter-spacing:0.04em;white-space:nowrap">Invoice ID</th>
+                    <th style="padding:10px 16px;text-align:left;font-size:11.5px;font-weight:600;color:#9898a8;text-transform:uppercase;letter-spacing:0.04em">Event</th>
+                    <th style="padding:10px 16px;text-align:left;font-size:11.5px;font-weight:600;color:#9898a8;text-transform:uppercase;letter-spacing:0.04em">Endpoint</th>
+                    <th style="padding:10px 16px;text-align:left;font-size:11.5px;font-weight:600;color:#9898a8;text-transform:uppercase;letter-spacing:0.04em">HTTP</th>
+                    <th style="padding:10px 20px 10px 16px;text-align:left;font-size:11.5px;font-weight:600;color:#9898a8;text-transform:uppercase;letter-spacing:0.04em;white-space:nowrap">Delivered</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <sc-for list="{{ settlementRows }}" as="row" hint-placeholder-count="5">
+                    <tr style-hover="background:#f9f9fb">
+                      <td style="padding:12px 20px;border-bottom:1px solid #f3f4f6;font-family:'JetBrains Mono',monospace;font-size:12px;color:#71717a;white-space:nowrap">{{ row.invoiceId }}</td>
+                      <td style="padding:12px 16px;border-bottom:1px solid #f3f4f6">
+                        <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#141414">{{ row.event }}</span>
+                      </td>
+                      <td style="padding:12px 16px;border-bottom:1px solid #f3f4f6;font-size:12px;color:#71717a;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ row.endpoint }}</td>
+                      <td style="padding:12px 16px;border-bottom:1px solid #f3f4f6">
+                        <span style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;color:{{ row.codeColor }}">{{ row.code }}</span>
+                      </td>
+                      <td style="padding:12px 20px 12px 16px;border-bottom:1px solid #f3f4f6;font-size:12px;color:#71717a;white-space:nowrap">{{ row.time }}</td>
+                    </tr>
+                  </sc-for>
+                </tbody>
+              </table>
+            </div>
+          </sc-if>
+        </div>
+      </sc-if>
+
+
+      <!-- ───── QUICK START ───── -->
+      <sc-if value="{{ isQuickStart }}" hint-placeholder-val="{{ false }}">
+        <div style="animation:fade-in .2s ease-out forwards;max-width:800px">
+
+          <div style="margin-bottom:22px">
+            <div style="font-size:15px;font-weight:600;color:#141414">Quick Start</div>
+            <div style="font-size:12.5px;color:#71717a;margin-top:2px">Self-host FiberGate and accept your first payment</div>
+          </div>
+
+          <!-- Progress -->
+          <div style="background:white;border:1px solid #e4e4e7;border-radius:8px;padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;gap:14px">
+            <div style="flex:1;height:6px;background:#f3f4f6;border-radius:9999px;overflow:hidden">
+              <div style="height:100%;width:40%;background:linear-gradient(90deg,#4f46e5,#7c3aed);border-radius:9999px"></div>
+            </div>
+            <span style="font-size:13px;font-weight:600;color:#141414;white-space:nowrap">2 of 5 complete</span>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:10px">
+
+            <!-- Step 1 Done -->
+            <div style="background:white;border:1px solid #e4e4e7;border-radius:8px;overflow:hidden">
+              <div style="padding:16px 20px;display:flex;align-items:center;gap:14px">
+                <div style="width:28px;height:28px;border-radius:50%;background:#4f46e5;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                  <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7L5 10L11 3.5"/></svg>
+                </div>
+                <div style="flex:1">
+                  <div style="font-size:14px;font-weight:600;color:#141414">Deploy FiberGate</div>
+                  <div style="font-size:12.5px;color:#71717a;margin-top:2px">Run via Docker Compose with your environment variables</div>
+                </div>
+                <span style="font-size:12px;font-weight:500;color:#15803d;background:#dcfce7;padding:3px 10px;border-radius:9999px">Done</span>
+              </div>
+              <div style="padding:0 20px 16px 62px">
+                <pre style="background:#0f172a;border-radius:6px;padding:12px 16px;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.65;color:#e2e8f0;overflow-x:auto;margin:0">{{ codeDeploy }}</pre>
+              </div>
+            </div>
+
+            <!-- Step 2 Done -->
+            <div style="background:white;border:1px solid #e4e4e7;border-radius:8px;overflow:hidden">
+              <div style="padding:16px 20px;display:flex;align-items:center;gap:14px">
+                <div style="width:28px;height:28px;border-radius:50%;background:#4f46e5;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                  <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7L5 10L11 3.5"/></svg>
+                </div>
+                <div style="flex:1">
+                  <div style="font-size:14px;font-weight:600;color:#141414">Login to dashboard</div>
+                  <div style="font-size:12.5px;color:#71717a;margin-top:2px">Use the ADMIN_PASSWORD you set in your environment</div>
+                </div>
+                <span style="font-size:12px;font-weight:500;color:#15803d;background:#dcfce7;padding:3px 10px;border-radius:9999px">Done</span>
+              </div>
+            </div>
+
+            <!-- Step 3 Current -->
+            <div style="background:white;border:2px solid #4f46e5;border-radius:8px;overflow:hidden;box-shadow:0 0 0 3px rgba(79,70,229,.08)">
+              <div style="padding:16px 20px;display:flex;align-items:center;gap:14px">
+                <div style="width:28px;height:28px;border-radius:50%;background:#4f46e5;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:white;font-weight:700;font-size:13px">3</div>
+                <div style="flex:1">
+                  <div style="font-size:14px;font-weight:600;color:#141414">Install the SDK</div>
+                  <div style="font-size:12.5px;color:#71717a;margin-top:2px">Add the FiberGate SDK to your project</div>
+                </div>
+                <span style="font-size:12px;font-weight:500;color:#4f46e5;background:#eef2ff;padding:3px 10px;border-radius:9999px">Current</span>
+              </div>
+              <div style="padding:0 20px 20px 62px">
+                <pre style="background:#0f172a;border-radius:6px;padding:12px 16px;font-family:'JetBrains Mono',monospace;font-size:12.5px;line-height:1.6;color:#e2e8f0;overflow-x:auto;margin:0">{{ codeInstall }}</pre>
+                <div style="margin-top:12px;display:flex;gap:8px">
+                  <a href="#" style="padding:7px 14px;border:1px solid #e4e4e7;border-radius:6px;font-size:13px;color:#374151;text-decoration:none;display:inline-flex;align-items:center;gap:5px" style-hover="background:#f4f4f5">View SDK docs</a>
+                </div>
+              </div>
+            </div>
+
+            <!-- Step 4 Pending -->
+            <div style="background:#f9f9fb;border:1px solid #e4e4e7;border-radius:8px;overflow:hidden;opacity:0.7">
+              <div style="padding:16px 20px;display:flex;align-items:center;gap:14px">
+                <div style="width:28px;height:28px;border-radius:50%;background:#e4e4e7;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#71717a;font-weight:700;font-size:13px">4</div>
+                <div style="flex:1">
+                  <div style="font-size:14px;font-weight:600;color:#71717a">Create your first invoice</div>
+                  <div style="font-size:12.5px;color:#a1a1aa;margin-top:2px">Use the API to generate a payment request</div>
+                </div>
+              </div>
+              <div style="padding:0 20px 16px 62px">
+                <pre style="background:#1e293b;border-radius:6px;padding:12px 16px;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.65;color:#94a3b8;overflow-x:auto;margin:0">{{ codeInvoice }}</pre>
+              </div>
+            </div>
+
+            <!-- Step 5 Pending -->
+            <div style="background:#f9f9fb;border:1px solid #e4e4e7;border-radius:8px;overflow:hidden;opacity:0.7">
+              <div style="padding:16px 20px;display:flex;align-items:center;gap:14px">
+                <div style="width:28px;height:28px;border-radius:50%;background:#e4e4e7;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#71717a;font-weight:700;font-size:13px">5</div>
+                <div style="flex:1">
+                  <div style="font-size:14px;font-weight:600;color:#71717a">Configure webhook + test payment</div>
+                  <div style="font-size:12.5px;color:#a1a1aa;margin-top:2px">Receive events and verify end-to-end on testnet</div>
+                </div>
+              </div>
+              <div style="padding:0 20px 16px 62px">
+                <pre style="background:#1e293b;border-radius:6px;padding:12px 16px;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.65;color:#94a3b8;overflow-x:auto;margin:0">{{ codeWebhook }}</pre>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </sc-if>
+
+    </main>
+  </div>
+
+  <!-- ───── RECEIPT MODAL ───── -->
+  <sc-if value="{{ showReceipt }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeReceipt }}" style="position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:50;display:flex;align-items:center;justify-content:center">
+      <div onClick="{{ stopProp }}" style="background:white;border-radius:12px;padding:0;width:440px;box-shadow:0 20px 60px rgba(0,0,0,0.15);overflow:hidden;animation:fade-in .15s ease-out">
+        <!-- Header -->
+        <div style="padding:20px 24px 16px;border-bottom:1px solid #f3f4f6;display:flex;align-items:center;justify-content:space-between">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="width:32px;height:32px;border-radius:8px;background:#f0fdf4;display:flex;align-items:center;justify-content:center">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#16a34a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2H13a1 1 0 011 1v11l-2-1.5L10 14l-2-1.5L6 14l-2-1.5L2 14V3a1 1 0 011-1z"/><line x1="5" y1="6" x2="11" y2="6"/><line x1="5" y1="8.5" x2="11" y2="8.5"/><line x1="5" y1="11" x2="8" y2="11"/></svg>
+            </div>
+            <div>
+              <div style="font-size:14px;font-weight:600;color:#141414">Payment Receipt</div>
+              <div style="font-size:11.5px;color:#a1a1aa;margin-top:1px">{{ receiptId }}</div>
+            </div>
+          </div>
+          <button onClick="{{ closeReceipt }}" style="width:28px;height:28px;border-radius:6px;border:1px solid #e4e4e7;background:white;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#71717a" style-hover="background:#f4f4f5">
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="2" y1="2" x2="11" y2="11"/><line x1="11" y1="2" x2="2" y2="11"/></svg>
+          </button>
+        </div>
+        <!-- Body -->
+        <div style="padding:20px 24px">
+          <div style="display:flex;flex-direction:column;gap:13px">
+            <div style="display:flex;justify-content:space-between;align-items:baseline">
+              <span style="font-size:12.5px;color:#71717a">Description</span>
+              <span style="font-size:13.5px;font-weight:500;color:#141414">{{ receiptDesc }}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:baseline">
+              <span style="font-size:12.5px;color:#71717a">Amount</span>
+              <span style="font-size:13.5px;font-weight:700;color:#141414;font-family:'JetBrains Mono',monospace">{{ receiptAmount }} <span style="font-size:11.5px;font-weight:400;color:#71717a">{{ receiptAsset }}</span></span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <span style="font-size:12.5px;color:#71717a">Status</span>
+              <span style="display:inline-block;padding:2px 9px;border-radius:9999px;font-size:11.5px;font-weight:500;background:#dcfce7;color:#15803d">Paid</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:baseline">
+              <span style="font-size:12.5px;color:#71717a">Paid at</span>
+              <span style="font-size:12.5px;color:#141414">{{ receiptDate }}</span>
+            </div>
+            <div style="border-top:1px solid #f3f4f6;padding-top:13px">
+              <div style="font-size:12px;color:#71717a;margin-bottom:5px">Payment hash</div>
+              <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#374151;background:#f3f4f6;padding:8px 10px;border-radius:5px;word-break:break-all;line-height:1.5">{{ receiptHash }}</div>
+            </div>
+          </div>
+        </div>
+        <!-- Footer -->
+        <div style="padding:14px 24px 18px;display:flex;gap:8px;justify-content:flex-end;border-top:1px solid #f3f4f6">
+          <button onClick="{{ closeReceipt }}" style="padding:7px 14px;border:1px solid #e4e4e7;border-radius:6px;background:white;color:#374151;font-size:13px;cursor:pointer;font-family:inherit" style-hover="background:#f4f4f5">Close</button>
+          <button style="padding:7px 14px;background:#4f46e5;color:white;border:none;border-radius:6px;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit" style-hover="background:#4338ca">Download PDF</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:900}}">
+class Component extends DCLogic {
+  state = {
+    screen: 'overview',
+    txStatus: 'all',
+    txAsset: 'all',
+    txTab: 'invoices',
+    selWebhook: 'wh_01',
+    showAddWebhook: false,
+    receiptTx: null,
+  };
+
+  go(s) { this.setState({ screen: s }); }
+
+  ns(id) {
+    const a = this.state.screen === id;
+    return { bg: a ? '#eef2ff' : 'transparent', color: a ? '#4f46e5' : '#52525b', weight: a ? '600' : '400' };
+  }
+
+  bx(status) {
+    return ({
+      paid:     { bg: '#dcfce7', color: '#15803d', label: 'Paid'     },
+      pending:  { bg: '#fef9c3', color: '#854d0e', label: 'Pending'  },
+      expired:  { bg: '#f3f4f6', color: '#374151', label: 'Expired'  },
+      failed:   { bg: '#fee2e2', color: '#991b1b', label: 'Failed'   },
+      active:   { bg: '#dcfce7', color: '#15803d', label: 'Active'   },
+      disabled: { bg: '#f3f4f6', color: '#71717a', label: 'Disabled' },
+    }[status] || { bg: '#f3f4f6', color: '#374151', label: status });
+  }
+
+  fakeHash(id) {
+    const seeds = {
+      inv_8A7K9: '0a3f9c12e7b4d56a8f2c1e0d9b7a3f5c2e8d4b6a1f0e9c7d3b5a2f8e4c6d1b0',
+      inv_3X2M1: '1b4e8a2c5f7d0e3b6a9c2f5e8d1b4a7c0f3e6d9b2a5c8f1e4d7b0a3c6f9e2d5',
+      inv_7P0Q3: '2c5f9b3d6a0e4c7f1b5e8a2d6c9f0b3a7e1d4c8f2b5a9e3d6c0f4b7a1e5d8c2',
+      inv_1U4W8: '3d6a0c4e8b1f5d2a7c3e6f9b0a4d7c1f5e2b8a3d6c0f9e4b1a5d8c2f6e3b7a0',
+      inv_6Y3Z9: '4e7b1d5a9c2f6e3b0d4a8c1f5b2e7d0a4c8f3b6a1e5d9c2f7b4a0e3d6c9f2b5',
+    };
+    return seeds[id] || '5f8c2e6a0b4d9f1c5e3b7a2d6f0c4e8b1a5d9c3f7b2e6a0d4c8f1b5e3a7d0c2';
+  }
+
+  renderVals() {
+    const s = this.state;
+    const n = (id) => this.ns(id);
+
+    const RAW_TXS = [
+      { id: 'inv_8A7K9', desc: 'Order #4821',           amount: '1,200.00', asset: 'CKB',  status: 'paid',    date: 'Jul 01, 14:23' },
+      { id: 'inv_3X2M1', desc: 'Course: Advanced Rust', amount: '0.85',     asset: 'RUSD', status: 'paid',    date: 'Jul 01, 11:05' },
+      { id: 'inv_9K4L2', desc: 'API access – Sept',     amount: '800.00',   asset: 'CKB',  status: 'pending', date: 'Jun 30, 22:41' },
+      { id: 'inv_7P0Q3', desc: 'Digital download',      amount: '45.50',    asset: 'CKB',  status: 'paid',    date: 'Jun 30, 18:17' },
+      { id: 'inv_2R5T6', desc: 'Order #4819',           amount: '2.20',     asset: 'RUSD', status: 'expired', date: 'Jun 29, 09:33' },
+      { id: 'inv_5S8V7', desc: 'Membership – Annual',   amount: '500.00',   asset: 'CKB',  status: 'failed',  date: 'Jun 28, 16:52' },
+      { id: 'inv_1U4W8', desc: 'Order #4816',           amount: '1.10',     asset: 'RUSD', status: 'paid',    date: 'Jun 27, 08:14' },
+      { id: 'inv_6Y3Z9', desc: 'SaaS subscription',     amount: '3,000.00', asset: 'CKB',  status: 'paid',    date: 'Jun 26, 20:00' },
+    ];
+
+    const filteredTxs = RAW_TXS
+      .filter(t => s.txStatus === 'all' || t.status === s.txStatus)
+      .filter(t => s.txAsset  === 'all' || t.asset  === s.txAsset)
+      .map(t => ({
+        ...t,
+        badge: this.bx(t.status),
+        isPaid: t.status === 'paid',
+        onReceipt: () => this.setState({ receiptTx: t }),
+      }));
+
+    const WEBHOOKS = [
+      { id: 'wh_01', url: 'https://api.myapp.com/webhooks/fibergate',
+        events: 'payment.paid, invoice.expired, invoice.failed', status: 'active', lastDelivery: '2 hours ago', rate: '99.1%',
+        deliveries: [
+          { id: 'd1', event: 'payment.paid',    time: 'Jul 01, 14:23', code: '200', ok: true  },
+          { id: 'd2', event: 'invoice.failed',  time: 'Jul 01, 11:05', code: '200', ok: true  },
+          { id: 'd3', event: 'payment.paid',    time: 'Jun 30, 18:17', code: '200', ok: true  },
+          { id: 'd4', event: 'invoice.expired', time: 'Jun 29, 09:33', code: '500', ok: false },
+          { id: 'd5', event: 'payment.paid',    time: 'Jun 27, 08:14', code: '200', ok: true  },
+        ] },
+      { id: 'wh_02', url: 'https://staging.myapp.com/hooks',
+        events: 'payment.paid', status: 'active', lastDelivery: '1 day ago', rate: '100%',
+        deliveries: [{ id: 'd6', event: 'payment.paid', time: 'Jun 30, 14:00', code: '200', ok: true }] },
+      { id: 'wh_03', url: 'https://debug.myapp.com/all-events',
+        events: '* (all events)', status: 'disabled', lastDelivery: '5 days ago', rate: '87.3%', deliveries: [] },
+    ];
+
+    const webhooks = WEBHOOKS.map(w => ({
+      ...w,
+      statusBadge:    this.bx(w.status),
+      selectedBg:     s.selWebhook === w.id ? '#f0f0ff' : 'white',
+      selectedBorder: s.selWebhook === w.id ? '#c7d2fe' : 'transparent',
+      onSelect:       () => this.setState({ selWebhook: w.id }),
+      deliveries: w.deliveries.map(d => ({
+        ...d, dot: d.ok ? '#16a34a' : '#dc2626', codeColor: d.ok ? '#15803d' : '#991b1b',
+      })),
+    }));
+
+    const selWH = webhooks.find(w => w.id === s.selWebhook);
+    const selDeliveries = selWH ? selWH.deliveries : [];
+
+    const settlementRows = [
+      { invoiceId: 'inv_8A7K9', event: 'payment.paid',    endpoint: 'api.myapp.com/…',     code: '200', codeColor: '#15803d', time: 'Jul 01, 14:23' },
+      { invoiceId: 'inv_3X2M1', event: 'payment.paid',    endpoint: 'api.myapp.com/…',     code: '200', codeColor: '#15803d', time: 'Jul 01, 11:05' },
+      { invoiceId: 'inv_9K4L2', event: 'invoice.expired', endpoint: 'api.myapp.com/…',     code: '500', codeColor: '#991b1b', time: 'Jun 30, 23:41' },
+      { invoiceId: 'inv_7P0Q3', event: 'payment.paid',    endpoint: 'staging.myapp.com/…', code: '200', codeColor: '#15803d', time: 'Jun 30, 18:17' },
+      { invoiceId: 'inv_2R5T6', event: 'invoice.expired', endpoint: 'api.myapp.com/…',     code: '200', codeColor: '#15803d', time: 'Jun 29, 10:33' },
+      { invoiceId: 'inv_5S8V7', event: 'invoice.failed',  endpoint: 'api.myapp.com/…',     code: '200', codeColor: '#15803d', time: 'Jun 28, 17:00' },
+      { invoiceId: 'inv_1U4W8', event: 'payment.paid',    endpoint: 'api.myapp.com/…',     code: '200', codeColor: '#15803d', time: 'Jun 27, 08:14' },
+      { invoiceId: 'inv_6Y3Z9', event: 'payment.paid',    endpoint: 'staging.myapp.com/…', code: '200', codeColor: '#15803d', time: 'Jun 26, 20:00' },
+    ];
+
+    const fs = (a) => ({ bg: a ? '#4f46e5' : 'white', color: a ? 'white' : '#52525b' });
+    const fa = (a) => ({ bg: a ? '#141414' : 'white', color: a ? 'white' : '#52525b' });
+
+    const rt = s.receiptTx;
+    const tabActive   = (t) => s.txTab === t;
+    const tabBorder   = (t) => tabActive(t) ? '#4f46e5' : 'transparent';
+    const tabColor    = (t) => tabActive(t) ? '#4f46e5' : '#71717a';
+
+    return {
+      isOverview:     s.screen === 'overview',
+      isWebhooks:     s.screen === 'webhooks',
+      isTransactions: s.screen === 'transactions',
+      isQuickStart:   s.screen === 'quickstart',
+
+      pageTitle: { overview: 'Overview', webhooks: 'Webhooks', transactions: 'Transactions', quickstart: 'Quick Start' }[s.screen] || 'Overview',
+      ctaLabel:  { overview: 'View Report', webhooks: 'Add Endpoint', transactions: 'Export CSV', quickstart: 'View Docs' }[s.screen] || 'New',
+      headerCtaAction: s.screen === 'webhooks' ? () => this.setState(st => ({ showAddWebhook: !st.showAddWebhook })) : () => {},
+
+      noOBg: n('overview').bg,     noOC: n('overview').color,     noOW: n('overview').weight,
+      nWBg:  n('webhooks').bg,     nWC:  n('webhooks').color,     nWW:  n('webhooks').weight,
+      nTBg:  n('transactions').bg, nTC:  n('transactions').color, nTW:  n('transactions').weight,
+      nQBg:  n('quickstart').bg,   nQC:  n('quickstart').color,   nQW:  n('quickstart').weight,
+
+      goOverview:     () => this.go('overview'),
+      goWebhooks:     () => this.go('webhooks'),
+      goTransactions: () => this.go('transactions'),
+      goQuickStart:   () => this.go('quickstart'),
+
+      inboundPct:  '72%',
+      outboundPct: '30%',
+
+      statsCards: [
+        { label: 'Total Volume (30d)',    value: '12,450 CKB', sub: '+ 142 RUSD',      delta: '↑ 12.4%', dColor: '#16a34a' },
+        { label: 'Active Channels',       value: '24',          sub: '3 pending close', delta: '↑ 3',     dColor: '#16a34a' },
+        { label: 'Success Rate',          value: '98.2%',       sub: '486 / 495 txns',  delta: '↑ 0.4%', dColor: '#16a34a' },
+        { label: 'Invoices Created (24h)', value: '24',         sub: '~1 / hour',       delta: '↓ 4.1%', dColor: '#dc2626' },
+      ],
+      recentTxns: RAW_TXS.slice(0, 5).map(t => ({ ...t, badge: this.bx(t.status) })),
+
+      webhooks, selDeliveries, settlementRows,
+      selURL:        selWH ? selWH.url : '',
+      hasDeliveries: !!(selWH && selWH.deliveries.length > 0),
+      noDeliveries:  !!(selWH && selWH.deliveries.length === 0),
+      showAddWebhook:   s.showAddWebhook,
+      toggleAddWebhook: () => this.setState(st => ({ showAddWebhook: !st.showAddWebhook })),
+
+      filteredTxs,
+      filteredCount: filteredTxs.length,
+
+      isTabInvoices:    s.txTab === 'invoices',
+      isTabSettlement:  s.txTab === 'settlement',
+      tabInvBorder:     tabBorder('invoices'),
+      tabSetBorder:     tabBorder('settlement'),
+      tabInvColor:      tabColor('invoices'),
+      tabSetColor:      tabColor('settlement'),
+      setTabInvoices:   () => this.setState({ txTab: 'invoices' }),
+      setTabSettlement: () => this.setState({ txTab: 'settlement' }),
+
+      fsAllBg: fs(s.txStatus==='all'    ).bg, fsAllC: fs(s.txStatus==='all'    ).color,
+      fsPdBg:  fs(s.txStatus==='paid'   ).bg, fsPdC:  fs(s.txStatus==='paid'   ).color,
+      fsPnBg:  fs(s.txStatus==='pending').bg, fsPnC:  fs(s.txStatus==='pending').color,
+      fsExBg:  fs(s.txStatus==='expired').bg, fsExC:  fs(s.txStatus==='expired').color,
+      fsFaBg:  fs(s.txStatus==='failed' ).bg, fsFaC:  fs(s.txStatus==='failed' ).color,
+      faAllBg:  fa(s.txAsset==='all' ).bg,  faAllC:  fa(s.txAsset==='all' ).color,
+      faCkbBg:  fa(s.txAsset==='CKB' ).bg,  faCkbC:  fa(s.txAsset==='CKB' ).color,
+      faRusdBg: fa(s.txAsset==='RUSD').bg,  faRusdC: fa(s.txAsset==='RUSD').color,
+
+      setStatusAll:  () => this.setState({ txStatus: 'all'     }),
+      setStatusPaid: () => this.setState({ txStatus: 'paid'    }),
+      setStatusPend: () => this.setState({ txStatus: 'pending' }),
+      setStatusExp:  () => this.setState({ txStatus: 'expired' }),
+      setStatusFail: () => this.setState({ txStatus: 'failed'  }),
+      setAssetAll:   () => this.setState({ txAsset: 'all'  }),
+      setAssetCKB:   () => this.setState({ txAsset: 'CKB'  }),
+      setAssetRUSD:  () => this.setState({ txAsset: 'RUSD' }),
+
+      showReceipt:  !!rt,
+      receiptId:    rt ? rt.id : '',
+      receiptDesc:  rt ? rt.desc : '',
+      receiptAmount: rt ? rt.amount : '',
+      receiptAsset: rt ? rt.asset : '',
+      receiptDate:  rt ? rt.date : '',
+      receiptHash:  rt ? this.fakeHash(rt.id) : '',
+      closeReceipt: () => this.setState({ receiptTx: null }),
+      stopProp:     (e) => e.stopPropagation(),
+
+      codeDeploy: "# .env\nADMIN_PASSWORD=your-secure-password\nFIBERGATE_INTERNAL_SECRET=your-secret-key\nDATABASE_URL=postgres://user:pass@db:5432/fibergate\nFIBER_NODE_URL=http://fiber-node:8114\n\ndocker compose up -d",
+      codeInstall: 'npm install @fibergate/sdk',
+      codeInvoice: "import { FiberGate } from '@fibergate/sdk';\n\nconst gateway = new FiberGate({\n  baseUrl: process.env.FIBERGATE_BASE_URL,\n  internalSecret: process.env.FIBERGATE_INTERNAL_SECRET,\n});\n\nconst invoice = await gateway.invoices.create({\n  amount: 1000,\n  asset: 'CKB',\n  description: 'My first payment',\n});\n\n// invoice.payment_request  →  share with payer",
+      codeWebhook: "app.post('/webhooks/fibergate', (req, res) => {\n  const event = gateway.webhooks.verify(req.body, req);\n  if (event.type === 'payment.paid') {\n    fulfillOrder(event.data.invoice_id);\n  }\n  res.json({ received: true });\n});\n\n// Test on CKB testnet:\n// FIBER_NODE_URL=http://testnet.fiber.nervos.org:8114",
+    };
+  }
+}
+</script>
+</body>
+</html>

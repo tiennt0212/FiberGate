@@ -31,14 +31,25 @@ packages/sdk/      — npm package @fiber-gateway/sdk (TypeScript, tsup)
 docker-compose.yml — Fiber node + PostgreSQL + fibergate-core, merchant tự deploy
 docker/            — Dockerfile cho fibergate-core, config fiber-node
 .context/          — Project context files (Single Source of Truth)
-.context/design/   — UI mockups và design decisions
+.context/design/   — Mockup UI đầy đủ, commit thẳng vào repo (không chỉ token nữa):
+                     - FiberGate.dc.html — mockup dashboard thật (mở trực tiếp bằng browser)
+                     - COMPONENTS.dc.html — artboard catalog: từng component pattern trong DESIGN.md
+                       render trực quan kèm caption map sang Antd v5 component + cách override
+                       (Card/Tag/Table/Button/Segmented/Progress/Alert/Badge/Modal/Menu...) — mở bằng
+                       browser để tra khi code UI, đỡ phải tự đoán nên dùng component Antd nào
+                     - support.js — script phụ trợ cho mockup
+                     - DESIGN.md — design tokens/type scale/component patterns (reference khi code UI)
+                     Nguồn gốc: Claude Design (project ID ở trên), nhưng do giới hạn chia sẻ với
+                     teammate nên bản trong repo mới là bản dùng được cho cả team. Human tự đồng bộ
+                     thủ công khi có thay đổi bên Claude Design — bản trong repo có thể trễ hơn bản
+                     gốc, không tự động mirror real-time.
 ```
 
 ## Project IDs
 
 | Service | ID | Ghi chú |
 |---------|-----|---------|
-| Canva (Design) | `YOUR_CANVA_PROJECT_ID` | UI mockups |
+| Claude Design | `15b01139-c51f-472e-81df-e7c0777dd47d` | UI mockups |
 
 ## Commands
 
@@ -150,4 +161,8 @@ Khi gặp yêu cầu chưa rõ hoặc có nhiều cách tiếp cận, Claude Cod
 1. Đọc user story liên quan trong `.context/user-stories/`
 2. Đọc business rules liên quan trong `.context/business-rules/`
 3. Implement theo API spec trong `.context/api/rest-api-spec.md`
-4. Update context file nếu có thay đổi design
+4. Nếu là UI/dashboard: đối chiếu `.context/design/FiberGate.dc.html` (mockup thật, mở bằng browser),
+   `.context/design/DESIGN.md` (tokens/component patterns), và `.context/design/COMPONENTS.dc.html`
+   (component nào trong mockup nên dựng bằng Antd component nào + cách override) — không tự bịa
+   màu sắc/spacing, và không tự dựng lại component mà Antd đã có sẵn
+5. Update context file nếu có thay đổi design
