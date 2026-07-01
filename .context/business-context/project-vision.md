@@ -38,6 +38,9 @@ FiberGate là một **self-hosted, open-source Fiber payment gateway framework**
 - Một Fiber node trên testnet
 - **Demo merchant checkout flow**: 1 trang storefront giả lập (VD: bán 1 khóa học/API key) dùng SDK/API để tạo invoice, hiện QR, và nhận webhook khi thanh toán xong
 - **1 instance demo được deploy public** (VPS/cloud của team) cho giám khảo bấm thử trực tiếp — bắt buộc theo deliverables hackathon ("demo link... plus a hosted demo"), ngoài docker-compose instructions cho người muốn tự deploy
+- **Receipts**: view/download tóm tắt 1 invoice đã `paid` (amount, asset, payment_hash, timestamp) — dùng dữ liệu đã có sẵn trong bảng `invoices`, không cần bảng mới
+- **Accounting export**: nút export CSV danh sách invoices trên trang transactions, lọc theo khoảng ngày/status — dùng dữ liệu đã có sẵn
+- **Settlement view**: 1 tab dashboard gộp hiển thị invoice `paid` cùng lịch sử `webhook_deliveries` liên quan (chính là settlement record) — không cần bảng mới, chỉ là 1 view khác trên dữ liệu hiện có
 
 **IN SCOPE — Phase 2 (sau khi Phase 1 ổn định):**
 - Thay in-process polling bằng Fiber node event subscription real-time (JSON-RPC/WebSocket)
@@ -52,6 +55,8 @@ FiberGate là một **self-hosted, open-source Fiber payment gateway framework**
 - Multi-node / high availability
 - On/off ramp
 - Automatic channel rebalancing (chỉ manual)
+- **Refunds**: Fiber (giống Lightning) là push-payment, không có cơ chế "rút tiền ngược" tự động như thẻ tín dụng — muốn hoàn tiền, merchant phải tự gửi 1 payment mới ngược lại cho payer, đòi hỏi payer chủ động cung cấp trước refund address/invoice, tốn liquidity thật, và cần 1 bảng + luồng `send_payment` riêng. Độ phức tạp không tương xứng với thời gian hackathon, để dành cho phát triển sau.
+- Reconciliation report (đối chiếu `invoices` với `node_snapshots`) — có giá trị nhưng không critical cho core flow, cân nhắc thêm sau nếu Phase 1-3 xong sớm.
 
 ## Trade-offs đã chấp nhận (phải document rõ trong submission)
 
