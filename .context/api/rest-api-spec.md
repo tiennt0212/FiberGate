@@ -8,14 +8,15 @@ tags: [rest-api, endpoints, authentication]
 # REST API Specification — FiberGate
 
 ## Base URL
-`https://fibergate.vercel.app/api/v1`
+`http://<merchant-host>:<port>/api/v1` — self-hosted, merchant tự đặt host/port lúc deploy docker-compose.
 
 ## Authentication
 
-Tất cả endpoints dùng Bearer token:
+Single-tenant: tất cả endpoints dùng 1 shared secret duy nhất (`FIBERGATE_INTERNAL_SECRET`,
+đặt qua env var lúc deploy), so sánh constant-time, không phân biệt theo client:
 
 ```
-Authorization: Bearer sk_test_xxxxxxxxxxxxxxxx
+Authorization: Bearer <FIBERGATE_INTERNAL_SECRET>
 ```
 ## Response Format
 
@@ -64,7 +65,7 @@ Tạo invoice mới.
 **Errors:**
 - `400 INVALID_AMOUNT` — amount <= 0 hoặc quá lớn
 - `400 UNSUPPORTED_ASSET` — asset không phải CKB hoặc RUSD
-- `401 UNAUTHORIZED` — api_secret không hợp lệ
+- `401 UNAUTHORIZED` — token không khớp `FIBERGATE_INTERNAL_SECRET`
 - `503 NODE_UNAVAILABLE` — Fiber node không phản hồi
 
 ---

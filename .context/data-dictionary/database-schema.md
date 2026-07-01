@@ -2,47 +2,20 @@
 type: data_dictionary
 version: 1.0
 last_updated: 2026-06-30
-tags: [supabase, postgresql, schema]
+tags: [postgresql, drizzle, schema, self-hosted]
 ---
 
-# Database Schema — Supabase
+# Database Schema — PostgreSQL (self-hosted, Drizzle ORM)
 
-> Auth: dùng Supabase Auth built-in (bảng `auth.users` tự động)
-
-## Bảng: `profiles`
-
-Extend từ `auth.users`. Tạo tự động qua trigger khi user sign up.
-
-| Column | Type | Constraints | Mô tả |
-|--------|------|-------------|-------|
-| id | uuid | PK, FK → auth.users.id | |
-| email | text | NOT NULL | |
-| full_name | text | | |
-| created_at | timestamptz | DEFAULT now() | |
-| updated_at | timestamptz | DEFAULT now() | |
-
-## Bảng: `api_keys`
-
-| Column | Type | Constraints | Mô tả |
-|--------|------|-------------|-------|
-| id | uuid | PK DEFAULT gen_random_uuid() | |
-| user_id | uuid | FK → profiles.id, NOT NULL | |
-| name | text | NOT NULL | Tên key do user đặt, VD: "Production" |
-| client_id | text | UNIQUE, NOT NULL | Public ID, prefix `pk_test_` |
-| secret_hash | text | NOT NULL | BCRYPT hash của api_secret, không lưu plaintext |
-| last_used_at | timestamptz | | Cập nhật mỗi lần dùng |
-| is_active | boolean | DEFAULT true | |
-| created_at | timestamptz | DEFAULT now() | |
-
-> Lưu ý: `api_secret` (prefix `sk_test_`) chỉ trả về một lần khi tạo, không bao giờ lưu plaintext.
+> Single-tenant: mỗi deployment chỉ phục vụ 1 merchant. Không có bảng users/accounts,
+> không có Auth — dashboard bảo vệ bằng single-admin password gate (xem `ADMIN_PASSWORD_HASH`
+> trong `architecture/system-design.md`), không lưu trong DB.
 
 ## Bảng: `invoices`
 
 | Column | Type | Constraints | Mô tả |
 |--------|------|-------------|-------|
 | id | uuid | PK DEFAULT gen_random_uuid() | Internal ID |
-| user_id | uuid | FK → profiles.id, NOT NULL | |
-| api_key_id | uuid | FK → api_keys.id | Key nào tạo invoice này |
 | payment_hash | text | UNIQUE, NOT NULL | Từ Fiber node, dùng để poll |
 | invoice_address | text | NOT NULL | Bech32m string, gửi cho payer |
 | amount_shannon | bigint | NOT NULL | Lưu dạng shannon (integer) |
@@ -61,7 +34,6 @@ Extend từ `auth.users`. Tạo tự động qua trigger khi user sign up.
 | Column | Type | Constraints | Mô tả |
 |--------|------|-------------|-------|
 | id | uuid | PK DEFAULT gen_random_uuid() | |
-| user_id | uuid | FK → profiles.id, NOT NULL | |
 | url | text | NOT NULL | Merchant's HTTPS endpoint |
 | secret | text | NOT NULL | Random string dùng để HMAC sign, lưu encrypted |
 | events | text[] | NOT NULL | Mảng events: ["payment.paid", "invoice.expired"] |
@@ -102,15 +74,7 @@ Lưu trạng thái node định kỳ (mỗi 1 phút). Dùng để hiển thị d
 | peer_count | integer | | |
 | snapshot_at | timestamptz | DEFAULT now() | |
 
-## Row Level Security (RLS)
+## Row Level Security
 
-Tất cả bảng đều bật RLS. Pattern chuẩn:
-```sql
--- Chỉ xem data của chính mình
-CREATE POLICY "Users can view own data" ON invoices
-  FOR SELECT USING (auth.uid() = user_id);
-
--- Chỉ insert với user_id = auth.uid()
-CREATE POLICY "Users can insert own data" ON invoices
-  FOR INSERT WITH CHECK (auth.uid() = user_id);
-```
+Không cần RLS: mỗi deployment chỉ phục vụ 1 merchant, PostgreSQL chỉ truy cập nội bộ
+qua docker network (không expose port ra ngoài internet), không có khái niệm "data của user khác".

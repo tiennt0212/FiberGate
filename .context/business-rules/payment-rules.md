@@ -30,11 +30,11 @@ tags: [invoice, webhook, polling, limits]
 
 ## Polling Rules
 
-**BR-POL-001:** Poller chạy mỗi 10 giây qua Vercel Cron (`/api/cron/poll-invoices`).
+**BR-POL-001:** Phase 1: in-process interval worker chạy trong container `fibergate-core` mỗi 10 giây (không còn Vercel Cron — self-hosted chạy container dài hạn chứ không phải serverless). `/api/cron/poll-invoices` giữ lại như endpoint optional để trigger poll thủ công. Phase 2 sẽ thay bằng Fiber node event subscription real-time (JSON-RPC/WebSocket).
 
 **BR-POL-002:** Chỉ poll invoices có `status = "pending"` và `expires_at > now() - 60s`.
 
-**BR-POL-003:** Mỗi batch poll tối đa 50 invoices để tránh timeout Vercel (max 10s execution).
+**BR-POL-003:** Mỗi batch poll tối đa 50 invoices để tránh block event loop quá lâu trong container dài hạn.
 
 **BR-POL-004:** Nếu Fiber node không phản hồi sau 5s, skip và log error, không change status.
 
@@ -52,16 +52,16 @@ tags: [invoice, webhook, polling, limits]
 
 ## Rate Limiting Rules
 
-**BR-RTE-001:** Mỗi API key được tạo tối đa 100 invoices/phút (prototype).
+**BR-RTE-001:** Toàn bộ deployment tối đa 100 invoices/phút (prototype, single-tenant — vẫn giữ làm anti-abuse guard).
 
 **BR-RTE-002:** GET /invoices list tối đa 100 items/request.
 
 ## Security Rules
 
-**BR-SEC-001:** `api_secret` không bao giờ được lưu plaintext. Chỉ lưu bcrypt hash.
+**BR-SEC-001:** `FIBERGATE_INTERNAL_SECRET` chỉ set qua env var lúc deploy, so sánh constant-time (không dùng `===` thường), không bao giờ log ra console hoặc trả về trong response.
 
-**BR-SEC-002:** `api_secret` chỉ được trả về một lần duy nhất khi tạo key, không thể retrieve lại.
+**BR-SEC-002:** `ADMIN_PASSWORD` (dashboard single-admin login) phải hash bằng bcrypt trước khi lưu/so sánh, không bao giờ lưu plaintext.
 
 **BR-SEC-003:** Webhook secret phải random, tối thiểu 32 bytes.
 
-**BR-SEC-004:** Tất cả Supabase queries từ API routes phải dùng `service_role` key + RLS bypass, nhưng phải validate user_id thủ công.
+**BR-SEC-004:** Dashboard session dùng httpOnly cookie ký bằng secret riêng (không phải `FIBERGATE_INTERNAL_SECRET`).

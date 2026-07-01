@@ -4,15 +4,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Đây là project gì?
 
-**FiberGate** là LSP (Lightning Service Provider) prototype cho Fiber Network hackathon (1–15 July 2026).
-Tương tự Stripe nhưng cho Fiber payments: developer đăng ký → nhận API key → gọi REST API để tạo invoice và nhận thanh toán — không cần tự chạy Fiber node.
+**FiberGate** là self-hosted, open-source LSP (Lightning Service Provider) framework prototype cho Fiber Network hackathon (1–15 July 2026).
+Merchant tự deploy bằng `docker compose up -d` (Fiber node + PostgreSQL + FiberGate core) trên hạ tầng của chính mình, rồi gọi REST API nội bộ để tạo invoice và nhận thanh toán — không cần tự viết code kết nối Fiber RPC, quản lý invoice state machine, hay tự build webhook delivery từ đầu. Single-tenant: mỗi deployment phục vụ 1 merchant, không có multi-tenant API key/account system.
 
 Đọc `.context/INDEX.md` trước tiên, sau đó đọc theo thứ tự:
 
 1. `.context/glossary/fiber-terms.md` — Thuật ngữ (quan trọng để không hallucinate)
 2. `.context/business-context/project-vision.md` — Vision, scope, hackathon constraints
 3. `.context/architecture/system-design.md` — Kiến trúc, data flow, tech stack, env vars
-4. `.context/data-dictionary/database-schema.md` — Supabase tables, columns, relations
+4. `.context/data-dictionary/database-schema.md` — PostgreSQL tables, columns, relations
 5. `.context/api/rest-api-spec.md` — API spec đầy đủ (request/response/errors)
 6. `.context/business-rules/payment-rules.md` — Logic nghiệp vụ, rate limits, security rules
 7. `.context/processes/decisions-log.md` — Quyết định đã được human chốt
@@ -21,13 +21,15 @@ Tương tự Stripe nhưng cho Fiber payments: developer đăng ký → nhận A
 ## Monorepo layout
 
 ```
-apps/web/          — Next.js 14 App Router (dashboard + API routes)
-  app/(dashboard)/ — Protected routes: /dashboard, /keys, /webhooks, /transactions
+apps/web/          — Next.js 14 App Router (fibergate-core: dashboard + API routes)
+  app/(dashboard)/ — Protected routes (single-admin password gate): /dashboard, /webhooks, /transactions
   app/api/v1/      — REST API endpoints: /invoices, /node
-  app/api/cron/    — Vercel Cron jobs: /poll-invoices
-  lib/supabase/    — Supabase client + helpers + generated types
+  app/api/cron/    — Optional manual-trigger endpoint: /poll-invoices (nguồn chính là in-process interval worker)
+  lib/db/          — Drizzle client + schema + helpers
   lib/fiber/       — Fiber JSON-RPC client (wraps FNN node calls)
 packages/sdk/      — npm package @fiber-gateway/sdk (TypeScript, tsup)
+docker-compose.yml — Fiber node + PostgreSQL + fibergate-core, merchant tự deploy
+docker/            — Dockerfile cho fibergate-core, config fiber-node
 .context/          — Project context files (Single Source of Truth)
 .context/design/   — UI mockups và design decisions
 ```
@@ -36,7 +38,6 @@ packages/sdk/      — npm package @fiber-gateway/sdk (TypeScript, tsup)
 
 | Service | ID | Ghi chú |
 |---------|-----|---------|
-| Supabase | `YOUR_SUPABASE_PROJECT_REF` | Dùng cho MCP + `supabase gen types` |
 | Canva (Design) | `YOUR_CANVA_PROJECT_ID` | UI mockups |
 
 ## Commands
@@ -50,9 +51,8 @@ pnpm --filter web typecheck     # TypeScript strict check cho web app
 pnpm --filter sdk build         # build chỉ sdk package
 pnpm --filter web dev           # chạy chỉ web app
 
-# Generate Supabase types (chạy sau mỗi khi thay đổi schema)
-supabase gen types typescript --project-id <project-id> \
-  > apps/web/lib/supabase/types.ts
+docker compose up -d            # build + chạy fiber-node + postgres + fibergate-core
+docker compose build             # rebuild image fibergate-core sau khi đổi code
 ```
 
 ## Kiến trúc và patterns quan trọng
@@ -61,29 +61,25 @@ supabase gen types typescript --project-id <project-id> \
 
 Mọi API route `/api/v1/*` phải validate theo thứ tự:
 1. Extract Bearer token từ `Authorization` header
-2. Lookup `api_keys` table theo `client_id` (derived từ token)
-3. `bcrypt.compare(token, secret_hash)` — **không** so sánh plaintext
-4. Lấy `user_id` từ key record để scope mọi Supabase query
+2. So sánh constant-time với `FIBERGATE_INTERNAL_SECRET` (env var) — **không** dùng `===` thường
+3. Reject nếu không khớp — single-tenant, không lookup theo user/client
 
-API keys: `client_id` = public identifier (prefix `pk_test_`), `api_secret` = private auth token (prefix `sk_test_`). `api_secret` chỉ trả về một lần khi tạo, sau đó chỉ lưu bcrypt hash (`secret_hash`).
+`FIBERGATE_INTERNAL_SECRET` là 1 shared secret duy nhất set lúc deploy, không phải per-client key. Không bao giờ log ra console hoặc trả về trong response (BR-SEC-001).
 
-### Supabase pattern trong API routes
+### Database pattern trong API routes
 
-API routes dùng `service_role` key (bypass RLS) nhưng **phải validate `user_id` thủ công** theo BR-SEC-004:
+Dùng Drizzle client từ `lib/db/`, single-tenant nên **không cần scope theo user_id**:
 ```typescript
-const { data } = await supabaseAdmin
-  .from('invoices')
-  .select('*')
-  .eq('user_id', validatedUserId)  // bắt buộc
+const rows = await db.select().from(invoices).where(eq(invoices.id, invoiceId))
 ```
 
 ### Fiber RPC calls
 
 Mọi call đến Fiber node đi qua `lib/fiber/client.ts`. Không call Fiber RPC trực tiếp từ API routes. Response timeout: 5 giây (BR-POL-004).
 
-### Cron endpoint security
+### Poller và cron endpoint
 
-`/api/cron/poll-invoices` phải check `Authorization: Bearer ${CRON_SECRET}` header trước khi xử lý. Vercel tự thêm header này khi trigger cron.
+Nguồn chính (Phase 1) là in-process interval worker chạy trong container `fibergate-core` mỗi 10s (BR-POL-001). `/api/cron/poll-invoices` chỉ là endpoint optional để trigger poll thủ công — vẫn phải check `Authorization: Bearer ${CRON_SECRET}` trước khi xử lý.
 
 ### Response format
 
@@ -100,7 +96,7 @@ Tất cả API responses theo format:
 - **KHÔNG** tự thêm dependencies mà không hỏi
 - **KHÔNG** hardcode bất kỳ secret hay URL nào — dùng env vars (xem list trong `.context/architecture/system-design.md`)
 - **KHÔNG** tự sửa database schema mà không update `.context/data-dictionary/database-schema.md`
-- Tất cả Supabase types phải được generate từ schema thực tế (`supabase gen types`)
+- Schema Drizzle phải khớp với `.context/data-dictionary/database-schema.md` — sửa file nào cũng phải đồng bộ file kia
 - Mọi API route `/api/v1/*` phải validate authentication **trước** khi thực hiện bất kỳ logic nào khác
 - Error handling phải explicit — không dùng `try/catch` rỗng
 - TypeScript strict mode toàn bộ — không dùng `any`

@@ -8,19 +8,17 @@ tags: [integration, onboarding, webhook, sdk]
 
 # User Stories — Developer Integration
 
-## US-001: Đăng ký và lấy API key
+## US-001: Deploy FiberGate bằng Docker Compose
 
-**As a** developer muốn nhận Fiber payments,
-**I want to** đăng ký tài khoản và lấy API key,
-**So that** tôi có thể gọi FiberGate API.
+**As a** merchant muốn nhận Fiber payments,
+**I want to** tự deploy FiberGate trên hạ tầng của mình,
+**So that** tôi tự vận hành node và dữ liệu, không phụ thuộc bên thứ ba.
 
 **Acceptance criteria:**
-- Đăng ký bằng email/password qua Supabase Auth
-- Sau khi login, vào trang /keys
-- Tạo key mới với tên tùy chọn
-- Nhận `client_id` (pk_test_xxx) và `api_secret` (sk_test_xxx)
-- `api_secret` chỉ hiển thị một lần, có nút copy, có warning rõ ràng
-- Có thể revoke key bất cứ lúc nào
+- Clone repo, copy `.env.example` → `.env`, set các biến bắt buộc: `ADMIN_PASSWORD`, `FIBERGATE_INTERNAL_SECRET`, `DATABASE_URL`, `FIBER_NODE_URL`
+- Chạy `docker compose up -d` → khởi động 3 container: fiber-node, postgres, fibergate-core
+- Truy cập dashboard, đăng nhập bằng `ADMIN_PASSWORD` đã set (single-admin, không có sign up)
+- Có thể revoke/rotate `FIBERGATE_INTERNAL_SECRET` bằng cách đổi env var và restart container
 
 ## US-002: Tích hợp SDK vào Next.js app
 
@@ -33,8 +31,11 @@ tags: [integration, onboarding, webhook, sdk]
 npm install @fibergate/sdk
 ```
 ```typescript
-// Tạo invoice (server-side)
-const gateway = new FiberGate({ apiSecret: process.env.FIBER_API_SECRET })
+// Tạo invoice (server-side) — trỏ về FiberGate core tự deploy của bạn
+const gateway = new FiberGate({
+  baseUrl: process.env.FIBERGATE_BASE_URL,       // http://<merchant-host>:<port>
+  internalSecret: process.env.FIBERGATE_INTERNAL_SECRET,
+})
 const invoice = await gateway.invoices.create({ amount: 1, asset: 'CKB' })
 
 // Verify webhook (trong route handler)

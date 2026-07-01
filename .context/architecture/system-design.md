@@ -2,7 +2,7 @@
 type: architecture
 version: 1.0
 last_updated: 2026-06-30
-tags: [nextjs, supabase, fiber-node, monorepo]
+tags: [nextjs, postgresql, docker-compose, fiber-node, monorepo, self-hosted]
 ---
 
 # System Design — FiberGate
@@ -11,62 +11,64 @@ tags: [nextjs, supabase, fiber-node, monorepo]
 
 | Layer | Technology | Lý do |
 |-------|-----------|-------|
-| Frontend + API | Next.js 14 App Router | Full-stack, deploy Vercel dễ |
-| Database | Supabase (PostgreSQL) | Auth built-in, realtime, free tier |
+| Frontend + API | Next.js 14 App Router | Full-stack, chạy như 1 container dài hạn (không serverless) |
+| Database | PostgreSQL (container riêng) + Drizzle ORM | Nhẹ, không cần Auth/Realtime/Storage/Kong như Supabase self-hosted — khớp mục tiêu docker-compose gọn |
 | Styling | Tailwind CSS + Antd | Nhanh, đẹp, component ready |
 | SDK package | TypeScript + tsup | Zero-config bundler, ESM+CJS |
-| Fiber Node | FNN binary trên VPS | Railway hoặc Fly.io |
+| Fiber Node | FNN binary | Container riêng trong cùng docker-compose |
+| Hosting | Docker Compose | Merchant tự deploy trên VPS của họ (`docker compose up -d`) |
 | Package manager | pnpm workspaces | Monorepo standard |
 
 ## Kiến trúc tổng thể
 
 ```
-┌─────────────────────────────────────────────────────┐
-│  Developer's App                                     │
-│  import { FiberGate } from '@fibergate/sdk'          │
-└──────────────────┬──────────────────────────────────┘
-                   │ HTTPS (Bearer token)
-┌──────────────────▼──────────────────────────────────┐
-│  Next.js on Vercel                                   │
-│  ┌─────────────────┐  ┌──────────────────────────┐  │
-│  │  Dashboard UI   │  │  API Routes /api/v1/*    │  │
-│  │  /dashboard     │  │  - POST /invoices        │  │
-│  │  /keys          │  │  - GET  /invoices/:id    │  │
-│  │  /webhooks      │  │  - GET  /node/info       │  │
-│  │  /transactions  │  └──────────┬───────────────┘  │
-│  └─────────────────┘             │                  │
-└─────────────────────────────────┬┼──────────────────┘
-                                  ││
-              ┌───────────────────┘│
-              │                   │
-┌─────────────▼──┐    ┌───────────▼──────────────────┐
-│  Supabase      │    │  Fiber Node (VPS)             │
-│  PostgreSQL    │    │  FNN binary                   │
-│  - users       │◄──►│  JSON-RPC :8227               │
-│  - api_keys    │    │  P2P :8228                    │
-│  - invoices    │    │  Connected to testnet         │
-│  - webhooks    │    └──────────────────────────────┘
-│  - ...         │
-└────────────────┘
+┌────────────────────────────────────────────────────────────────┐
+│                Docker Compose (VPS của merchant)                │
+│                                                                  │
+│  ┌───────────────────┐  Bearer FIBERGATE_INTERNAL_SECRET        │
+│  │ Merchant's         │─────────────────┐                       │
+│  │ storefront app     │                 │                       │
+│  │ (ngoài compose hoặc│                 ▼                       │
+│  │ cùng docker network)│  ┌──────────────────────────────────┐  │
+│  └───────────────────┘  │  fibergate-core (Next.js)         │  │
+│                          │  ┌────────────┐ ┌────────────────┐│  │
+│                          │  │ Dashboard  │ │ API /api/v1/*  ││  │
+│                          │  │(admin gate)│ │ - POST /invoices││  │
+│                          │  │            │ │ - GET /invoices/:id││
+│                          │  │            │ │ - GET /node/info││  │
+│                          │  └────────────┘ └───────┬────────┘│  │
+│                          └──────────┬───────────────┼─────────┘  │
+│                                     │               │            │
+│                          ┌──────────▼──┐  ┌─────────▼─────────┐ │
+│                          │ PostgreSQL  │  │  Fiber Node        │ │
+│                          │ - invoices  │◄─┤  FNN binary        │ │
+│                          │ - webhook_* │  │  JSON-RPC :8227    │ │
+│                          │ - node_snapshots│ P2P :8228         │ │
+│                          └─────────────┘  │  Connected testnet │ │
+│                                            └────────────────────┘│
+│                    (mọi giao tiếp qua docker internal network)   │
+└────────────────────────────────────────────────────────────────┘
 ```
 
 ## Data Flow — Tạo Invoice
 
 ```
-1. Developer POST /api/v1/invoices { amount, asset, description }
-   với header Authorization: Bearer sk_xxx
+1. Storefront app POST /api/v1/invoices { amount, asset, description }
+   với header Authorization: Bearer <FIBERGATE_INTERNAL_SECRET>
 
 2. API Route:
-   a. Validate Bearer token → lookup api_keys table → lấy user_id
+   a. Validate Bearer token → so sánh constant-time với FIBERGATE_INTERNAL_SECRET (env var) — không lookup user, single-tenant
    b. Gọi Fiber Node RPC: new_invoice { amount_in_shannon, asset, description }
    c. Node trả về: { invoice_address, payment_hash }
-   d. Lưu invoice vào Supabase: status = "pending"
-   e. Trả về response cho developer
+   d. Lưu invoice vào PostgreSQL: status = "pending"
+   e. Trả về response cho storefront app
 
-3. Background Poller (Vercel Cron mỗi 10s):
+3. Background Poller — Phase 1: in-process interval worker chạy trong container fibergate-core mỗi 10s
+   (Phase 2 sẽ thay bằng Fiber node event subscription real-time qua JSON-RPC/WebSocket —
+   cần verify khả năng subscribe của FNN trước khi implement):
    a. Query invoices WHERE status = "pending" AND expires_at > now()
    b. Với mỗi invoice: gọi Fiber Node RPC get_invoice { payment_hash }
-   c. Nếu status thay đổi → update Supabase
+   c. Nếu status thay đổi → update PostgreSQL
    d. Nếu status = "paid" → fire webhook đến merchant endpoint
 ```
 
@@ -88,20 +90,20 @@ tags: [nextjs, supabase, fiber-node, monorepo]
 ```
 fibergate/
 ├── apps/
-│   └── web/                    ← Next.js app
+│   └── web/                    ← Next.js app (fibergate-core)
 │       ├── app/
-│       │   ├── (dashboard)/    ← Protected routes
+│       │   ├── (dashboard)/    ← Protected routes (single-admin password gate)
 │       │   │   ├── dashboard/
-│       │   │   ├── keys/
 │       │   │   ├── webhooks/
 │       │   │   └── transactions/
 │       │   ├── api/
-│       │   │   └── v1/
-│       │   │       ├── invoices/
-│       │   │       └── node/
-│       │   └── auth/           ← Supabase auth pages
+│       │   │   ├── v1/
+│       │   │   │   ├── invoices/
+│       │   │   │   └── node/
+│       │   │   └── cron/       ← Optional: manual-trigger poll endpoint (không phải nguồn chính)
+│       │   └── login/          ← Single-admin password gate
 │       ├── lib/
-│       │   ├── supabase/       ← Supabase client + helpers
+│       │   ├── db/             ← Drizzle client + schema + helpers
 │       │   └── fiber/          ← Fiber RPC client
 │       └── components/
 ├── packages/
@@ -112,6 +114,8 @@ fibergate/
 │       │   ├── types.ts
 │       │   └── webhooks.ts
 │       └── package.json
+├── docker/                     ← Dockerfile cho fibergate-core, config fiber-node
+├── docker-compose.yml          ← Fiber node + PostgreSQL + fibergate-core
 ├── .context/                   ← Context files (file này)
 ├── .claude/
 │   └── CLAUDE.md
@@ -123,13 +127,13 @@ fibergate/
 
 ```bash
 # apps/web/.env.local
-NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_ROLE_KEY=      # chỉ dùng server-side
+DATABASE_URL=                    # postgres://user:pass@postgres:5432/fibergate
+ADMIN_PASSWORD_HASH=             # bcrypt hash, dùng cho dashboard single-admin login
+FIBERGATE_INTERNAL_SECRET=       # shared secret, storefront app dùng để gọi /api/v1/*
 
-FIBER_NODE_URL=                 # http://your-vps:8227
-FIBER_NODE_SECRET=              # nếu node có biscuit auth
+FIBER_NODE_URL=                  # http://fiber-node:8227 (docker internal network)
+FIBER_NODE_SECRET=               # nếu node có biscuit auth
 
-WEBHOOK_SIGNING_KEY=            # random secret để sign webhooks
-CRON_SECRET=                    # để bảo vệ /api/cron endpoint
+WEBHOOK_SIGNING_KEY=             # per-endpoint, random secret để sign webhooks
+CRON_SECRET=                     # optional, bảo vệ /api/cron endpoint (manual trigger)
 ```

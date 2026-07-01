@@ -17,7 +17,13 @@ tags: [decisions, architecture, business-logic, open-questions]
 
 ## Architecture & Tech Stack
 
-<!-- Thêm vào đây khi có decision được chốt -->
+[2026-07-01] **Product framing pivot**: Chuyển FiberGate từ managed custodial LSP (SaaS đa khách hàng) sang self-hosted open-source infrastructure framework — đóng gói docker-compose (Fiber node + PostgreSQL + FiberGate core: Next.js dashboard + API), mỗi merchant tự deploy `docker compose up -d` và giữ node/dữ liệu của họ — Lý do: Hackathon "Gone in 60ms" quy định rõ "infrastructure only, not products built on top"; mô hình SaaS custodial đa khách hàng có rủi ro bị xếp sai category và mất điểm.
+
+[2026-07-01] **Auth model**: Bỏ multi-tenant API key system (`profiles`/`api_keys` table, bcrypt `secret_hash` theo từng client, BR-SEC-004 user_id scoping). Thay bằng 1 lớp internal auth đơn giản: single shared secret `FIBERGATE_INTERNAL_SECRET` (giống pattern `CRON_SECRET` đã có), so sánh constant-time, dùng để app bán hàng của merchant gọi vào FiberGate core khi 2 service không chạy chung host/network — Lý do: Trong self-hosted, mỗi deployment chỉ phục vụ 1 merchant nên phân biệt nhiều client là dư thừa; vẫn cần auth nội bộ tối thiểu để core không bị gọi trái phép khi tách container ra mạng riêng.
+
+[2026-07-01] **Database**: Bỏ Supabase (kể cả bản self-hosted), chuyển sang PostgreSQL thuần (container riêng) + Drizzle ORM — Lý do: Bộ self-hosted Supabase chính thức đóng gói ~10 container (gotrue, postgrest, realtime, storage, kong, studio...), quá nặng so với mục tiêu "3 container gọn nhẹ" của docker-compose bundle; single-tenant nên không cần Supabase Auth/RLS.
+
+[2026-07-01] **Dashboard auth**: Dùng single-admin password gate (đặt qua env var lúc deploy, hash bcrypt, session httpOnly cookie) thay vì Supabase Auth/multi-user login — Lý do: Mỗi deployment chỉ có 1 merchant vận hành, không cần hệ thống user/role.
 
 ---
 
@@ -29,7 +35,7 @@ tags: [decisions, architecture, business-logic, open-questions]
 
 ## Scope
 
-<!-- Thêm vào đây khi có decision được chốt -->
+[2026-07-01] **Phased rollout của tính năng nâng cao**: Websocket/JSON-RPC real-time invoice listener (Phase 2) và L402 subscription middleware (Phase 3, optional stretch) đều nằm trong scope nộp bài, nhưng triển khai theo phase riêng biệt sau khi Phase 1 (docker-compose core: invoice + webhook + dashboard cơ bản) chạy ổn định — Lý do: Giảm rủi ro thời gian trong 15 ngày hackathon; ưu tiên có 1 core flow chạy chắc trước khi thêm tính năng nâng cao.
 
 ---
 

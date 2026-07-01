@@ -59,5 +59,5 @@ JSON-RPC 2.0 API của FNN node. Default port: `8227`. Các method quan trọng:
 ## CKBoost
 Platform tổ chức hackathon, dùng CKB testnet tokens để đăng ký và submit.
 
-## API Key (trong FiberGate)
-Gồm hai phần: `client_id` (public, định danh merchant, prefix `pk_`) và `api_secret` (private, dùng để authenticate API calls, prefix `sk_`). Lưu ý: `api_secret` chỉ hiển thị một lần khi tạo — sau đó chỉ lưu hash trong DB.
+## Internal Secret (trong FiberGate)
+`FIBERGATE_INTERNAL_SECRET` — 1 shared secret duy nhất set qua env var lúc deploy (self-hosted, single-tenant), dùng để storefront app của merchant authenticate khi gọi `/api/v1/*`. Không phải per-client API key — so sánh constant-time, không bao giờ lưu trong DB.

@@ -10,7 +10,7 @@ last_updated: 2026-06-30
 
 ## Dự án là gì?
 
-**FiberGate** là một Lighting Service Provider (LSP) prototype cho Fiber Network (CKB blockchain). Tương tự Stripe nhưng cho Fiber payments: developer đăng ký → nhận API key → gọi REST API để tạo invoice và nhận thanh toán — không cần tự chạy Fiber node.
+**FiberGate** là một self-hosted, open-source Lightning Service Provider (LSP) framework cho Fiber Network (CKB blockchain). Merchant tự deploy bằng `docker compose up -d` (Fiber node + PostgreSQL + FiberGate core) trên hạ tầng của chính mình, rồi gọi REST API nội bộ để tạo invoice và nhận thanh toán — không cần tự viết code kết nối Fiber RPC, quản lý invoice state machine, hay tự build webhook delivery từ đầu.
 
 Dự án được xây dựng cho **Gone in 60ms: Fiber Network Infrastructure Hackathon** (1–15 July 2026), category: Merchant, Liquidity, LSP, and Multi-Asset Infrastructure.
 
@@ -21,7 +21,7 @@ Dự án được xây dựng cho **Gone in 60ms: Fiber Network Infrastructure H
 | `glossary/fiber-terms.md` | Thuật ngữ Fiber Network, CKB, payment channel |
 | `business-context/project-vision.md` | Vision, scope, trade-offs, hackathon constraints |
 | `architecture/system-design.md` | Kiến trúc hệ thống, data flow, tech stack |
-| `data-dictionary/database-schema.md` | Toàn bộ Supabase tables, columns, relations |
+| `data-dictionary/database-schema.md` | Toàn bộ PostgreSQL tables, columns, relations |
 | `api/rest-api-spec.md` | REST API spec đầy đủ (request/response/errors) |
 | `business-rules/payment-rules.md` | Logic xử lý invoice, webhook, rate limiting |
 | `user-stories/developer-flows.md` | User stories từ góc nhìn developer tích hợp |
@@ -30,13 +30,14 @@ Dự án được xây dựng cho **Gone in 60ms: Fiber Network Infrastructure H
 
 ## Monorepo layout
 
-- `apps/web` — Next.js 14 App Router, dashboard + API routes
+- `apps/web` — Next.js 14 App Router (fibergate-core), dashboard (single-admin) + API routes
 - `packages/sdk` — npm package `@fibergate/sdk`, TypeScript
+- `docker-compose.yml` — Fiber node + PostgreSQL + fibergate-core, merchant tự deploy
 
 ## Quy ước code
 
 - TypeScript strict mode toàn bộ
 - Tên hàm: camelCase. Tên type/interface: PascalCase
 - API response luôn theo format: `{ data, error, meta }`
-- Mọi Supabase query phải có error handling rõ ràng
+- Mọi database query (Drizzle) phải có error handling rõ ràng
 - Không hardcode secrets — dùng environment variables
