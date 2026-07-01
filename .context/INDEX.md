@@ -10,7 +10,9 @@ last_updated: 2026-06-30
 
 ## Dự án là gì?
 
-**FiberGate** là một self-hosted, open-source Lightning Service Provider (LSP) framework cho Fiber Network (CKB blockchain). Merchant tự deploy bằng `docker compose up -d` (Fiber node + PostgreSQL + FiberGate core) trên hạ tầng của chính mình, rồi gọi REST API nội bộ để tạo invoice và nhận thanh toán — không cần tự viết code kết nối Fiber RPC, quản lý invoice state machine, hay tự build webhook delivery từ đầu.
+**FiberGate** là một self-hosted, open-source merchant payment gateway framework cho Fiber Network (CKB blockchain). Merchant tự deploy bằng `docker compose up -d` (Fiber node + PostgreSQL + FiberGate core) trên hạ tầng của chính mình, rồi gọi REST API nội bộ để tạo invoice và nhận thanh toán — không cần tự viết code kết nối Fiber RPC, quản lý invoice state machine, hay tự build webhook delivery từ đầu.
+
+> Lưu ý naming: không gọi là "LSP framework" — FiberGate không cung cấp dịch vụ liquidity/mở channel hộ bên thứ ba (đúng nghĩa Lightning Service Provider). Đây là merchant payment gateway, khớp với ví dụ "Merchant checkout SDKs, payment processor prototypes... payment status webhooks" trong category 3 của hackathon.
 
 Dự án được xây dựng cho **Gone in 60ms: Fiber Network Infrastructure Hackathon** (1–15 July 2026), category: Merchant, Liquidity, LSP, and Multi-Asset Infrastructure.
 

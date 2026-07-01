@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Đây là project gì?
 
-**FiberGate** là self-hosted, open-source LSP (Lightning Service Provider) framework prototype cho Fiber Network hackathon (1–15 July 2026).
+**FiberGate** là self-hosted, open-source merchant payment gateway framework prototype cho Fiber Network hackathon (1–15 July 2026). (Không gọi là "LSP framework" — không cung cấp dịch vụ liquidity/mở channel hộ bên thứ ba; đây là merchant payment gateway, khớp category 3 "Merchant, Liquidity, LSP, and Multi-Asset Infrastructure" qua hướng "payment processor prototypes... payment status webhooks".)
 Merchant tự deploy bằng `docker compose up -d` (Fiber node + PostgreSQL + FiberGate core) trên hạ tầng của chính mình, rồi gọi REST API nội bộ để tạo invoice và nhận thanh toán — không cần tự viết code kết nối Fiber RPC, quản lý invoice state machine, hay tự build webhook delivery từ đầu. Single-tenant: mỗi deployment phục vụ 1 merchant, không có multi-tenant API key/account system.
 
 Đọc `.context/INDEX.md` trước tiên, sau đó đọc theo thứ tự:

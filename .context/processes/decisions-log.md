@@ -41,6 +41,11 @@ tags: [decisions, architecture, business-logic, open-questions]
 
 [2026-07-01] **Phased rollout của tính năng nâng cao**: Websocket/JSON-RPC real-time invoice listener (Phase 2) và L402 subscription middleware (Phase 3, optional stretch) đều nằm trong scope nộp bài, nhưng triển khai theo phase riêng biệt sau khi Phase 1 (docker-compose core: invoice + webhook + dashboard cơ bản) chạy ổn định — Lý do: Giảm rủi ro thời gian trong 15 ngày hackathon; ưu tiên có 1 core flow chạy chắc trước khi thêm tính năng nâng cao.
 
+[2026-07-01] **Đối chiếu với thể lệ hackathon chính thức** (campaign page, user paste nguyên văn): Category đã chọn "Merchant, Liquidity, LSP, and Multi-Asset Infrastructure" — khớp với ví dụ "Merchant checkout SDKs, payment processor prototypes, hosted payment pages, or payment status webhooks" trong đề bài. Phát sinh 3 quyết định bổ sung:
+  1. **Naming**: Đổi mô tả từ "LSP framework" sang "merchant payment gateway framework" trong `INDEX.md`/`CLAUDE.md` — Lý do: FiberGate không cung cấp dịch vụ liquidity/mở channel hộ bên thứ ba (đúng nghĩa LSP), tránh overclaim khiến giám khảo hiểu sai scope thực tế.
+  2. **Demo bắt buộc**: Thêm "Demo merchant checkout flow" + "1 instance demo public/hosted" vào IN SCOPE Phase 1 (`project-vision.md`) — Lý do: Deliverables hackathon yêu cầu bắt buộc "demo link... plus a hosted demo"; kiến trúc self-hosted-only (không có URL cố định) không tự động thoả điều kiện này nếu không tự deploy 1 bản demo.
+  3. **License**: Chọn **MIT** cho toàn bộ repo (mặc định phổ biến cho hackathon open-source, đơn giản, permissive) — Lý do: Deliverables yêu cầu "repository link with fully open-sourced code", cần 1 license rõ ràng. Có thể đổi sau nếu cần, chưa tạo file `LICENSE` trong phiên này.
+
 ---
 
 ## Open Questions
