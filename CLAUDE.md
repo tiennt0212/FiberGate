@@ -77,6 +77,8 @@ const rows = await db.select().from(invoices).where(eq(invoices.id, invoiceId))
 
 Mọi call đến Fiber node đi qua `lib/fiber/client.ts`. Không call Fiber RPC trực tiếp từ API routes. Response timeout: 5 giây (BR-POL-004).
 
+`lib/fiber/client.ts` build trên nền **`@ckb-ccc/fiber`** (official SDK — "Best starting point for most app integrations" theo tài liệu hackathon) thay vì tự viết JSON-RPC thô. Không dùng `@fiber-pay/sdk`/`@fiber-pay/react` cho core flow (Phase 1/2) — 2 thư viện đó là community/experimental, chỉ cân nhắc làm reference cho Phase 3 (L402), xem `CKB/Fiber References` bên dưới.
+
 ### Poller và cron endpoint
 
 Nguồn chính (Phase 1) là in-process interval worker chạy trong container `fibergate-core` mỗi 10s (BR-POL-001). `/api/cron/poll-invoices` chỉ là endpoint optional để trigger poll thủ công — vẫn phải check `Authorization: Bearer ${CRON_SECRET}` trước khi xử lý.
@@ -111,6 +113,12 @@ Khi cần thông tin về CKB protocol hoặc Fiber Network, tra cứu theo th�
 4. `https://www.fiber.world/docs` — Fiber docs chính thức
 
 **Fiber Gateway chỉ dùng Fiber ở application layer (JSON-RPC calls). KHÔNG viết CKB Scripts. KHÔNG cần hiểu Cell Model trừ khi debug channel issues.**
+
+### SDK/tooling — official vs community (theo `fiber-hackathon-docs/resources.md`)
+
+- **Official, dùng cho core (Phase 1/2):** `@ckb-ccc/fiber` (SDK cho `lib/fiber/client.ts`), `fnn-cli` + `ckb-cli` (setup/bootstrap channel lúc dev, không phải runtime dependency của app).
+- **Community, chỉ dùng làm reference cho Phase 3 (L402, optional stretch):** `@fiber-pay/sdk` — xem demo tham chiếu [`fiber-l402`](https://github.com/RetricSu/fiber-l402) (Express + Astro + React, dùng chính thư viện này để build L402 paywall middleware). `@fiber-pay/react` không liên quan (chỉ dành cho payer-facing browser wallet UI, FiberGate không có phần này).
+- **Fiber WSS Config Manual** (`nervosnetwork/fiber/blob/develop/docs/fiber-node-wss.md`) — hướng dẫn expose P2P của node qua `wss://` (Nginx+TLS) cho browser/WASM client. **Không áp dụng** cho FiberGate: `fibergate-core` gọi JSON-RPC tới `fiber-node` qua docker internal network (plain HTTP), không cần TLS/WSS. Chỉ liên quan nếu sau này làm payer-facing browser wallet trực tiếp — ngoài scope hiện tại.
 
 ## Nguyên tắc làm việc với AI Agent
 

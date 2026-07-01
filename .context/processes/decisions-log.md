@@ -25,6 +25,10 @@ tags: [decisions, architecture, business-logic, open-questions]
 
 [2026-07-01] **Dashboard auth**: Dùng single-admin password gate (đặt qua env var lúc deploy, hash bcrypt, session httpOnly cookie) thay vì Supabase Auth/multi-user login — Lý do: Mỗi deployment chỉ có 1 merchant vận hành, không cần hệ thống user/role.
 
+[2026-07-01] **Fiber client SDK**: `lib/fiber/client.ts` build trên nền `@ckb-ccc/fiber` (official SDK), không tự viết JSON-RPC thô, không dùng `@fiber-pay/sdk` cho core flow — Lý do: `@ckb-ccc/fiber` là SDK chính thức được hackathon khuyến nghị ("best starting point for app integrations"), `@fiber-pay/sdk`/`@fiber-pay/react` là community/experimental, rủi ro hơn cho core flow (Phase 1/2). `@fiber-pay/sdk` được giữ lại làm reference tham khảo cho Phase 3 (L402) vì có demo `fiber-l402` dùng đúng thư viện này.
+
+[2026-07-01] **Phase 2 real-time listener — verified**: Xác nhận FNN có RPC module `pubsub` (method `subscribe_store_changes`/`unsubscribe_store_changes`, notification `store_changes`), tồn tại từ bản stable v0.8.1 (không phải chỉ nhánh develop), có document chính thức tại `fiber.world/docs/api-reference#websocket-subscriptions`. Node bắn `StoreChange::PutCkbInvoiceStatus { payment_hash, invoice_status }` đúng lúc invoice đổi trạng thái — Lý do quyết định dùng cho Phase 2: đây là cách duy nhất tránh polling định kỳ, khớp với tốc độ thanh toán tức thời của Fiber Network. Ràng buộc đã biết: (a) doc chính thức ghi rõ mục đích thiết kế là cho Cross-Chain Hub, không phải general client — coi là "off-label usage", vẫn giữ poll fallback tần suất thấp (30-60s); (b) `@ckb-ccc/fiber` không hỗ trợ subscription (đã verify qua source npm thật) — cần viết 1 WebSocket JSON-RPC client riêng cho phần này; (c) nếu bật Biscuit auth cần thêm quyền `read("cch")`, nhưng vì `fiber-node` chỉ bind nội bộ trong docker network (không public IP) nên dự kiến không bật Biscuit auth, ràng buộc này không phát sinh trong setup mặc định.
+
 ---
 
 ## Business Logic

@@ -30,7 +30,9 @@ tags: [invoice, webhook, polling, limits]
 
 ## Polling Rules
 
-**BR-POL-001:** Phase 1: in-process interval worker chạy trong container `fibergate-core` mỗi 10 giây (không còn Vercel Cron — self-hosted chạy container dài hạn chứ không phải serverless). `/api/cron/poll-invoices` giữ lại như endpoint optional để trigger poll thủ công. Phase 2 sẽ thay bằng Fiber node event subscription real-time (JSON-RPC/WebSocket).
+**BR-POL-001:** Phase 1: in-process interval worker chạy trong container `fibergate-core` mỗi 10 giây (không còn Vercel Cron — self-hosted chạy container dài hạn chứ không phải serverless). `/api/cron/poll-invoices` giữ lại như endpoint optional để trigger poll thủ công. Phase 2 thay bằng WebSocket subscription `subscribe_store_changes` (RPC module `pubsub` của FNN, đã verify tồn tại từ bản stable v0.8.1, document tại `fiber.world/docs/api-reference#websocket-subscriptions`) — xem chi tiết thiết kế tại `architecture/system-design.md`. Ở Phase 2, vẫn giữ interval poll giảm tần suất còn 30-60s làm fallback, vì doc chính thức ghi rõ cơ chế này "primarily intended for Cross-Chain Hub integration rather than general client use".
+
+**BR-POL-005:** Client subscribe `store_changes` phải lọc: chỉ xử lý variant `PutCkbInvoiceStatus`, và chỉ những `payment_hash` có tồn tại trong bảng `invoices` nội bộ — bỏ qua mọi variant/payment_hash khác trong stream.
 
 **BR-POL-002:** Chỉ poll invoices có `status = "pending"` và `expires_at > now() - 60s`.
 
