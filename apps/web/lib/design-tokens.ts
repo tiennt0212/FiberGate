@@ -4,6 +4,7 @@ export const DESIGN_TOKENS = {
   "--border": "#e4e4e7",
   "--border-subtle": "#f3f4f6",
   "--border-focus": "#f0f0f2",
+  "--card-hover-border": "#c9c7e5",
 
   "--text-primary": "#141414",
   "--text-secondary": "#52525b",
