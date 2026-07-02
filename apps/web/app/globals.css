@@ -1,0 +1,8 @@
+/* Không import preflight của Tailwind — Antd tự có CSS reset riêng, chạy cả 2 gây double-reset
+   trên <a>/<button> (xem .claude/skills/antd-exp/collab/ecosystem.md). */
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+
+/* Design tokens thật sẽ được teammate điền theo .context/design/DESIGN.md khi làm UI. */
+@theme inline {
+}

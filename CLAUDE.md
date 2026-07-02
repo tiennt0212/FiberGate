@@ -27,7 +27,7 @@ apps/web/          — Next.js 14 App Router (fibergate-core: dashboard + API ro
   app/api/cron/    — Optional manual-trigger endpoint: /poll-invoices (nguồn chính là in-process interval worker)
   lib/db/          — Drizzle client + schema + helpers
   lib/fiber/       — Fiber JSON-RPC client (wraps FNN node calls)
-packages/sdk/      — npm package @fiber-gateway/sdk (TypeScript, tsup)
+packages/sdk/      — npm package @fibergate/sdk (TypeScript, tsup)
 docker-compose.yml — Fiber node + PostgreSQL + fibergate-core, merchant tự deploy
 docker/            — Dockerfile cho fibergate-core, config fiber-node
 .context/          — Project context files (Single Source of Truth)
