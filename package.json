@@ -6,6 +6,8 @@
     "dev": "pnpm --filter web dev",
     "build": "pnpm -r --if-present build",
     "lint": "pnpm -r --if-present lint",
-    "typecheck": "pnpm -r --if-present typecheck"
+    "typecheck": "pnpm -r --if-present typecheck",
+    "docker:dev": "docker compose up -d postgres fiber-node",
+    "docker:dev:down": "docker compose stop postgres fiber-node fiber-node-preflight"
   }
 }

@@ -1,7 +1,7 @@
 ---
 type: architecture
 version: 1.0
-last_updated: 2026-06-30
+last_updated: 2026-07-02
 tags: [nextjs, postgresql, docker-compose, fiber-node, monorepo, self-hosted]
 ---
 
@@ -19,6 +19,7 @@ tags: [nextjs, postgresql, docker-compose, fiber-node, monorepo, self-hosted]
 | Fiber client library | `@ckb-ccc/fiber` (official SDK) | Dùng trong `lib/fiber/client.ts` để gọi RPC tới fiber-node — "best starting point for app integrations" theo tài liệu hackathon; không dùng `@fiber-pay/sdk` (community) cho core flow |
 | Hosting | Docker Compose | Merchant tự deploy trên VPS của họ (`docker compose up -d`) |
 | Package manager | pnpm workspaces | Monorepo standard |
+| Dev tooling | `dotenv-cli` (dep của `apps/web`) | `pnpm dev`'s script dùng để merge root `.env` + `apps/web/.env.local`, tránh duplicate secret giữa 2 file — xem mục Environment Variables |
 
 ## Kiến trúc tổng thể
 
@@ -94,11 +95,14 @@ subscription — xác nhận tồn tại từ bản stable v0.8.1 trở đi, và
 - Stream trả về TẤT CẢ `StoreChange` (bao gồm `PutPreimage`, `PutPaymentSession`, `PutAttempt`),
   không lọc theo payment_hash — fibergate-core phải tự lọc: chỉ xử lý `PutCkbInvoiceStatus`, và chỉ
   những `payment_hash` có trong bảng `invoices` nội bộ.
-- Nếu Biscuit auth được bật trên node (`FIBER_NODE_SECRET` set), token cần thêm permission
-  `read("cch")` để gọi được `subscribe_store_changes`. Vì `fiber-node` trong docker-compose chỉ
-  lắng nghe nội bộ (không bind public IP), Biscuit auth có thể để tắt hoàn toàn — auth theo doc chỉ
-  bắt buộc khi RPC bind ra địa chỉ public — nên trong setup mặc định của FiberGate, ràng buộc
-  `read("cch")` gần như không phát sinh.
+- Nếu Biscuit auth được bật trên node (`FIBER_NODE_RPC_AUTH_TOKEN` set), token cần thêm permission
+  `read("cch")` để gọi được `subscribe_store_changes`. `fnn` chỉ bắt buộc Biscuit khi
+  `rpc.listening_addr` là địa chỉ nó tự phân loại "public" (loopback/private/link-local mới được coi
+  là an toàn — **`0.0.0.0` KHÔNG nằm trong nhóm an toàn này dù chỉ nghe nội bộ**, xem gotcha đã ghi ở
+  `decisions-log.md` 2026-07-02). FiberGate né yêu cầu này bằng cách bind `fiber-node` vào 1 static
+  private IP (`172.28.0.10`, xem mục "fiber-node container" bên dưới) thay vì `0.0.0.0` — IP thuộc
+  dải RFC1918 nên `fnn` coi là "private", Biscuit auth vẫn tắt hoàn toàn, ràng buộc `read("cch")`
+  không phát sinh trong setup mặc định.
 - **`@ckb-ccc/fiber` (SDK chính thức đang dùng cho các RPC call khác) KHÔNG hỗ trợ subscription**
   (đã verify bằng cách tải source thật từ npm: `FiberClient` chỉ wrap `ccc.RequestorJsonRpc`, thuần
   request/response, không có dòng nào liên quan "subscribe"/"websocket"). → Cần viết 1 WebSocket
@@ -158,18 +162,103 @@ fibergate/
 
 ## Environment Variables
 
-```bash
-# apps/web/.env.local
-DATABASE_URL=                    # postgres://user:pass@postgres:5432/fibergate
-ADMIN_PASSWORD_HASH=             # bcrypt hash, dùng cho dashboard single-admin login
-FIBERGATE_INTERNAL_SECRET=       # shared secret, storefront app dùng để gọi /api/v1/*
+Không có `DATABASE_URL` ở bất kỳ đâu — `lib/db/` (chưa viết, thuộc issue khác) luôn
+tự build connection string từ 5 biến `POSTGRES_*` trước khi khởi tạo Drizzle client,
+1 code path duy nhất dùng chung cho cả Docker lẫn local dev:
 
-FIBER_NODE_URL=                  # http://fiber-node:8227 (docker internal network)
-FIBER_NODE_SECRET=               # Biscuit token, optional — không bắt buộc vì fiber-node chỉ bind
-                                  # nội bộ trong docker network, không public IP. Nếu bật, token
-                                  # cần đủ permission cho các method đang dùng + read("cch") nếu
-                                  # muốn gọi subscribe_store_changes (Phase 2)
-
-WEBHOOK_SIGNING_KEY=             # per-endpoint, random secret để sign webhooks
-CRON_SECRET=                     # optional, bảo vệ /api/cron endpoint (manual trigger)
+```ts
+const databaseUrl = `postgres://${process.env.POSTGRES_USER}:${process.env.POSTGRES_PASSWORD}@${process.env.POSTGRES_HOST}:${process.env.POSTGRES_PORT}/${process.env.POSTGRES_DB}`
 ```
+
+**Chỉ 1 file chứa secret thật** — root `.env` (copy từ `.env.example`), dùng chung
+cho cả `docker compose up -d` lẫn `pnpm dev`. 5 biến required để trống có chủ đích
+(không có default an toàn nào) — cách generate từng biến xem `README.md`
+"Generating secrets":
+
+```bash
+# .env.example (root) — rút gọn, xem file thật cho comment đầy đủ
+POSTGRES_USER=fibergate
+POSTGRES_DB=fibergate
+POSTGRES_PASSWORD=
+FIBER_SECRET_KEY_PASSWORD=       # không thuộc 7 biến app-level bên dưới — chỉ
+                                  # fiber-node đọc, xem section "fiber-node
+                                  # container" bên dưới — nhưng vẫn để trong
+                                  # .env.example (section riêng) để merchant
+                                  # thấy đủ giá trị required trong 1 lần cp
+ADMIN_PASSWORD_HASH=
+FIBERGATE_INTERNAL_SECRET=
+FIBER_NODE_URL=http://fiber-node:8227  # fixed value, docker internal network
+FIBER_NODE_RPC_AUTH_TOKEN=       # optional
+WEBHOOK_SIGNING_KEY=
+CRON_SECRET=                     # optional
+```
+
+Không có preflight/service nào tự động kiểm tra các biến này — để trống thì
+`docker compose up -d` sẽ fail rõ ràng ở `postgres`/`fibergate-core` (lỗi credential
+rỗng), đủ để merchant biết cần điền gì mà không cần thêm 1 service chỉ để validate.
+
+`apps/web/.env.local` chỉ còn 3 biến override cho local dev ngoài Docker — không
+duplicate lại các biến ở trên:
+
+```bash
+# apps/web/.env.example → copy thành apps/web/.env.local
+POSTGRES_HOST=localhost          # root .env không có field này — trong docker-compose
+                                  # nó là giá trị cố định "postgres", khai thẳng trong
+                                  # docker-compose.yml, không phải merchant-configurable
+POSTGRES_PORT=5432
+FIBER_NODE_URL=                  # root .env mặc định trỏ DNS nội bộ docker
+                                  # (http://fiber-node:8227) — không resolve được nếu
+                                  # chạy pnpm dev thuần, cần override, vd http://localhost:8227
+```
+
+`apps/web/package.json`'s `dev` script dùng `dotenv-cli` để merge 2 file này trước
+khi spawn `next dev`: `dotenv -e .env.local -e ../../.env -- next dev` — file liệt kê
+trước thắng (theo docs của `dotenv-cli`), nên `.env.local` override đúng 3 biến trên,
+còn lại lấy từ root `.env`. `docker-compose.yml` không cần thay đổi gì — nó đã tự đọc
+root `.env` theo convention có sẵn của Docker Compose.
+
+## fiber-node container (docker-compose)
+
+Deployment details chốt khi implement issue #3 (xem `decisions-log.md` để biết lý do):
+
+- Image: official `nervos/fiber` (Docker Hub) / `ghcr.io/nervosnetwork/fiber` (GHCR
+  mirror), hiện pin `nervos/fiber:0.9.0-rc6` — repo image chưa publish tag semver ổn
+  định nào (chỉ có `0.9.0-rc1`..`rc6` prerelease + `sha-<hash>`), cần revisit khi có
+  stable tag.
+- Image tự động copy bundled **testnet** config vào `/fiber/config.yml` lúc first-run
+  nếu file chưa tồn tại (đừng set `FIBER_CONFIG_TEMPLATE` — biến đó chuyển sang mainnet
+  config). FiberGate pre-seed sẵn `docker/fiber-node/config.yml` thay vì để image tự
+  generate, để repo state đúng ngay từ đầu.
+- **Gotcha quan trọng**: RPC listener trong bundled config mặc định bind
+  `127.0.0.1:8227` (chỉ loopback trong container) — `fibergate-core` (container khác) không gọi
+  được qua đó. **KHÔNG sửa thành `0.0.0.0:8227`** — tưởng hợp lý nhưng `fnn` (bản đang pin
+  `0.9.0-rc6`) tự phân loại `0.0.0.0` là địa chỉ "public" (chỉ loopback/private/link-local mới được
+  coi "an toàn") và **từ chối start** nếu không có `rpc.biscuit_public_key`
+  (lỗi: `Cannot listen on a public address without a biscuit public key set in the config`) — phát
+  hiện lúc chạy live thật lần đầu, xem tường thuật đầy đủ ở `decisions-log.md` 2026-07-02. Cách đúng:
+  gán `fiber-node` 1 **static private IP** trên network `fibergate-net` (`docker-compose.yml`'s
+  `networks.fibergate-net.ipam.config.subnet: 172.28.0.0/24` +
+  `fiber-node.networks.fibergate-net.ipv4_address: 172.28.0.10`), rồi set
+  `rpc.listening_addr: 172.28.0.10:8227` — IP thuộc dải RFC1918 nên `fnn` coi là "private", pass
+  check mà không cần Biscuit, vẫn chỉ reachable trong docker network nội bộ như cũ. Hệ quả kéo theo:
+  healthcheck `fnn-cli info` (chạy trong chính container, mặc định trỏ `127.0.0.1`) phải đổi thành
+  `fnn-cli -u http://172.28.0.10:8227 info` vì loopback không còn reach được RPC.
+- Node cần `FIBER_SECRET_KEY_PASSWORD` (env) + CKB private key file mount tại
+  `<data-dir>/ckb/key` (data dir mount ở container path `/fiber`) — đây là secret ký
+  CKB của merchant tự cung cấp. `FIBER_SECRET_KEY_PASSWORD` **không** thuộc 7 biến
+  app-level ở `.env.example` phía trên (chỉ `fiber-node` đọc, không phải code
+  `fibergate-core`), nhưng vẫn có mặt trong `.env.example` — ở section riêng, tách
+  biệt khỏi 7 biến app — để merchant không bỏ sót khi chỉ làm theo 1 bước
+  `cp .env.example .env`. Quyết định UX này đổi từ thiết kế ban đầu (cố tình loại
+  hẳn khỏi `.env.example`), xem `decisions-log.md`.
+- Image có sẵn `fnn-cli`, dùng được cho healthcheck (`fnn-cli info`) mà không cần cài
+  thêm curl/wget.
+- RPC được publish ra host ở dạng **loopback-only**: `ports: "127.0.0.1:8227:8227"`
+  trong `docker-compose.yml`. Lý do: `pnpm dev` (chạy `apps/web` trực tiếp trên host,
+  không qua Docker) cần gọi được `fiber-node` mà không phải sửa `/etc/hosts` hay thêm
+  `docker-compose.override.yml`. Khác hẳn `"8227:8227"` thường (mặc định bind
+  `0.0.0.0`, sẽ lộ RPC chưa bật auth ra internet nếu host có IP public) —
+  `127.0.0.1:8227:8227` không bao giờ lộ ra ngoài chính máy đang chạy, dù máy đó là
+  laptop hay VPS có IP public, nên vẫn khớp đúng yêu cầu "fiber-node does NOT bind a
+  public IP/port" của issue #3. Đã verify: `docker compose ps` hiện đúng
+  `127.0.0.1:8227->8227/tcp`, `ss -tlnp` xác nhận socket chỉ LISTEN trên `127.0.0.1`.

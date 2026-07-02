@@ -29,7 +29,7 @@ apps/web/          — Next.js 14 App Router (fibergate-core: dashboard + API ro
   lib/fiber/       — Fiber JSON-RPC client (wraps FNN node calls)
 packages/sdk/      — npm package @fibergate/sdk (TypeScript, tsup)
 docker-compose.yml — Fiber node + PostgreSQL + fibergate-core, merchant tự deploy
-docker/            — Dockerfile cho fibergate-core, config fiber-node
+docker/            — docker/fibergate-core/Dockerfile, config fiber-node
 .context/          — Project context files (Single Source of Truth)
 .context/design/   — Mockup UI đầy đủ, commit thẳng vào repo (không chỉ token nữa):
                      - FiberGate.dc.html — mockup dashboard thật (mở trực tiếp bằng browser)
@@ -61,6 +61,8 @@ pnpm lint                       # lint toàn bộ
 pnpm --filter web typecheck     # TypeScript strict check cho web app
 pnpm --filter sdk build         # build chỉ sdk package
 pnpm --filter web dev           # chạy chỉ web app
+pnpm docker:dev                 # chạy dev mode: chỉ postgres + fiber-node (không có fibergate-core)
+pnpm docker:dev:down            # dừng postgres + fiber-node ở dev mode
 
 docker compose up -d            # build + chạy fiber-node + postgres + fibergate-core
 docker compose build             # rebuild image fibergate-core sau khi đổi code
