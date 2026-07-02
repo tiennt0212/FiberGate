@@ -23,7 +23,7 @@ const STATUS_STYLE: Record<string, { bg: string; color: string }> = {
 };
 
 const PILL: CSSProperties = {
-  borderRadius: "var(--radius-pill)",
+  borderRadius: "var(--rad-pill)",
   padding: "2px 8px",
   fontSize: "var(--fs-caption)",
   fontWeight: 500,

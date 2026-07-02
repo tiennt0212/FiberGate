@@ -13,7 +13,7 @@ export default function DashboardLayout({
       <div className="flex flex-1 flex-col overflow-hidden">
         <Header node={nodeInfo} />
         <main className="flex-1 overflow-y-auto px-7 py-6 pb-14">
-          <div className="animate-fade-in mx-auto max-w-[1120px]">
+          <div className="animate-fade-in mx-auto max-w-450">
             {children}
           </div>
         </main>

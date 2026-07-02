@@ -16,15 +16,15 @@ export const theme: ThemeConfig = {
     colorText: t("--text-primary"),
     colorTextSecondary: t("--text-secondary"),
     colorTextTertiary: t("--text-muted"),
-    borderRadius: px("--radius-button"),
-    borderRadiusLG: px("--radius-card"),
-    fontFamily: t("--font-ui"),
+    borderRadius: px("--rad-button"),
+    borderRadiusLG: px("--rad-card"),
+    fontFamily: t("--ff-ui"),
     fontSize: px("--fs-body"),
     controlHeight: 34,
   },
   components: {
     Card: {
-      borderRadiusLG: px("--radius-card"),
+      borderRadiusLG: px("--rad-card"),
       paddingLG: px("--space-xl"),
     },
     Table: {
@@ -43,7 +43,7 @@ export const theme: ThemeConfig = {
       itemSelectedColor: t("--accent"),
       itemColor: t("--text-secondary"),
       itemHoverBg: t("--hover-subtle"),
-      itemBorderRadius: px("--radius-button"),
+      itemBorderRadius: px("--rad-button"),
       itemHeight: 36,
       iconSize: px("--space-lg"),
     },

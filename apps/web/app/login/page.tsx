@@ -20,7 +20,7 @@ export default function LoginPage() {
           <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-accent text-lg font-bold text-white">
             F
           </span>
-          <Typography.Title level={4} className="!mb-0">
+          <Typography.Title level={4} className="mb-0!">
             Login to dashboard
           </Typography.Title>
           <Typography.Text type="secondary" className="text-[13px]">

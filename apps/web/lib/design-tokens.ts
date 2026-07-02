@@ -55,8 +55,8 @@ export const DESIGN_TOKENS = {
   "--capacity-inbound": "#4f46e5",
   "--capacity-outbound": "#7c3aed",
 
-  "--font-ui": "var(--font-dm-sans), system-ui, sans-serif",
-  "--font-mono": 'var(--font-jetbrains-mono), "Fira Code", monospace',
+  "--ff-ui": "var(--font-dm-sans), system-ui, sans-serif",
+  "--ff-mono": 'var(--font-jetbrains-mono), "Fira Code", monospace',
 
   "--fs-display": "27px",
   "--fs-page-title": "15px",
@@ -77,12 +77,12 @@ export const DESIGN_TOKENS = {
   "--space-2xl": "28px",
   "--space-3xl": "48px",
 
-  "--radius-card": "8px",
-  "--radius-button": "6px",
-  "--radius-input": "6px",
-  "--radius-badge-rect": "4px",
-  "--radius-pill": "9999px",
-  "--radius-code": "6px",
+  "--rad-card": "8px",
+  "--rad-button": "6px",
+  "--rad-input": "6px",
+  "--rad-badge-rect": "4px",
+  "--rad-pill": "9999px",
+  "--rad-code": "6px",
 
   "--sidebar-width": "240px",
   "--header-height": "52px",
