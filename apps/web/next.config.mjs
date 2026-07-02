@@ -1,7 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  // antd v5 is CSS-in-JS; keep transpile hint for the icons/registry packages
+  output: "export",
+  images: { unoptimized: true },
   transpilePackages: ["@ant-design/icons", "@ant-design/nextjs-registry"],
 };
 
