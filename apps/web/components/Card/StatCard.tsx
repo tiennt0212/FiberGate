@@ -1,6 +1,6 @@
-import { Card } from "antd";
+import { Card } from "@/components/Card/Card";
 
-export function MetricCard({
+export function StatCard({
   label,
   value,
   sub,
@@ -12,20 +12,20 @@ export function MetricCard({
   delta?: { value: string; positive: boolean };
 }) {
   return (
-    <Card styles={{ body: { padding: "18px 20px" } }}>
-      <div className="text-[12px] font-medium uppercase tracking-wide text-text-muted">
+    <Card>
+      <div className="text-caption font-semibold uppercase tracking-wide text-text-xsubtle">
         {label}
       </div>
-      <div className="mt-2 text-[27px] font-bold leading-none text-text-primary">
+      <div className="mt-2.5 text-display font-bold leading-none text-text-primary">
         {value}
       </div>
-      <div className="mt-2 flex items-center gap-2 text-[12px]">
+      <div className="mt-2 flex items-center gap-2 text-label">
         {delta && (
           <span
+            className="font-medium"
             style={{ color: `var(--${delta.positive ? "success" : "danger"})` }}
-            className="font-semibold"
           >
-            {delta.positive ? "▲" : "▼"} {delta.value}
+            {delta.positive ? "↑" : "↓"} {delta.value}
           </span>
         )}
         {sub && <span className="text-text-subtle">{sub}</span>}

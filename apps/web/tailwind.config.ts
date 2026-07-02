@@ -15,6 +15,7 @@ const config: Config = {
         border: "var(--border)",
         "border-subtle": "var(--border-subtle)",
         "border-focus": "var(--border-focus)",
+        "card-hover": "var(--card-hover-border)",
         "text-primary": "var(--text-primary)",
         "text-secondary": "var(--text-secondary)",
         "text-muted": "var(--text-muted)",
@@ -37,6 +38,20 @@ const config: Config = {
       fontFamily: {
         sans: ["var(--font-dm-sans)", "system-ui", "sans-serif"],
         mono: ["var(--font-jetbrains-mono)", "monospace"],
+      },
+      // Type scale → var(--fs-*). Enables `text-display`, `text-caption`, …
+      // so typography sizes are tokens too, not hardcoded px.
+      fontSize: {
+        display: "var(--fs-display)",
+        "page-title": "var(--fs-page-title)",
+        "card-title": "var(--fs-card-title)",
+        "step-title": "var(--fs-step-title)",
+        body: "var(--fs-body)",
+        label: "var(--fs-label)",
+        caption: "var(--fs-caption)",
+        "col-header": "var(--fs-col-header)",
+        "code-sm": "var(--fs-code-sm)",
+        "code-md": "var(--fs-code-md)",
       },
       borderRadius: {
         card: "var(--radius-card)",

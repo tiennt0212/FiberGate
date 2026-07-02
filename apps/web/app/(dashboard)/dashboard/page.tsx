@@ -1,9 +1,9 @@
 import Link from "next/link";
-import { Card } from "antd";
 import { invoices, nodeInfo } from "@/lib/mock/data";
 import { ROUTES } from "@/lib/routes";
+import { Card } from "@/components/Card/Card";
 import { InvoiceTable } from "@/components/InvoiceTable";
-import { MetricCard } from "./MetricCard";
+import { StatCard } from "@/components/Card/StatCard";
 import { CapacityCard } from "./CapacityCard";
 
 export default function DashboardPage() {
@@ -15,27 +15,27 @@ export default function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-5">
-      {/* Metrics */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <MetricCard
-          label="Total received"
+        <StatCard
+          label="Total Volume (30d)"
           value={`${totalCkb.toLocaleString()} CKB`}
           delta={{ value: "12.4%", positive: true }}
           sub="vs last week"
         />
-        <MetricCard
-          label="Paid invoices"
-          value={String(paid.length)}
-          sub={`${pending.length} pending`}
+        <StatCard
+          label="Active Channels"
+          value={`${totalCkb.toLocaleString()} CKB`}
+          delta={{ value: "12.4%", positive: true }}
+          sub="vs last week"
         />
-        <MetricCard
-          label="Active channels"
-          value={String(nodeInfo.active_channels)}
-          sub="node online"
+        <StatCard
+          label="Success Rate"
+          value={`${totalCkb.toLocaleString()} CKB`}
+          delta={{ value: "12.4%", positive: true }}
+          sub="vs last week"
         />
       </div>
 
-      {/* Capacity + recent */}
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
         <div className="lg:col-span-1">
           <CapacityCard node={nodeInfo} />
