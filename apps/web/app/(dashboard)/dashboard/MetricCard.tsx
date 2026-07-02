@@ -22,7 +22,7 @@ export function MetricCard({
       <div className="mt-2 flex items-center gap-2 text-[12px]">
         {delta && (
           <span
-            style={{ color: delta.positive ? "#16a34a" : "#dc2626" }}
+            style={{ color: `var(--${delta.positive ? "success" : "danger"})` }}
             className="font-semibold"
           >
             {delta.positive ? "▲" : "▼"} {delta.value}

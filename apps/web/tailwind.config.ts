@@ -1,9 +1,6 @@
 import type { Config } from "tailwindcss";
 
-// Design tokens mirror .context/design/DESIGN.md — do not hardcode colors elsewhere.
 const config: Config = {
-  // Antd v5 ships its own CSS reset; disabling Tailwind's preflight avoids
-  // double-reset artifacts on <a>/<button> (see antd-exp/collab/ecosystem).
   corePlugins: { preflight: false },
   content: [
     "./app/**/*.{ts,tsx}",
@@ -13,32 +10,39 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        bg: "#f7f7f8",
-        surface: "#ffffff",
-        border: "#e4e4e7",
-        "border-subtle": "#f3f4f6",
-        "border-focus": "#f0f0f2",
-        "text-primary": "#141414",
-        "text-secondary": "#52525b",
-        "text-muted": "#71717a",
-        "text-subtle": "#a1a1aa",
-        "text-xsubtle": "#9898a8",
-        accent: "#4f46e5",
-        "accent-hover": "#4338ca",
-        "accent-light": "#eef2ff",
-        success: "#16a34a",
-        warning: "#f59e0b",
-        danger: "#dc2626",
-        purple: "#7c3aed",
-        "code-bg": "#0f172a",
-        "code-bg-dim": "#1e293b",
+        bg: "var(--bg)",
+        surface: "var(--surface)",
+        border: "var(--border)",
+        "border-subtle": "var(--border-subtle)",
+        "border-focus": "var(--border-focus)",
+        "text-primary": "var(--text-primary)",
+        "text-secondary": "var(--text-secondary)",
+        "text-muted": "var(--text-muted)",
+        "text-subtle": "var(--text-subtle)",
+        "text-xsubtle": "var(--text-xsubtle)",
+        accent: "var(--accent)",
+        "accent-hover": "var(--accent-hover)",
+        "accent-light": "var(--accent-light)",
+        success: "var(--success)",
+        warning: "var(--warning)",
+        danger: "var(--danger)",
+        purple: "var(--purple)",
+        "code-bg": "var(--code-bg)",
+        "code-bg-dim": "var(--code-bg-dim)",
+        "code-text": "var(--code-text)",
+        "row-hover": "var(--row-hover)",
+        "asset-tag-bg": "var(--asset-tag-bg)",
+        "asset-tag-text": "var(--asset-tag-text)",
       },
       fontFamily: {
         sans: ["var(--font-dm-sans)", "system-ui", "sans-serif"],
         mono: ["var(--font-jetbrains-mono)", "monospace"],
       },
       borderRadius: {
-        card: "8px",
+        card: "var(--radius-card)",
+        button: "var(--radius-button)",
+        pill: "var(--radius-pill)",
+        code: "var(--radius-code)",
       },
     },
   },
