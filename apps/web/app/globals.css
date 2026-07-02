@@ -2,21 +2,17 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  color-scheme: light;
-}
 
 html,
 body {
   margin: 0;
   padding: 0;
-  background: #f7f7f8;
-  color: #141414;
-  font-family: var(--font-dm-sans), system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text-primary);
+  font-family: var(--font-ui);
   -webkit-font-smoothing: antialiased;
 }
 
-/* Design animations — mirror .context/design/DESIGN.md */
 @keyframes pulse-dot {
   0%,
   100% {

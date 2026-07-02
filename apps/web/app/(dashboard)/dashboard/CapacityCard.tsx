@@ -57,13 +57,13 @@ export function CapacityCard({ node }: { node: NodeInfo }) {
           label="Inbound"
           ckb={node.inbound_capacity_ckb}
           total={total}
-          color="#4f46e5"
+          color="var(--capacity-inbound)"
         />
         <Bar
           label="Outbound"
           ckb={node.outbound_capacity_ckb}
           total={total}
-          color="#7c3aed"
+          color="var(--capacity-outbound)"
         />
       </div>
       {lowInbound && (

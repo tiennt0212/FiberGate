@@ -22,3 +22,5 @@ supabase/.temp/
 .DS_Store
 *.log
 .turbo/
+
+.history

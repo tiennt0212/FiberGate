@@ -3,6 +3,7 @@ import { DM_Sans, JetBrains_Mono } from "next/font/google";
 import { AntdRegistry } from "@ant-design/nextjs-registry";
 import { ConfigProvider } from "antd";
 import { theme } from "./theme";
+import { tokensToCss } from "@/lib/design-tokens";
 import "./globals.css";
 
 const dmSans = DM_Sans({
@@ -32,6 +33,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${dmSans.variable} ${jetbrainsMono.variable}`}>
       <body>
+        <style dangerouslySetInnerHTML={{ __html: tokensToCss() }} />
         <AntdRegistry>
           <ConfigProvider theme={theme}>{children}</ConfigProvider>
         </AntdRegistry>
