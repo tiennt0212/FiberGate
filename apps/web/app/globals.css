@@ -18,6 +18,15 @@
   --color-success: #16a34a;
   --color-warning: #f59e0b;
   --color-danger: #dc2626;
+  --color-danger-soft-bg: #fff5f5;
+  --color-danger-soft-border: #fca5a5;
+  --color-danger-soft-hover: #fee2e2;
+  --color-warning-banner-bg: #fffbeb;
+  --color-warning-banner-border: #fde68a;
+  --color-warning-banner-icon: #d97706;
+  --color-warning-banner-title: #92400e;
+  --color-warning-banner-text: #a16207;
+  --color-hover-subtle: #f4f4f5;
   --color-purple: #7c3aed;
   --color-code-bg: #0f172a;
   --color-code-bg-dim: #1e293b;
@@ -38,6 +47,7 @@
   --text-code-md: 12.5px;
 
   --radius-card: 8px;
+  --radius-modal: 12px;
   --radius-button: 6px;
   --radius-pill: 9999px;
   --radius-code: 6px;

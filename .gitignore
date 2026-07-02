@@ -26,3 +26,5 @@ supabase/.temp/
 .claude/harness/
 
 .history
+*storybook.log
+storybook-static

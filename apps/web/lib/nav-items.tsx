@@ -8,9 +8,6 @@ import {
 import type { MenuProps } from "antd";
 import { ROUTES } from "./routes";
 
-// Menu items for the sidebar. Labels render a real <Link> so nav uses proper
-// <a> elements (frontend-exp: routing-semantic-navigation). text-inherit! keeps
-// the Link from overriding Menu's selected color (antd-exp: link-color-reset).
 export const NAV_ITEMS: MenuProps["items"] = [
   {
     type: "group",

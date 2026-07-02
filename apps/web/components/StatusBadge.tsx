@@ -1,8 +1,6 @@
 import { Tag } from "antd";
 import type { CSSProperties } from "react";
 
-// Colors reference the status tokens defined in app/globals.css (which mirror
-// the "Status Badges" table in .context/design/DESIGN.md) — no hardcoded hex.
 const STATUS_STYLE: Record<string, { bg: string; color: string }> = {
   paid: { bg: "var(--status-paid-bg)", color: "var(--status-paid-text)" },
   success: { bg: "var(--status-paid-bg)", color: "var(--status-paid-text)" },

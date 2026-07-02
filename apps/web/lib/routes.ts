@@ -1,7 +1,3 @@
-// Single source of truth for routes + page titles.
-// Sidebar, Header, and any router.push() import from here (frontend-exp:
-// routing-single-source-of-truth).
-
 export const ROUTES = {
   DASHBOARD: "/dashboard",
   WEBHOOKS: "/webhooks",
