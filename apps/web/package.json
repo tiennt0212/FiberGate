@@ -9,10 +9,13 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "db:generate": "dotenv -e .env.local -e ../../.env -- drizzle-kit generate",
-    "db:migrate": "dotenv -e .env.local -e ../../.env -- drizzle-kit migrate"
+    "db:migrate": "dotenv -e .env.local -e ../../.env -- drizzle-kit migrate",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build"
   },
   "dependencies": {
     "@ant-design/cssinjs": "^2.1.2",
+    "@ant-design/icons": "^5.5.2",
     "@ant-design/nextjs-registry": "^1.3.0",
     "@ckb-ccc/fiber": "0.0.0-canary-20260505020844",
     "antd": "^5.29.3",
@@ -32,6 +35,19 @@
     "eslint": "^8.57.1",
     "eslint-config-next": "^14.2.35",
     "tailwindcss": "^4.3.2",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "storybook": "^10.4.6",
+    "@storybook/nextjs-vite": "^10.4.6",
+    "@chromatic-com/storybook": "^5.2.1",
+    "@storybook/addon-vitest": "^10.4.6",
+    "@storybook/addon-a11y": "^10.4.6",
+    "@storybook/addon-docs": "^10.4.6",
+    "@storybook/addon-mcp": "^0.6.0",
+    "vite": "^8.1.3",
+    "eslint-plugin-storybook": "^10.4.6",
+    "vitest": "^4.1.9",
+    "playwright": "^1.61.1",
+    "@vitest/browser-playwright": "^4.1.9",
+    "@vitest/coverage-v8": "^4.1.9"
   }
 }
