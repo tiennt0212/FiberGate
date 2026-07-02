@@ -1,0 +1,16 @@
+{
+  "name": "fibergate",
+  "private": true,
+  "version": "0.1.0",
+  "description": "FiberGate — self-hosted merchant payment gateway for Fiber Network (monorepo root)",
+  "scripts": {
+    "dev": "pnpm --filter web dev",
+    "build": "pnpm --filter web build",
+    "lint": "pnpm --filter web lint",
+    "typecheck": "pnpm --filter web typecheck"
+  },
+  "packageManager": "pnpm@11.9.0",
+  "engines": {
+    "node": ">=20"
+  }
+}
