@@ -1,7 +1,6 @@
-export default function HomePage() {
-  return (
-    <main>
-      <p>FiberGate core is running.</p>
-    </main>
-  )
+import { redirect } from "next/navigation";
+import { ROUTES } from "@/lib/routes";
+
+export default function Home() {
+  redirect(ROUTES.DASHBOARD);
 }

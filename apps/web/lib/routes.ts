@@ -1,0 +1,21 @@
+// Single source of truth for routes + page titles.
+// Sidebar, Header, and any router.push() import from here (frontend-exp:
+// routing-single-source-of-truth).
+
+export const ROUTES = {
+  DASHBOARD: "/dashboard",
+  WEBHOOKS: "/webhooks",
+  TRANSACTIONS: "/transactions",
+  QUICK_START: "/quick-start",
+  LOGIN: "/login",
+} as const;
+
+export type Route = (typeof ROUTES)[keyof typeof ROUTES];
+
+export const PAGE_TITLES: Record<Route, { group: string; title: string }> = {
+  [ROUTES.DASHBOARD]: { group: "Main", title: "Overview" },
+  [ROUTES.WEBHOOKS]: { group: "Main", title: "Webhooks" },
+  [ROUTES.TRANSACTIONS]: { group: "Main", title: "Transactions" },
+  [ROUTES.QUICK_START]: { group: "Setup", title: "Quick Start" },
+  [ROUTES.LOGIN]: { group: "Auth", title: "Login" },
+};

@@ -1,18 +1,41 @@
-import type { Metadata } from 'next'
-import { AntdRegistry } from '@ant-design/nextjs-registry'
-import './globals.css'
+import type { Metadata } from "next";
+import { DM_Sans, JetBrains_Mono } from "next/font/google";
+import { AntdRegistry } from "@ant-design/nextjs-registry";
+import { ConfigProvider } from "antd";
+import { theme } from "./theme";
+import "./globals.css";
+
+const dmSans = DM_Sans({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-dm-sans",
+  display: "swap",
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  variable: "--font-jetbrains-mono",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
-  title: 'FiberGate',
-  description: 'Self-hosted merchant payment gateway for Fiber Network',
-}
+  title: "FiberGate",
+  description: "Self-hosted merchant payment gateway for Fiber Network",
+};
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
-    <html lang="en">
+    <html lang="en" className={`${dmSans.variable} ${jetbrainsMono.variable}`}>
       <body>
-        <AntdRegistry>{children}</AntdRegistry>
+        <AntdRegistry>
+          <ConfigProvider theme={theme}>{children}</ConfigProvider>
+        </AntdRegistry>
       </body>
     </html>
-  )
+  );
 }

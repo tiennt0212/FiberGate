@@ -11,3 +11,5 @@
     "docker:dev:down": "docker compose stop postgres fiber-node fiber-node-preflight"
   }
 }
+
+
