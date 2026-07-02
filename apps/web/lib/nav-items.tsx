@@ -20,7 +20,7 @@ export const NAV_ITEMS: MenuProps["items"] = [
         key: ROUTES.DASHBOARD,
         icon: <DashboardOutlined />,
         label: (
-          <Link href={ROUTES.DASHBOARD} className="!text-inherit">
+          <Link href={ROUTES.DASHBOARD} className="text-inherit!">
             Overview
           </Link>
         ),
@@ -29,7 +29,7 @@ export const NAV_ITEMS: MenuProps["items"] = [
         key: ROUTES.WEBHOOKS,
         icon: <ApiOutlined />,
         label: (
-          <Link href={ROUTES.WEBHOOKS} className="!text-inherit">
+          <Link href={ROUTES.WEBHOOKS} className="text-inherit!">
             Webhooks
           </Link>
         ),
@@ -38,7 +38,7 @@ export const NAV_ITEMS: MenuProps["items"] = [
         key: ROUTES.TRANSACTIONS,
         icon: <SwapOutlined />,
         label: (
-          <Link href={ROUTES.TRANSACTIONS} className="!text-inherit">
+          <Link href={ROUTES.TRANSACTIONS} className="text-inherit!">
             Transactions
           </Link>
         ),
@@ -53,7 +53,7 @@ export const NAV_ITEMS: MenuProps["items"] = [
         key: ROUTES.QUICK_START,
         icon: <RocketOutlined />,
         label: (
-          <Link href={ROUTES.QUICK_START} className="!text-inherit">
+          <Link href={ROUTES.QUICK_START} className="text-inherit!">
             Quick Start
           </Link>
         ),

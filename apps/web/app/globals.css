@@ -1,7 +1,50 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
+@theme {
+  --color-bg: #f7f7f8;
+  --color-surface: #ffffff;
+  --color-border: #e4e4e7;
+  --color-border-subtle: #f3f4f6;
+  --color-border-focus: #f0f0f2;
+  --color-card-hover: #c9c7e5;
+  --color-text-primary: #141414;
+  --color-text-secondary: #52525b;
+  --color-text-muted: #71717a;
+  --color-text-subtle: #a1a1aa;
+  --color-text-xsubtle: #9898a8;
+  --color-accent: #4f46e5;
+  --color-accent-hover: #4338ca;
+  --color-accent-light: #eef2ff;
+  --color-success: #16a34a;
+  --color-warning: #f59e0b;
+  --color-danger: #dc2626;
+  --color-purple: #7c3aed;
+  --color-code-bg: #0f172a;
+  --color-code-bg-dim: #1e293b;
+  --color-code-text: #e2e8f0;
+  --color-row-hover: #f9f9fb;
+  --color-asset-tag-bg: #f3f4f6;
+  --color-asset-tag-text: #374151;
+
+  --text-display: 27px;
+  --text-page-title: 15px;
+  --text-card-title: 13.5px;
+  --text-step-title: 14px;
+  --text-body: 13px;
+  --text-label: 12px;
+  --text-caption: 11.5px;
+  --text-col-header: 11.5px;
+  --text-code-sm: 12px;
+  --text-code-md: 12.5px;
+
+  --radius-card: 8px;
+  --radius-button: 6px;
+  --radius-pill: 9999px;
+  --radius-code: 6px;
+
+  --font-sans: var(--font-dm-sans), system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), "Fira Code", monospace;
+}
 
 html,
 body {
@@ -9,7 +52,7 @@ body {
   padding: 0;
   background: var(--bg);
   color: var(--text-primary);
-  font-family: var(--font-ui);
+  font-family: var(--ff-ui);
   -webkit-font-smoothing: antialiased;
 }
 
