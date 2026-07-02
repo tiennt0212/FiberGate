@@ -1,6 +1,5 @@
 import type { Asset } from "@/lib/types";
 
-// Display helpers — pure, UI-only formatting.
 
 export function formatAmount(amount: number, asset: Asset): string {
   const n = amount.toLocaleString("en-US", {

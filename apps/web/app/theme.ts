@@ -57,5 +57,13 @@ export const theme: ThemeConfig = {
       primaryShadow: "none",
       defaultShadow: "none",
     },
+    Segmented: {
+      itemSelectedBg: t("--accent"),
+      itemSelectedColor: t("--text-on-accent"),
+      trackBg: t("--surface"),
+      itemColor: t("--text-secondary"),
+      borderRadius: px("--rad-button"),
+      fontSize: 12.5,
+    },
   },
 };

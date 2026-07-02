@@ -31,3 +31,7 @@ supabase/.temp/
 docker/fiber-node/*
 !docker/fiber-node/config.yml
 .history
+
+# Storybook
+*storybook.log
+storybook-static

@@ -1,4 +1,9 @@
+import React from 'react'
 import type { Preview } from '@storybook/nextjs-vite'
+import { ConfigProvider } from 'antd'
+import { theme } from '../app/theme'
+import { tokensToCss } from '../lib/design-tokens'
+import '../app/globals.css'
 
 const preview: Preview = {
   parameters: {
@@ -16,6 +21,19 @@ const preview: Preview = {
       test: 'todo'
     }
   },
+
+  decorators: [
+    // Same setup as app/layout.tsx: runtime CSS vars from lib/design-tokens.ts
+    // + Antd theme, so stories render with the exact app styling.
+    (Story) => (
+      <>
+        <style dangerouslySetInnerHTML={{ __html: tokensToCss() }} />
+        <ConfigProvider theme={theme}>
+          <Story />
+        </ConfigProvider>
+      </>
+    ),
+  ],
 };
 
 export default preview;
