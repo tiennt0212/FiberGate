@@ -1,15 +1,8 @@
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 
+import { requireEnv } from "../env";
 import * as schema from "./schema";
-
-function requireEnv(name: string): string {
-  const value = process.env[name];
-  if (!value) {
-    throw new Error(`Missing required env var: ${name}`);
-  }
-  return value;
-}
 
 // No `DATABASE_URL` anywhere in this repo by design (decisions-log
 // 2026-07-02) — the connection string is always derived from the 5

@@ -1,9 +1,12 @@
 import type { Config } from "drizzle-kit";
 
+import { requireEnv } from "./lib/env";
+
 // Drizzle Kit's own credentials for `generate`/`migrate` (run standalone at
 // dev/deploy time, outside the running Next.js app — this file is NOT
 // imported by lib/db/index.ts, which builds its own connection string the
-// same way but reads it at Next.js runtime instead of CLI time).
+// same way but reads it at Next.js runtime instead of CLI time; both share
+// the same `requireEnv` helper from lib/env.ts).
 //
 // No `DATABASE_URL` anywhere in this repo by design (decisions-log
 // 2026-07-02: "Chốt lại: bỏ hẳn DATABASE_URL khỏi mọi nơi") — always derive
@@ -13,13 +16,6 @@ import type { Config } from "drizzle-kit";
 // `process.env` before drizzle-kit runs — see the "db:generate"/"db:migrate"
 // scripts in package.json. Do not add a `dotenv/config` import here; that
 // would create a second, divergent way of loading env vars.
-function requireEnv(name: string): string {
-  const value = process.env[name];
-  if (!value) {
-    throw new Error(`Missing required env var: ${name}`);
-  }
-  return value;
-}
 
 export default {
   dialect: "postgresql",
