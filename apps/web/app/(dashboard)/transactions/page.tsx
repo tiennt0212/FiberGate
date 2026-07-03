@@ -3,12 +3,21 @@
 import { useMemo, useState } from "react";
 import { Card, Empty, Segmented, Tabs } from "antd";
 import { invoices as allInvoices } from "@/lib/mock/data";
-import { INVOICE_STATUSES, type Invoice, type InvoiceStatus } from "@/lib/types";
+import {
+  ASSETS,
+  INVOICE_STATUSES,
+  type Asset,
+  type Invoice,
+  type InvoiceStatus,
+} from "@/lib/types";
 import { InvoiceTable } from "@/components/InvoiceTable";
 import { ReceiptModal } from "./ReceiptModal";
 
-type StatusFilter = InvoiceStatus | "all";
-type AssetFilter = "all" | "CKB" | "RUSD";
+// "all" is the shared sentinel for an unfiltered Segmented control. Deriving
+// each filter from its domain type keeps the union in sync with @/lib/types.
+type WithAll<T extends string> = T | "all";
+type StatusFilter = WithAll<InvoiceStatus>;
+type AssetFilter = WithAll<Asset>;
 
 export default function TransactionsPage() {
   const [status, setStatus] = useState<StatusFilter>("all");
@@ -44,8 +53,8 @@ export default function TransactionsPage() {
           onChange={setAsset}
           options={[
             { label: "All assets", value: "all" },
-            { label: "CKB", value: "CKB" },
-            { label: "RUSD", value: "RUSD" },
+            { label: "CKB", value: ASSETS.CKB },
+            { label: "RUSD", value: ASSETS.RUSD },
           ]}
         />
       </div>

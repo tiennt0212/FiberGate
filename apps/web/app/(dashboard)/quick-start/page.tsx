@@ -1,5 +1,11 @@
 import { Card } from "antd";
 import { CodeBlock } from "@/components/CodeBlock";
+import {
+  CREATE_INVOICE_SNIPPET,
+  DEPLOY_SNIPPET,
+  INSTALL_SNIPPET,
+  VERIFY_WEBHOOK_SNIPPET,
+} from "./constants";
 
 const STEPS: { title: string; body: React.ReactNode }[] = [
   {
@@ -10,32 +16,17 @@ const STEPS: { title: string; body: React.ReactNode }[] = [
           Copy the example env, set the required secrets, then bring the stack
           up. FiberGate runs Fiber node + PostgreSQL + core in one compose file.
         </p>
-        <CodeBlock>{`cp .env.example .env
-# set ADMIN_PASSWORD, FIBERGATE_INTERNAL_SECRET, DATABASE_URL, FIBER_NODE_URL
-docker compose up -d`}</CodeBlock>
+        <CodeBlock>{DEPLOY_SNIPPET}</CodeBlock>
       </>
     ),
   },
   {
     title: "Install the SDK",
-    body: <CodeBlock>{`npm install @fibergate/sdk`}</CodeBlock>,
+    body: <CodeBlock>{INSTALL_SNIPPET}</CodeBlock>,
   },
   {
     title: "Create an invoice (server-side)",
-    body: (
-      <CodeBlock>{`import { FiberGate } from '@fibergate/sdk'
-
-const gateway = new FiberGate({
-  baseUrl: process.env.FIBERGATE_BASE_URL,
-  internalSecret: process.env.FIBERGATE_INTERNAL_SECRET,
-})
-
-const invoice = await gateway.invoices.create({
-  amount: 1,
-  asset: 'CKB',
-  description: 'Order #123',
-})`}</CodeBlock>
-    ),
+    body: <CodeBlock>{CREATE_INVOICE_SNIPPET}</CodeBlock>,
   },
   {
     title: "Verify webhook signatures",
@@ -46,7 +37,7 @@ const invoice = await gateway.invoices.create({
           <span className="font-mono text-[12px]">X-Fiber-Signature</span> header
           on each delivery.
         </p>
-        <CodeBlock>{`const isValid = gateway.webhooks.verify(rawBody, signature, secret)`}</CodeBlock>
+        <CodeBlock>{VERIFY_WEBHOOK_SNIPPET}</CodeBlock>
       </>
     ),
   },

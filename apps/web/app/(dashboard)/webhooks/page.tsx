@@ -51,11 +51,11 @@ export default function WebhooksPage() {
                 <button
                   key={wh.id}
                   onClick={() => setSelectedId(wh.id)}
-                  className="flex w-full flex-col gap-1.5 border-b border-border-subtle px-4 py-3.5 text-left last:border-b-0 hover:bg-row-hover"
-                  style={{
-                    background: active ? "var(--row-hover)" : undefined,
-                    borderLeft: `2px solid ${active ? "var(--accent)" : "transparent"}`,
-                  }}
+                  className={`flex w-full flex-col gap-1.5 border-b border-l-2 border-border-subtle px-4 py-3.5 text-left last:border-b-0 hover:bg-row-hover ${
+                    active
+                      ? "border-l-accent bg-row-hover"
+                      : "border-l-transparent"
+                  }`}
                 >
                   <div className="flex items-center justify-between gap-2">
                     <span className="truncate font-mono text-[12px] text-text-primary">
