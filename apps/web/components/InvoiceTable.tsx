@@ -5,6 +5,7 @@ import type { ColumnsType } from "antd/es/table";
 import { FileTextOutlined } from "@ant-design/icons";
 import type { Invoice } from "@/lib/types";
 import { formatAmount, formatDateTime, shortHash } from "@/lib/format";
+import { INVOICE_TABLE_PAGE_SIZE } from "@/lib/constants";
 import { StatusBadge } from "./StatusBadge";
 import { AssetTag } from "./AssetTag";
 
@@ -83,7 +84,9 @@ export function InvoiceTable({
       rowKey="id"
       columns={columns}
       dataSource={invoices}
-      pagination={pagination ? { pageSize: 10, size: "small" } : false}
+      pagination={
+        pagination ? { pageSize: INVOICE_TABLE_PAGE_SIZE, size: "small" } : false
+      }
       size="middle"
     />
   );

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { invoices, nodeInfo } from "@/lib/mock/data";
 import { ROUTES } from "@/lib/routes";
+import { RECENT_TRANSACTIONS_COUNT } from "@/lib/constants";
 import { Card } from "@/components/Card/Card";
 import { InvoiceTable } from "@/components/InvoiceTable";
 import { StatCard } from "@/components/Card/StatCard";
@@ -64,7 +65,9 @@ export default function DashboardPage() {
               </Link>
             }
           >
-            <InvoiceTable invoices={invoices.slice(0, 4)} />
+            <InvoiceTable
+              invoices={invoices.slice(0, RECENT_TRANSACTIONS_COUNT)}
+            />
           </Card>
         </div>
       </div>

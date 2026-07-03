@@ -1,39 +1,21 @@
-import { Tag } from "antd";
-import type { CSSProperties } from "react";
-
-const STATUS_STYLE: Record<string, { bg: string; color: string }> = {
-  paid: { bg: "var(--status-paid-bg)", color: "var(--status-paid-text)" },
-  success: { bg: "var(--status-paid-bg)", color: "var(--status-paid-text)" },
-  active: { bg: "var(--status-active-bg)", color: "var(--status-active-text)" },
-  pending: {
-    bg: "var(--status-pending-bg)",
-    color: "var(--status-pending-text)",
-  },
-  expired: {
-    bg: "var(--status-expired-bg)",
-    color: "var(--status-expired-text)",
-  },
-  disabled: {
-    bg: "var(--status-disabled-bg)",
-    color: "var(--status-disabled-text)",
-  },
-  failed: { bg: "var(--status-failed-bg)", color: "var(--status-failed-text)" },
-};
-
-const PILL: CSSProperties = {
-  borderRadius: "var(--rad-pill)",
-  padding: "2px 8px",
-  fontSize: "var(--fs-caption)",
-  fontWeight: 500,
-  border: "none",
-  margin: 0,
-  lineHeight: 1.4,
-  textTransform: "capitalize",
+// Status → Tailwind class map. Colors reference the design tokens injected at
+const STATUS_CLASS: Record<string, string> = {
+  paid: "bg-[var(--status-paid-bg)] text-[var(--status-paid-text)]",
+  success: "bg-[var(--status-paid-bg)] text-[var(--status-paid-text)]",
+  active: "bg-[var(--status-active-bg)] text-[var(--status-active-text)]",
+  pending: "bg-[var(--status-pending-bg)] text-[var(--status-pending-text)]",
+  expired: "bg-[var(--status-expired-bg)] text-[var(--status-expired-text)]",
+  disabled: "bg-[var(--status-disabled-bg)] text-[var(--status-disabled-text)]",
+  failed: "bg-[var(--status-failed-bg)] text-[var(--status-failed-text)]",
 };
 
 export function StatusBadge({ status }: { status: string }) {
-  const s = STATUS_STYLE[status] ?? STATUS_STYLE.disabled;
+  const colorClass = STATUS_CLASS[status] ?? STATUS_CLASS.disabled;
   return (
-    <Tag style={{ ...PILL, background: s.bg, color: s.color }}>{status}</Tag>
+    <span
+      className={`inline-flex items-center rounded-full px-2 py-0.5 text-caption font-medium capitalize leading-[1.4] ${colorClass}`}
+    >
+      {status}
+    </span>
   );
 }

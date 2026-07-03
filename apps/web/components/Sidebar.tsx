@@ -23,7 +23,7 @@ export function Sidebar() {
           mode="inline"
           selectedKeys={[pathname]}
           items={NAV_ITEMS}
-          style={{ border: "none", background: "transparent" }}
+          className="border-none! bg-transparent!"
         />
       </nav>
 

@@ -22,8 +22,9 @@ export function StatCard({
       <div className="mt-2 flex items-center gap-2 text-label">
         {delta && (
           <span
-            className="font-medium"
-            style={{ color: `var(--${delta.positive ? "success" : "danger"})` }}
+            className={`font-medium ${
+              delta.positive ? "text-success" : "text-danger"
+            }`}
           >
             {delta.positive ? "↑" : "↓"} {delta.value}
           </span>

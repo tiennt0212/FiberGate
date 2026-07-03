@@ -1,0 +1,6 @@
+
+export const LOW_INBOUND_THRESHOLD_CKB = 10;
+
+export const INVOICE_TABLE_PAGE_SIZE = 10;
+
+export const RECENT_TRANSACTIONS_COUNT = 4;

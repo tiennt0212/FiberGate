@@ -1,42 +1,16 @@
 import { Alert, Card } from "antd";
 import type { NodeInfo } from "@/lib/types";
 import { shortHash } from "@/lib/format";
+import { LOW_INBOUND_THRESHOLD_CKB } from "@/lib/constants";
+import { CapacityBar } from "@/components/CapacityBar/CapacityBar";
 
-const LOW_INBOUND_THRESHOLD = 10; // CKB — BR / US-004 "Low capacity" warning
-
-function Bar({
-  label,
-  ckb,
-  total,
-  color,
-}: {
-  label: string;
-  ckb: number;
-  total: number;
-  color: string;
-}) {
-  const pct = total > 0 ? Math.round((ckb / total) * 100) : 0;
-  return (
-    <div>
-      <div className="mb-1.5 flex items-center justify-between text-[12px]">
-        <span className="text-text-muted">{label}</span>
-        <span className="font-mono font-semibold text-text-primary">
-          {ckb.toLocaleString()} CKB
-        </span>
-      </div>
-      <div className="h-[5px] w-full overflow-hidden rounded-full bg-border-subtle">
-        <div
-          className="h-full rounded-full"
-          style={{ width: `${pct}%`, background: color }}
-        />
-      </div>
-    </div>
-  );
+function toPercent(part: number, total: number): number {
+  return total > 0 ? Math.round((part / total) * 100) : 0;
 }
 
 export function CapacityCard({ node }: { node: NodeInfo }) {
   const total = node.inbound_capacity_ckb + node.outbound_capacity_ckb;
-  const lowInbound = node.inbound_capacity_ckb < LOW_INBOUND_THRESHOLD;
+  const lowInbound = node.inbound_capacity_ckb < LOW_INBOUND_THRESHOLD_CKB;
 
   return (
     <Card
@@ -53,17 +27,17 @@ export function CapacityCard({ node }: { node: NodeInfo }) {
         </span>
       </div>
       <div className="flex flex-col gap-3.5">
-        <Bar
+        <CapacityBar
           label="Inbound"
-          ckb={node.inbound_capacity_ckb}
-          total={total}
-          color="var(--capacity-inbound)"
+          value={`${node.inbound_capacity_ckb.toLocaleString()} CKB`}
+          percent={toPercent(node.inbound_capacity_ckb, total)}
+          direction="inbound"
         />
-        <Bar
+        <CapacityBar
           label="Outbound"
-          ckb={node.outbound_capacity_ckb}
-          total={total}
-          color="var(--capacity-outbound)"
+          value={`${node.outbound_capacity_ckb.toLocaleString()} CKB`}
+          percent={toPercent(node.outbound_capacity_ckb, total)}
+          direction="outbound"
         />
       </div>
       {lowInbound && (
@@ -72,7 +46,7 @@ export function CapacityCard({ node }: { node: NodeInfo }) {
           type="warning"
           showIcon
           message="Low capacity"
-          description={`Inbound capacity is below ${LOW_INBOUND_THRESHOLD} CKB — new payments may fail.`}
+          description={`Inbound capacity is below ${LOW_INBOUND_THRESHOLD_CKB} CKB — new payments may fail.`}
         />
       )}
       <div className="mt-4 border-t border-border-subtle pt-3 text-[12px] text-text-muted">
