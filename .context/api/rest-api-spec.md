@@ -1,7 +1,7 @@
 ---
 type: api_specification
 version: 1.0
-last_updated: 2026-06-30
+last_updated: 2026-07-04
 tags: [rest-api, endpoints, authentication]
 ---
 
@@ -66,6 +66,7 @@ Tạo invoice mới.
 - `400 INVALID_AMOUNT` — amount <= 0 hoặc quá lớn
 - `400 UNSUPPORTED_ASSET` — asset không phải CKB hoặc RUSD
 - `401 UNAUTHORIZED` — token không khớp `FIBERGATE_INTERNAL_SECRET`
+- `429 RATE_LIMITED` — vượt quá 100 invoice/phút trên toàn bộ deployment (BR-RTE-001)
 - `503 NODE_UNAVAILABLE` — Fiber node không phản hồi
 
 ---
@@ -90,6 +91,10 @@ Lấy trạng thái invoice.
   "error": null
 }
 ```
+
+**Errors:**
+- `401 UNAUTHORIZED` — token không khớp `FIBERGATE_INTERNAL_SECRET`
+- `404 NOT_FOUND` — không tìm thấy invoice với `id` tương ứng
 
 ---
 
