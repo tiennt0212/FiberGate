@@ -5,7 +5,7 @@ export interface FilterOption<T extends string> {
   label: ReactNode;
   value: T;
 }
-s
+
 export function FilterGroup<T extends string>({
   options,
   value,

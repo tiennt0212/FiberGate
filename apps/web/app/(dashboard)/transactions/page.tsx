@@ -15,15 +15,15 @@ export default function TransactionsPage() {
   const [asset, setAsset] = useState<AssetFilter>("all");
   const [selected, setSelected] = useState<Invoice | null>(null);
 
-  const filtered = useMemo(
-    () =>
-      allInvoices.filter(
-        (i) =>
-          (status === "all" || i.status === status) &&
-          (asset === "all" || i.asset === asset),
-      ),
-    [status, asset],
-  );
+  const filtered = useMemo(() => {
+    const statusFilter = status.toLowerCase();
+    const assetFilter = asset.toLowerCase();
+    return allInvoices.filter(
+      (i) =>
+        (status === "all" || i.status.toLowerCase() === statusFilter) &&
+        (asset === "all" || i.asset.toLowerCase() === assetFilter),
+    );
+  }, [status, asset]);
 
   const invoicesTab = (
     <div className="flex flex-col gap-4">
