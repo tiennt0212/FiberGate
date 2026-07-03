@@ -190,6 +190,20 @@ FIBERGATE_INTERNAL_SECRET=
 FIBER_NODE_URL=http://fiber-node:8227  # fixed value, docker internal network
 FIBER_NODE_RPC_AUTH_TOKEN=       # optional
 WEBHOOK_SIGNING_KEY=
+```
+
+> **Cập nhật 2026-07-03 (issue #5, verified khi implement `lib/fiber/client.ts`)**:
+> `client.ts` đọc `FIBER_NODE_RPC_AUTH_TOKEN` trực tiếp từ `process.env` như mô
+> tả ở trên, nhưng bản `@ckb-ccc/fiber@0.0.0-canary-20260505020844` đang pin
+> **chưa có cơ chế nào để gắn token này vào request thật** — SDK's HTTP
+> transport hard-code duy nhất header `content-type: application/json`, không
+> có chỗ nào đọc `Authorization`/Biscuit. Xem chi tiết ở `decisions-log.md`
+> 2026-07-03. Không ảnh hưởng chức năng hiện tại vì Biscuit auth đang tắt
+> hoàn toàn theo thiết kế mặc định (mục "fiber-node container" bên dưới) —
+> chỉ cần lưu ý nếu sau này có ai bật Biscuit auth thật, sẽ cần viết thêm 1
+> custom RPC transport mới forward được token.
+
+```bash
 CRON_SECRET=                     # optional
 ```
 

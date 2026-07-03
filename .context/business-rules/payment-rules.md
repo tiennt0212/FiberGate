@@ -1,8 +1,8 @@
 ---
 type: business_rules
 module: payment-processing
-version: 1.0
-last_updated: 2026-06-30
+version: 1.1
+last_updated: 2026-07-03
 tags: [invoice, webhook, polling, limits]
 ---
 
@@ -13,6 +13,14 @@ tags: [invoice, webhook, polling, limits]
 **BR-INV-001:** Amount tối thiểu: 0.1 CKB (= 10,000,000 shannon). Amount tối đa: 1,000 CKB cho prototype.
 
 **BR-INV-002:** Asset chỉ chấp nhận "CKB" hoặc "RUSD" trong prototype.
+
+> **Cập nhật 2026-07-03 (issue #5)**: `lib/fiber/client.ts`'s `createInvoice()` hiện tại
+> **chỉ implement "CKB"** — `@ckb-ccc/fiber`'s `Currency` enum chỉ có các denomination
+> native (`Fibb`/`Fibt`/`Fibd`), không có giá trị nào cho RUSD (1 UDT). Truyền
+> `asset: "RUSD"` sẽ throw `UnsupportedAssetError` rõ ràng, không silent fail. RUSD/UDT
+> support được tách ra issue riêng — xem **issue #27** (milestone Phase 1 — Core, phụ
+> thuộc #5). Rule này ("CKB hoặc RUSD") vẫn đúng về mặt business intent lâu dài, chỉ chưa
+> đủ ở tầng implementation hiện tại.
 
 **BR-INV-003:** Thời gian expire mặc định: 3600 giây (1 giờ). Tối đa 86400 giây (24 giờ).
 
