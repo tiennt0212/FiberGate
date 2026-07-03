@@ -1,7 +1,7 @@
 ---
 type: data_dictionary
-version: 1.0
-last_updated: 2026-06-30
+version: 1.2
+last_updated: 2026-07-03
 tags: [postgresql, drizzle, schema, self-hosted]
 ---
 
@@ -21,13 +21,22 @@ tags: [postgresql, drizzle, schema, self-hosted]
 | amount_shannon | bigint | NOT NULL | Lưu dạng shannon (integer) |
 | asset | text | NOT NULL | "CKB" hoặc "RUSD" |
 | description | text | | |
-| status | text | NOT NULL DEFAULT 'pending' | pending / paid / expired / failed |
+| status | invoice_status (Postgres native ENUM: pending, paid, expired, failed) | NOT NULL DEFAULT 'pending' | pending / paid / expired / failed |
 | expires_at | timestamptz | NOT NULL | |
 | paid_at | timestamptz | | Khi status → paid |
 | metadata | jsonb | | Dữ liệu tùy chỉnh từ developer |
 | created_at | timestamptz | DEFAULT now() | |
 
-> Status transitions: pending → paid (terminal), pending → expired (terminal), pending → failed (terminal)
+> **Cập nhật 2026-07-03 (issue #4)**: `status` dùng Drizzle `pgEnum` → Postgres
+> native `CREATE TYPE invoice_status AS ENUM ('pending','paid','expired','failed')`,
+> thay vì `text` như bản trước — giá trị là 1 tập cố định, đóng, nên enum ở DB
+> level phù hợp hơn. Xem `apps/web/lib/db/schema.ts` (`invoiceStatusEnum`).
+> Lưu ý: `webhook_deliveries.status` KHÔNG đổi theo — vẫn là `text` (domain
+> giá trị khác: pending/success/failed), xem bảng `webhook_deliveries` bên dưới.
+>
+> Status transitions: pending → paid (terminal), pending → expired (terminal), pending → failed (terminal).
+> BR-STS-001: một chiều duy nhất, không có transition ngược — không có DB-level
+> trigger/constraint enforce việc này, chỉ document qua comment trong `schema.ts`.
 
 ## Bảng: `webhook_endpoints`
 
@@ -73,6 +82,23 @@ Lưu trạng thái node định kỳ (mỗi 1 phút). Dùng để hiển thị d
 | outbound_capacity_shannon | bigint | | |
 | peer_count | integer | | |
 | snapshot_at | timestamptz | DEFAULT now() | |
+
+## Quy tắc quản lý migration
+
+Thư mục `apps/web/lib/db/migrations/` là **append-only** — mỗi file (`0000_xxx.sql`,
+`0001_xxx.sql`, ...) là 1 bước thay đổi lịch sử, giống commit git. Drizzle lưu trong
+chính DB (bảng nội bộ) migration nào đã chạy — xóa/sửa 1 file cũ mà DB nào đó đã chạy
+rồi sẽ làm Drizzle mất dấu, gây lỗi khó debug.
+
+- **Sau khi sửa `schema.ts`**: chạy `pnpm --filter web db:generate` để sinh migration
+  **mới** (`0001_...`), không sửa lại file `0000_naive_maverick.sql` hay các file cũ hơn.
+- **Squash/gộp migration cũ**: chỉ hợp lý khi migration đó **chưa từng chạy** ở bất kỳ
+  deployment thật nào (dev/staging/prod/demo public). Ngay khi 1 migration đã merge vào
+  `canary`/`main` và có nơi nào chạy `db:migrate` với nó, coi như "đóng băng" — chỉ được
+  thêm mới, không xóa/sửa.
+- Việc chạy `drizzle-kit generate` **không** đụng vào DB thật, chỉ sinh file SQL. Phải
+  chạy `drizzle-kit migrate` (qua `pnpm --filter web db:migrate`) thì bảng mới thực sự
+  được tạo/cập nhật trong Postgres — xem "Running the full stack" trong `README.md`.
 
 ## Row Level Security
 

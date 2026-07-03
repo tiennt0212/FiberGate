@@ -1,6 +1,7 @@
 # FiberGate self-hosted bundle. Merchant deploy: `docker compose up -d`.
 # 3 services on one internal network. fibergate-core publishes a real host port;
-# fiber-node publishes its RPC loopback-only (127.0.0.1), for local dev convenience
+# fiber-node and postgres publish loopback-only (127.0.0.1), for local dev
+# convenience (`pnpm dev`, `pnpm --filter web db:migrate` running on the host)
 # — neither is reachable from outside the machine running this compose file.
 # See README.md "Running the full stack" for setup steps (env file, CKB key).
 
@@ -17,6 +18,14 @@ services:
       - postgres-data:/var/lib/postgresql/data
     networks:
       - fibergate-net
+    # Loopback-only, same reasoning as fiber-node's RPC port below: `pnpm dev`
+    # and `pnpm --filter web db:migrate` run on the host (outside Docker) need
+    # to reach this container, but a plain "5432:5432" would default to
+    # binding 0.0.0.0 and expose Postgres to the internet on any host with a
+    # public IP and no firewall. 127.0.0.1 never leaves the machine running
+    # this compose file, regardless of whether that machine has a public IP.
+    ports:
+      - "127.0.0.1:5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
