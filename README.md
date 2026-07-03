@@ -60,6 +60,8 @@ pnpm lint                       # lint the whole workspace
 pnpm --filter web typecheck     # TypeScript strict check for the web app
 pnpm --filter sdk build         # build only the sdk package
 pnpm --filter web dev           # run only the web app
+pnpm --filter web db:generate   # generate a Drizzle SQL migration from lib/db/schema.ts
+pnpm --filter web db:migrate    # apply pending migrations to POSTGRES_* (run manually — see below)
 ```
 
 ## Running the full stack (Docker Compose)
@@ -122,6 +124,14 @@ docker run --rm httpd:alpine htpasswd -nbBC 10 admin 'your-real-password'
    docker compose up -d
    docker compose ps   # wait for postgres and fiber-node to report "healthy"
    ```
+4. Run database migrations once — this is a manual step, not automatic on container
+   boot (`fibergate-core` will start and serve requests even before this runs, but any
+   DB-backed route will fail until the tables exist):
+   ```bash
+   pnpm --filter web db:migrate
+   ```
+   Re-run this any time you pull changes that touch `apps/web/lib/db/schema.ts` /
+   `apps/web/lib/db/migrations/`.
 
 **Troubleshooting**
 

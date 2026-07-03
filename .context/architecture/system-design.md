@@ -1,7 +1,7 @@
 ---
 type: architecture
-version: 1.0
-last_updated: 2026-07-02
+version: 1.1
+last_updated: 2026-07-03
 tags: [nextjs, postgresql, docker-compose, fiber-node, monorepo, self-hosted]
 ---
 
@@ -214,8 +214,15 @@ FIBER_NODE_URL=                  # root .env mặc định trỏ DNS nội bộ 
 `apps/web/package.json`'s `dev` script dùng `dotenv-cli` để merge 2 file này trước
 khi spawn `next dev`: `dotenv -e .env.local -e ../../.env -- next dev` — file liệt kê
 trước thắng (theo docs của `dotenv-cli`), nên `.env.local` override đúng 3 biến trên,
-còn lại lấy từ root `.env`. `docker-compose.yml` không cần thay đổi gì — nó đã tự đọc
-root `.env` theo convention có sẵn của Docker Compose.
+còn lại lấy từ root `.env`.
+
+> **Cập nhật 2026-07-03 (issue #4, phát hiện lúc chạy thử `db:migrate`)**:
+> `POSTGRES_HOST=localhost` ở trên chỉ hoạt động thật vì `docker-compose.yml`'s
+> `postgres` service publish port loopback-only (`127.0.0.1:5432:5432`) — giống
+> hệt pattern đã dùng cho `fiber-node`'s RPC (xem section "fiber-node container"
+> bên dưới). Trước đó `postgres` không có `ports:` nào, nên `pnpm dev`/
+> `pnpm --filter web db:migrate` chạy trên host không kết nối được (connection
+> refused). Xem `decisions-log.md` 2026-07-03 để biết chi tiết + cách verify.
 
 ## fiber-node container (docker-compose)
 
