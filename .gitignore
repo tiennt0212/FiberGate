@@ -24,3 +24,9 @@ supabase/.temp/
 *.log
 .turbo/
 .claude/harness/
+
+# fiber-node runtime data — bind-mounted to /fiber in docker-compose.yml.
+# Includes the merchant's CKB testnet private key (ckb/key) and the node's
+# generated store/identity files. Only the pre-seeded config.yml is committed.
+docker/fiber-node/*
+!docker/fiber-node/config.yml

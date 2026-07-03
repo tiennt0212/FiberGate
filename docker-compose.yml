@@ -1,0 +1,144 @@
+# FiberGate self-hosted bundle. Merchant deploy: `docker compose up -d`.
+# 3 services on one internal network. fibergate-core publishes a real host port;
+# fiber-node publishes its RPC loopback-only (127.0.0.1), for local dev convenience
+# — neither is reachable from outside the machine running this compose file.
+# See README.md "Running the full stack" for setup steps (env file, CKB key).
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      # Init vars for the official postgres image — see .env.example.
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - fibergate-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  # Fails fast with a clear message if the CKB key is missing, instead of letting
+  # fiber-node crash-loop on a hard-to-read Rust panic.
+  fiber-node-preflight:
+    image: alpine:3.20
+    volumes:
+      - ./docker/fiber-node:/fiber:ro
+    networks:
+      - fibergate-net
+    command:
+      - sh
+      - -c
+      - |
+        if [ ! -f /fiber/ckb/key ]; then
+          echo "============================================================"
+          echo "FiberGate setup incomplete: missing CKB testnet key."
+          echo ""
+          echo "fiber-node needs your own CKB testnet signing key before it"
+          echo "can start. Run this before 'docker compose up -d':"
+          echo ""
+          echo "  mkdir -p docker/fiber-node/ckb"
+          echo "  # put your CKB testnet private key at docker/fiber-node/ckb/key"
+          echo ""
+          echo "Then set FIBER_SECRET_KEY_PASSWORD (see README.md 'Running the full stack')"
+          echo "and re-run: docker compose up -d"
+          echo "============================================================"
+          exit 1
+        fi
+        echo "fiber-node-preflight OK: CKB key found at docker/fiber-node/ckb/key"
+
+  fiber-node:
+    # Pinned to a prerelease tag: nervosnetwork/fiber has not published a stable
+    # Docker image tag on Docker Hub yet (only 0.9.0-rc1..rc6 and sha-<hash> exist).
+    # Revisit this pin once a stable release tag is published.
+    image: nervos/fiber:0.9.0-rc6
+    restart: unless-stopped
+    depends_on:
+      fiber-node-preflight:
+        condition: service_completed_successfully
+    environment:
+      # Password for the CKB key at docker/fiber-node/ckb/key (merchant-supplied).
+      FIBER_SECRET_KEY_PASSWORD: ${FIBER_SECRET_KEY_PASSWORD}
+      RUST_LOG: info
+    volumes:
+      # Pre-seeded config.yml, plus the merchant's ckb/key and node runtime state.
+      - ./docker/fiber-node:/fiber
+    networks:
+      # Static IP so config.yml's rpc.listening_addr can bind to a fixed,
+      # non-wildcard address. fnn refuses to bind "public" addresses (its own
+      # classification, which includes the 0.0.0.0 wildcard) without
+      # rpc.biscuit_public_key configured. Binding the container's own
+      # RFC1918-private IP instead satisfies that check without needing
+      # biscuit auth — still only reachable on this internal Docker network.
+      fibergate-net:
+        ipv4_address: 172.28.0.10
+    # Loopback-only — reachable as localhost:8227 from the host machine itself
+    # (so `pnpm dev` can reach it without a docker-compose.yml override or
+    # /etc/hosts edits), but NOT bound to a public IP. This is intentionally
+    # different from a normal "8227:8227" mapping, which would default to
+    # 0.0.0.0 and expose fiber-node's unauthenticated RPC to the internet on
+    # any host with a public IP and no firewall — the issue #3 requirement
+    # ("fiber-node does NOT bind a public IP/port") is still satisfied because
+    # 127.0.0.1 never leaves the machine it's running on, regardless of
+    # whether that machine has a public IP.
+    ports:
+      - "127.0.0.1:8227:8227"
+    healthcheck:
+      # -u required: fnn-cli defaults to 127.0.0.1, but rpc.listening_addr is
+      # now the container's static IP (172.28.0.10), not the loopback/wildcard.
+      test: ["CMD", "fnn-cli", "-u", "http://172.28.0.10:8227", "info"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  fibergate-core:
+    build:
+      context: .
+      dockerfile: docker/fibergate-core/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      fiber-node:
+        condition: service_healthy
+    environment:
+      # See .env.example for full descriptions of each var. lib/db/ builds
+      # DATABASE_URL from these 5 at runtime — same code path as local dev.
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      # [FIXED VALUE] Not sourced from .env — deliberately different from the 3
+      # vars above. The postgres service itself has no .env-configurable
+      # listening port (always 5432, the official image's own default), so
+      # making this one merchant-editable without also changing the postgres
+      # service would just create a mismatch. Internal-only network, no port
+      # conflicts possible, so there's no real reason to change it.
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      ADMIN_PASSWORD_HASH: ${ADMIN_PASSWORD_HASH}
+      FIBERGATE_INTERNAL_SECRET: ${FIBERGATE_INTERNAL_SECRET}
+      FIBER_NODE_URL: ${FIBER_NODE_URL}
+      FIBER_NODE_RPC_AUTH_TOKEN: ${FIBER_NODE_RPC_AUTH_TOKEN}
+      WEBHOOK_SIGNING_KEY: ${WEBHOOK_SIGNING_KEY}
+      CRON_SECRET: ${CRON_SECRET}
+    ports:
+      - "3000:3000"
+    networks:
+      - fibergate-net
+
+networks:
+  fibergate-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/24
+
+volumes:
+  postgres-data:

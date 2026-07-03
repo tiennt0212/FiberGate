@@ -1,0 +1,40 @@
+# Keep the fibergate-core build context (repo root, see docker/fibergate-core/Dockerfile) small
+# and avoid leaking local secrets/dev artifacts into the image.
+
+# VCS
+.git/
+.gitignore
+
+# Dependencies (reinstalled inside the image from pnpm-lock.yaml)
+**/node_modules/
+.pnpm-store/
+
+# Build outputs (rebuilt inside the image)
+**/.next/
+**/dist/
+**/out/
+**/build/
+**/*.tsbuildinfo
+
+# Env files — never bake secrets into the image
+.env
+.env.local
+.env*.local
+.env.production
+**/.env
+**/.env.local
+**/.env*.local
+**/.env.production
+
+# Fiber node runtime data / keys — irrelevant to the fibergate-core build
+docker/fiber-node/
+
+# Docs — pure markdown, never read by the Dockerfile/build
+.context/
+README.md
+
+# Harness / editor / misc
+.claude/
+.DS_Store
+*.log
+.turbo/

@@ -2,7 +2,7 @@
 type: user_stories
 persona: developer
 version: 1.0
-last_updated: 2026-06-30
+last_updated: 2026-07-02
 tags: [integration, onboarding, webhook, sdk]
 ---
 
@@ -15,9 +15,10 @@ tags: [integration, onboarding, webhook, sdk]
 **So that** tôi tự vận hành node và dữ liệu, không phụ thuộc bên thứ ba.
 
 **Acceptance criteria:**
-- Clone repo, copy `.env.example` → `.env`, set các biến bắt buộc: `ADMIN_PASSWORD`, `FIBERGATE_INTERNAL_SECRET`, `DATABASE_URL`, `FIBER_NODE_URL`
+- Clone repo, copy `.env.example` → `.env`, set các biến bắt buộc: `POSTGRES_PASSWORD`, `ADMIN_PASSWORD_HASH`, `FIBERGATE_INTERNAL_SECRET` (`FIBER_NODE_URL` đã có sẵn giá trị mặc định cho docker network, không cần đổi; `DATABASE_URL` không tự set — derive từ `POSTGRES_*`)
+- Cung cấp CKB testnet key cho fiber-node (`docker/fiber-node/ckb/key` + `FIBER_SECRET_KEY_PASSWORD`) — xem README "Running the full stack"
 - Chạy `docker compose up -d` → khởi động 3 container: fiber-node, postgres, fibergate-core
-- Truy cập dashboard, đăng nhập bằng `ADMIN_PASSWORD` đã set (single-admin, không có sign up)
+- Truy cập dashboard, đăng nhập bằng plaintext password đã dùng để tạo `ADMIN_PASSWORD_HASH` (single-admin, không có sign up)
 - Có thể revoke/rotate `FIBERGATE_INTERNAL_SECRET` bằng cách đổi env var và restart container
 
 ## US-002: Tích hợp SDK vào Next.js app
