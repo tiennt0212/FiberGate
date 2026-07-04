@@ -4,6 +4,11 @@
 .env*.local
 .env.production
 
+# bruno/.env — real FIBERGATE_INTERNAL_SECRET value read via
+# {{process.env.FIBERGATE_INTERNAL_SECRET}} in bruno/environments/local.bru.
+# bruno/.env.example (template, placeholder only) IS committed.
+bruno/.env
+
 # Dependencies
 node_modules/
 .pnpm-store/

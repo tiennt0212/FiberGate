@@ -1,0 +1,26 @@
+meta {
+  name: Get invoice - not found (404)
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{baseUrl}}/invoices/00000000-0000-0000-0000-000000000000
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{fibergateInternalSecret}}
+}
+
+tests {
+  test("status is 404", function () {
+    expect(res.getStatus()).to.equal(404);
+  });
+
+  test("error code is NOT_FOUND", function () {
+    expect(res.body.data).to.equal(null);
+    expect(res.body.error.code).to.equal("NOT_FOUND");
+  });
+}

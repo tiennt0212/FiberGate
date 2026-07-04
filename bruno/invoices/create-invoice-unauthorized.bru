@@ -1,0 +1,33 @@
+meta {
+  name: Create invoice - unauthorized (401)
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/invoices
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer wrong-token-not-the-real-secret
+}
+
+body:json {
+  {
+    "amount": 1.5,
+    "asset": "CKB"
+  }
+}
+
+tests {
+  test("status is 401", function () {
+    expect(res.getStatus()).to.equal(401);
+  });
+
+  test("error code is UNAUTHORIZED", function () {
+    expect(res.body.data).to.equal(null);
+    expect(res.body.error.code).to.equal("UNAUTHORIZED");
+  });
+}

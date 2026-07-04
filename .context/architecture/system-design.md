@@ -1,7 +1,7 @@
 ---
 type: architecture
-version: 1.1
-last_updated: 2026-07-03
+version: 1.2
+last_updated: 2026-07-04
 tags: [nextjs, postgresql, docker-compose, fiber-node, monorepo, self-hosted]
 ---
 
@@ -20,6 +20,8 @@ tags: [nextjs, postgresql, docker-compose, fiber-node, monorepo, self-hosted]
 | Hosting | Docker Compose | Merchant tự deploy trên VPS của họ (`docker compose up -d`) |
 | Package manager | pnpm workspaces | Monorepo standard |
 | Dev tooling | `dotenv-cli` (dep của `apps/web`) | `pnpm dev`'s script dùng để merge root `.env` + `apps/web/.env.local`, tránh duplicate secret giữa 2 file — xem mục Environment Variables |
+| Dev tooling | `vitest` (devDep của `apps/web`) | Unit test cho `lib/api/*` + route handler trong `app/api/v1/**`, mock ở boundary `@/lib/db` + `@/lib/fiber/client` (`pnpm --filter web test:unit`) |
+| Dev tooling | `@usebruno/cli` (devDep của `apps/web`) | HTTP integration test chạy qua `bru run` nhắm vào `/api/v1/*` thật — collection tại root `bruno/` (`pnpm --filter web test:integration`) |
 
 ## Kiến trúc tổng thể
 

@@ -1,0 +1,33 @@
+meta {
+  name: Create invoice - unsupported asset (400)
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/invoices
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{fibergateInternalSecret}}
+}
+
+body:json {
+  {
+    "amount": 1.5,
+    "asset": "RUSD"
+  }
+}
+
+tests {
+  test("status is 400", function () {
+    expect(res.getStatus()).to.equal(400);
+  });
+
+  test("error code is UNSUPPORTED_ASSET", function () {
+    expect(res.body.data).to.equal(null);
+    expect(res.body.error.code).to.equal("UNSUPPORTED_ASSET");
+  });
+}
