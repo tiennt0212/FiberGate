@@ -1,0 +1,29 @@
+meta {
+  name: Poll invoices - unauthorized (401)
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{cronUrl}}/poll-invoices
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer wrong-token-not-the-real-secret
+}
+
+tests {
+  // Assumes CRON_SECRET is set to a real, non-empty value in the deployment
+  // under test (see bruno/.env.example) — otherwise the route returns 503
+  // CRON_NOT_CONFIGURED before it even checks the Bearer token.
+  test("status is 401", function () {
+    expect(res.getStatus()).to.equal(401);
+  });
+
+  test("error code is UNAUTHORIZED", function () {
+    expect(res.body.data).to.equal(null);
+    expect(res.body.error.code).to.equal("UNAUTHORIZED");
+  });
+}

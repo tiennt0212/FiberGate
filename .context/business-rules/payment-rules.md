@@ -1,8 +1,8 @@
 ---
 type: business_rules
 module: payment-processing
-version: 1.1
-last_updated: 2026-07-03
+version: 1.2
+last_updated: 2026-07-04
 tags: [invoice, webhook, polling, limits]
 ---
 
@@ -31,6 +31,22 @@ tags: [invoice, webhook, polling, limits]
 ## Status Transition Rules
 
 **BR-STS-001:** Status chỉ đi theo một chiều: `pending → paid | expired | failed`. Không thể reverse.
+
+> **Cập nhật 2026-07-04 (issue #7, background poller)**: Node-status → `paid` mapping
+> được chốt rõ. `@ckb-ccc/fiber`'s `CkbInvoiceStatus` có 5 giá trị (`"Open" |
+> "Cancelled" | "Expired" | "Received" | "Paid"`) nhưng trước đây rule này chưa từng
+> nói rõ giá trị nào map sang `invoices.status = 'paid'`. Đã chốt: **chỉ `"Paid"` map
+> sang `paid`** — xác nhận qua Fiber's Rust source (`crates/fiber-types/src/invoice.rs`'s
+> doc comment "the invoice is received, but not settled yet" cho `Received`;
+> `crates/fiber-lib/src/fiber/channel.rs:1898` chỉ set `CkbInvoiceStatus::Paid` khi TLC
+> được remove với `RemoveTlcFulfill`, tức hoàn tất settlement ở tầng channel). `"Received"`
+> **không phải** trạng thái terminal — invoice giữ nguyên `pending`, không đổi status ở
+> cycle đó; `lib/fiber/client.ts`'s `createInvoice()` đã cấp preimage cho node ngay lúc
+> tạo invoice (không phải hold-invoice flow) nên `Received → Paid` diễn ra tự động gần
+> như tức thời phía node, poller sẽ quan sát được `"Paid"` ở cycle 10s kế tiếp mà không
+> cần hành động thêm. Implement tại `apps/web/lib/poller/invoice-poller.ts`'s
+> `applyNodeStatus()`. Xem `.context/processes/decisions-log.md` [2026-07-04] mục tương
+> ứng.
 
 **BR-STS-002:** Status "expired" được set khi: (a) Fiber node báo expired, hoặc (b) `expires_at < now()` dù chưa poll.
 

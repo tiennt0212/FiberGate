@@ -34,16 +34,35 @@ function constantTimeEquals(a: string, b: string): boolean {
 }
 
 /**
+ * Constant-time check of `request`'s `Authorization: Bearer` header against
+ * `expectedSecret`. Returns a 401 err() NextResponse on mismatch, or `null`
+ * if authorized. Extracted out of requireAuth() below so a second caller
+ * (POST /api/cron/poll-invoices, checked against CRON_SECRET instead of
+ * FIBERGATE_INTERNAL_SECRET) doesn't have to copy-paste the constant-time
+ * comparison logic. This function doesn't fetch the secret itself — callers
+ * decide how to obtain/validate its presence
+ * (requireAuth() below always requires FIBERGATE_INTERNAL_SECRET via
+ * requireEnv(); the cron route instead treats a missing CRON_SECRET as
+ * "endpoint disabled" via getOptionalEnv(), not a 401).
+ */
+export function requireBearerToken(
+  request: NextRequest,
+  expectedSecret: string,
+): ReturnType<typeof err> | null {
+  const token = extractBearerToken(request.headers.get("authorization"));
+
+  if (!constantTimeEquals(token, expectedSecret)) {
+    return err(401, "UNAUTHORIZED", "Missing or invalid authorization token");
+  }
+  return null;
+}
+
+/**
  * Returns an error NextResponse if the request's Authorization header does
  * not match FIBERGATE_INTERNAL_SECRET, or `null` if authorized. Callers must
  * check for a non-null return and short-circuit before doing anything else.
  */
 export function requireAuth(request: NextRequest): ReturnType<typeof err> | null {
   const secret = requireEnv("FIBERGATE_INTERNAL_SECRET");
-  const token = extractBearerToken(request.headers.get("authorization"));
-
-  if (!constantTimeEquals(token, secret)) {
-    return err(401, "UNAUTHORIZED", "Missing or invalid authorization token");
-  }
-  return null;
+  return requireBearerToken(request, secret);
 }

@@ -1,6 +1,6 @@
 ---
 type: api_specification
-version: 1.0
+version: 1.1
 last_updated: 2026-07-04
 tags: [rest-api, endpoints, authentication]
 ---
@@ -121,6 +121,38 @@ Thông tin node hiện tại (public).
   "error": null
 }
 ```
+
+---
+
+### POST /api/cron/poll-invoices
+Không nằm dưới `/api/v1` (base URL ở trên không áp dụng — path đầy đủ là
+`http://<merchant-host>:<port>/api/cron/poll-invoices`). Optional endpoint để trigger
+thủ công 1 chu kỳ poll invoice (nguồn chính vẫn là in-process interval worker chạy mỗi
+10s trong container `fibergate-core`, BR-POL-001) — dùng khi cần force-check ngay thay
+vì đợi tối đa 10s. Cùng logic `runPollCycle()` với worker: bulk-expire các invoice đã
+hết hạn theo đồng hồ (BR-STS-002b), sau đó poll batch `pending` còn lại qua Fiber node
+(BR-POL-002/003/004), cập nhật status và trigger webhook khi chuyển sang terminal state.
+
+**Auth:** `Authorization: Bearer <CRON_SECRET>` — secret riêng, **không** dùng
+`FIBERGATE_INTERNAL_SECRET`. Nếu `CRON_SECRET` không được cấu hình (env var optional
+theo `system-design.md`), endpoint coi như bị tắt hoàn toàn và trả `503` trước khi kiểm
+tra token.
+
+**Response 200:**
+```json
+{
+  "data": { "triggered": true },
+  "error": null
+}
+```
+
+**Errors:**
+- `401 UNAUTHORIZED` — token không khớp `CRON_SECRET`
+- `503 CRON_NOT_CONFIGURED` — `CRON_SECRET` chưa được set, endpoint bị tắt
+- `500 INTERNAL_ERROR` — poll cycle lỗi ngoài dự kiến (không phải Fiber node timeout —
+  timeout từng invoice được skip riêng lẻ theo BR-POL-004, không làm fail cả request)
+
+---
 
 ## Webhook Payload
 
