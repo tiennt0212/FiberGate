@@ -2,8 +2,8 @@ import { eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 
 import { requireAuth } from "@/lib/api/auth";
+import { shannonToCkb } from "@/lib/api/format";
 import { err, internalError, ok } from "@/lib/api/response";
-import { SHANNON_PER_CKB } from "@/lib/api/validation";
 import { db } from "@/lib/db";
 import { invoices } from "@/lib/db/schema";
 
@@ -13,10 +13,6 @@ type InvoiceRow = typeof invoices.$inferSelect;
 // non-UUID string straight to Drizzle's `eq()` would throw a Postgres
 // "invalid input syntax for type uuid" error instead of a clean 404.
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-function shannonToCkb(shannon: bigint): number {
-  return Number(shannon) / SHANNON_PER_CKB;
-}
 
 function serializeInvoiceDetail(row: InvoiceRow) {
   return {

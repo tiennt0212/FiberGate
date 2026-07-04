@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { shannonToCkb } from "@/lib/api/format";
 import { err, ok } from "@/lib/api/response";
-import { SHANNON_PER_CKB } from "@/lib/api/validation";
 import { getNodeInfo } from "@/lib/fiber/client";
 import { FiberRpcTimeoutError } from "@/lib/fiber/types";
 
@@ -9,10 +9,6 @@ import { FiberRpcTimeoutError } from "@/lib/fiber/types";
 // .context/api/rest-api-spec.md marks it as the one endpoint that doesn't
 // require the Bearer token, and CLAUDE.md's auth flow explicitly carves it
 // out ("Every route except GET /node/info").
-
-function shannonToCkb(shannon: bigint): number {
-  return Number(shannon) / SHANNON_PER_CKB;
-}
 
 export async function GET(): Promise<NextResponse> {
   try {

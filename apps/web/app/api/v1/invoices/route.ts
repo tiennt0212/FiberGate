@@ -2,11 +2,11 @@ import { and, desc, eq, lt, or, type SQL } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 
 import { requireAuth } from "@/lib/api/auth";
+import { shannonToCkb } from "@/lib/api/format";
 import { tryConsumeInvoiceCreationSlot } from "@/lib/api/rate-limit";
 import { err, internalError, ok } from "@/lib/api/response";
 import {
   ApiValidationError,
-  SHANNON_PER_CKB,
   validateCreateInvoiceInput,
   validateListInvoicesQuery,
   type CreateInvoiceInput,
@@ -23,10 +23,6 @@ import {
 
 // invoices row shape, as inferred by Drizzle from lib/db/schema.ts.
 type InvoiceRow = typeof invoices.$inferSelect;
-
-function shannonToCkb(shannon: bigint): number {
-  return Number(shannon) / SHANNON_PER_CKB;
-}
 
 // POST /invoices response omits paid_at (always null at creation time) to
 // match the exact shape in .context/api/rest-api-spec.md's 201 example.
