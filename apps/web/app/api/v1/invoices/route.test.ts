@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { invoices } from "@/lib/db/schema";
+import { buildInvoiceRow, createQueryChain, type InvoiceRow } from "@/lib/db/test-fixtures";
 import { FiberRpcTimeoutError, UnsupportedAssetError } from "@/lib/fiber/types";
 
 // Mock at the module boundary CLAUDE.md designates — @/lib/db and
@@ -27,52 +27,7 @@ const { createInvoice } = await import("@/lib/fiber/client");
 const { tryConsumeInvoiceCreationSlot } = await import("@/lib/api/rate-limit");
 const { GET, POST } = await import("./route");
 
-type InvoiceRow = typeof invoices.$inferSelect;
-
 const TEST_SECRET = "test-secret";
-
-function buildInvoiceRow(overrides: Partial<InvoiceRow> = {}): InvoiceRow {
-  return {
-    id: "9c858f5c-1b1a-4e1a-9c2e-8f6b2c9b6a11",
-    paymentHash: "0xabc123",
-    invoiceAddress: "fibt1qpayme",
-    amountShannon: 150_000_000n,
-    asset: "CKB",
-    description: null,
-    status: "pending",
-    expiresAt: new Date("2026-07-01T12:00:00Z"),
-    paidAt: null,
-    metadata: null,
-    createdAt: new Date("2026-07-01T11:00:00Z"),
-    ...overrides,
-  };
-}
-
-// A thenable that also exposes every Drizzle query-builder method used by
-// this route (`from`/`where`/`orderBy`/`limit`/`values`/`returning`), each
-// returning itself. Since it's a real Promise, `await` works no matter how
-// many/which methods are chained before it — POST's insert chain
-// (insert -> values -> returning) and GET's select chain (select -> from ->
-// where -> orderBy -> limit) both terminate correctly against the same shape.
-type QueryChain = Promise<InvoiceRow[]> & {
-  from: (...args: unknown[]) => QueryChain;
-  where: (...args: unknown[]) => QueryChain;
-  orderBy: (...args: unknown[]) => QueryChain;
-  limit: (...args: unknown[]) => QueryChain;
-  values: (...args: unknown[]) => QueryChain;
-  returning: (...args: unknown[]) => QueryChain;
-};
-
-function createQueryChain(rows: InvoiceRow[]): QueryChain {
-  const chain = Promise.resolve(rows) as QueryChain;
-  chain.from = () => chain;
-  chain.where = () => chain;
-  chain.orderBy = () => chain;
-  chain.limit = () => chain;
-  chain.values = () => chain;
-  chain.returning = () => chain;
-  return chain;
-}
 
 // db.select()/db.insert() are typed against the real Drizzle
 // PgSelectBuilder/PgInsertBuilder at compile time (static `import { db }`

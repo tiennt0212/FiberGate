@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { invoices } from "@/lib/db/schema";
+import { buildInvoiceRow, createQueryChain, type InvoiceRow, type QueryChain } from "@/lib/db/test-fixtures";
 import { FiberRpcTimeoutError } from "@/lib/fiber/types";
 
 // Mock at the module boundary CLAUDE.md/decisions-log designate — @/lib/db,
@@ -29,49 +29,7 @@ const { getInvoiceStatus } = await import("@/lib/fiber/client");
 const { triggerWebhook } = await import("@/lib/webhooks/trigger");
 const { runPollCycle } = await import("./invoice-poller");
 
-type InvoiceRow = typeof invoices.$inferSelect;
-
 const NOW = new Date("2026-07-01T12:00:00Z");
-
-function buildInvoiceRow(overrides: Partial<InvoiceRow> = {}): InvoiceRow {
-  return {
-    id: "9c858f5c-1b1a-4e1a-9c2e-8f6b2c9b6a11",
-    paymentHash: "0xabc123",
-    invoiceAddress: "fibt1qpayme",
-    amountShannon: 150_000_000n,
-    asset: "CKB",
-    description: null,
-    status: "pending",
-    expiresAt: new Date("2026-07-01T13:00:00Z"),
-    paidAt: null,
-    metadata: null,
-    createdAt: new Date("2026-07-01T11:00:00Z"),
-    ...overrides,
-  };
-}
-
-// Query-chain double mirroring app/api/v1/invoices/route.test.ts's
-// createQueryChain, extended with update()/set() for the poller's UPDATE
-// statements. Each chain method is a vi.fn() (not a plain arrow function) so
-// individual tests can assert on call args (e.g. the batch cap in the
-// "caps the batch" test below) when that's the thing under test.
-type QueryChain = Promise<InvoiceRow[]> & {
-  from: (...args: unknown[]) => QueryChain;
-  where: (...args: unknown[]) => QueryChain;
-  limit: (...args: unknown[]) => QueryChain;
-  set: (...args: unknown[]) => QueryChain;
-  returning: (...args: unknown[]) => QueryChain;
-};
-
-function createQueryChain(rows: InvoiceRow[]): QueryChain {
-  const chain = Promise.resolve(rows) as QueryChain;
-  chain.from = vi.fn(() => chain);
-  chain.where = vi.fn(() => chain);
-  chain.limit = vi.fn(() => chain);
-  chain.set = vi.fn(() => chain);
-  chain.returning = vi.fn(() => chain);
-  return chain;
-}
 
 function mockSelectResult(rows: InvoiceRow[]): QueryChain {
   const chain = createQueryChain(rows);
