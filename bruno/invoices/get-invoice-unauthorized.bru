@@ -1,0 +1,26 @@
+meta {
+  name: Get invoice - unauthorized (401)
+  type: http
+  seq: 9
+}
+
+get {
+  url: {{baseUrl}}/invoices/00000000-0000-0000-0000-000000000000
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer wrong-token-not-the-real-secret
+}
+
+tests {
+  test("status is 401", function () {
+    expect(res.getStatus()).to.equal(401);
+  });
+
+  test("error code is UNAUTHORIZED", function () {
+    expect(res.body.data).to.equal(null);
+    expect(res.body.error.code).to.equal("UNAUTHORIZED");
+  });
+}

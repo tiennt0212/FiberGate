@@ -1,0 +1,28 @@
+meta {
+  name: List invoices (200)
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/invoices
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{fibergateInternalSecret}}
+}
+
+tests {
+  test("status is 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("data is an array with pagination meta", function () {
+    expect(res.body.error).to.equal(null);
+    expect(res.body.data).to.be.an("array");
+    expect(res.body.meta).to.have.property("limit");
+    expect(res.body.meta).to.have.property("next_cursor");
+  });
+}

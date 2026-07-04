@@ -1,0 +1,27 @@
+meta {
+  name: Get invoice - success (200)
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{baseUrl}}/invoices/{{createdInvoiceId}}
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{fibergateInternalSecret}}
+}
+
+tests {
+  test("status is 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("returns the invoice created by 01-create-invoice-success", function () {
+    expect(res.body.error).to.equal(null);
+    expect(res.body.data.id).to.equal(bru.getVar("createdInvoiceId"));
+    expect(res.body.data.payment_hash).to.equal(bru.getVar("createdInvoicePaymentHash"));
+  });
+}

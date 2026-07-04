@@ -1,0 +1,26 @@
+meta {
+  name: Get node info (200, public)
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/node/info
+  body: none
+  auth: none
+}
+
+tests {
+  test("status is 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("data has expected node info shape", function () {
+    expect(res.body.error).to.equal(null);
+    expect(res.body.data).to.have.property("pubkey");
+    expect(res.body.data).to.have.property("active_channels");
+    expect(res.body.data).to.have.property("inbound_capacity_ckb");
+    expect(res.body.data).to.have.property("outbound_capacity_ckb");
+    expect(res.body.data.status).to.equal("online");
+  });
+}

@@ -4,12 +4,15 @@
   "version": "0.1.0",
   "scripts": {
     "dev": "dotenv -e .env.local -e ../../.env -- next dev",
-    "build": "next build",
+    "build": "dotenv -e .env.local -e ../../.env -- next build",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "db:generate": "dotenv -e .env.local -e ../../.env -- drizzle-kit generate",
-    "db:migrate": "dotenv -e .env.local -e ../../.env -- drizzle-kit migrate"
+    "db:migrate": "dotenv -e .env.local -e ../../.env -- drizzle-kit migrate",
+    "test:unit": "vitest run",
+    "test:integration": "cd ../../bruno && bru run --env local",
+    "test": "pnpm run test:unit && pnpm run test:integration"
   },
   "dependencies": {
     "@ant-design/cssinjs": "^2.1.2",
@@ -27,11 +30,13 @@
     "@types/node": "^20.19.43",
     "@types/react": "^18.3.9",
     "@types/react-dom": "^18.3.7",
+    "@usebruno/cli": "^3.5.1",
     "dotenv-cli": "^11.0.0",
     "drizzle-kit": "^0.31.10",
     "eslint": "^8.57.1",
     "eslint-config-next": "^14.2.35",
     "tailwindcss": "^4.3.2",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.9"
   }
 }
