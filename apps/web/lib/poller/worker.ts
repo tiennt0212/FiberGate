@@ -8,6 +8,13 @@ import { runPollCycle } from "./invoice-poller";
 const POLL_INTERVAL_MS = 10_000; // BR-POL-001
 
 let intervalHandle: ReturnType<typeof setInterval> | null = null;
+// Re-entrancy guard: a single poll cycle can take longer than 10s (up to 50
+// invoices, each with a 5s Fiber RPC timeout — BR-POL-004), and setInterval
+// fires on a wall-clock schedule regardless of whether the previous tick's
+// callback finished. Without this flag, a slow/unresponsive Fiber node would
+// cause overlapping cycles to pile up, each hammering the node further —
+// the opposite of pollPendingBatch()'s sequential-await design intent.
+let isRunning = false;
 
 /** Starts the interval worker. Safe to call more than once — a no-op if already running. */
 export function startInvoicePoller(): void {
@@ -16,11 +23,19 @@ export function startInvoicePoller(): void {
   }
 
   intervalHandle = setInterval(() => {
+    if (isRunning) {
+      return; // previous cycle still in flight — skip this tick rather than overlap
+    }
+    isRunning = true;
     // Error boundary: a failed cycle must never kill the timer or crash the
     // process (e.g. DB unreachable during the bulk expire step).
-    runPollCycle().catch((error: unknown) => {
-      console.error("[poller] Poll cycle failed:", error);
-    });
+    runPollCycle()
+      .catch((error: unknown) => {
+        console.error("[poller] Poll cycle failed:", error);
+      })
+      .finally(() => {
+        isRunning = false;
+      });
   }, POLL_INTERVAL_MS);
 }
 
@@ -30,4 +45,5 @@ export function stopInvoicePoller(): void {
     clearInterval(intervalHandle);
     intervalHandle = null;
   }
+  isRunning = false;
 }

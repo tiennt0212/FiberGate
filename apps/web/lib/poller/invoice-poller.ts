@@ -17,7 +17,12 @@ const POLL_WINDOW_MS = 60_000; // BR-POL-002 "expires_at > now() - 60s"
  * BR-STS-002(b): expire pending invoices whose expires_at has passed, purely
  * from the DB clock. Must be a separate bulk UPDATE — BR-POL-002's batch
  * query below excludes anything expired more than 60s ago, so a per-row
- * check inside that loop could never reach those rows.
+ * check inside that loop could never reach those rows. Must also run AFTER
+ * pollPendingBatch() (see runPollCycle()) — running it first would race a
+ * payment that settles right at/after expires_at: this clock-only check
+ * can't tell "genuinely abandoned" apart from "just paid a moment ago", and
+ * once a row flips to 'expired' it can never become 'paid' (BR-STS-001,
+ * forward-only).
  */
 async function expireOverdueInvoices(now: Date): Promise<InvoiceRow[]> {
   const expiredRows = await db
@@ -37,9 +42,12 @@ async function expireOverdueInvoices(now: Date): Promise<InvoiceRow[]> {
 }
 
 /**
- * Step 2: RPC-driven batch (BR-POL-002/003). Sequential await, not
- * Promise.all — avoids firing up to 50 concurrent RPC calls at the Fiber
- * node at once.
+ * RPC-driven batch (BR-POL-002/003). Sequential await, not Promise.all —
+ * avoids firing up to 50 concurrent RPC calls at the Fiber node at once.
+ * Runs BEFORE expireOverdueInvoices() in runPollCycle() so a payment that
+ * settles right at/after expires_at still gets a chance to be observed as
+ * paid via the real Fiber node status before the clock-only bulk expire
+ * could otherwise sweep it into 'expired' first.
  */
 async function pollPendingBatch(now: Date): Promise<void> {
   const windowStart = new Date(now.getTime() - POLL_WINDOW_MS);
@@ -72,7 +80,19 @@ async function pollOneInvoice(invoice: InvoiceRow, now: Date): Promise<void> {
     return;
   }
 
-  await applyNodeStatus(invoice, nodeStatus, now);
+  try {
+    await applyNodeStatus(invoice, nodeStatus, now);
+  } catch (error) {
+    // Same isolation guarantee as the getInvoiceStatus() catch above — a
+    // failure applying the status update (DB error, or a future webhook
+    // delivery failure once issue #8 makes triggerWebhook() a real HTTP
+    // call) must not abort the rest of pollPendingBatch()'s for-loop.
+    console.error(
+      `[poller] Failed to apply status update for invoice ${invoice.id} ` +
+        `(payment_hash ${invoice.paymentHash}); skipping this cycle`,
+      error,
+    );
+  }
 }
 
 // Node status -> invoices.status, keyed by InvoiceStatus. "Received"/"Open"
@@ -114,10 +134,13 @@ async function applyNodeStatus(
 }
 
 /**
- * Runs one poll cycle: expire clock-overdue invoices, then poll the
- * remaining pending batch. `now` is overridable for tests only.
+ * Runs one poll cycle: poll the RPC-eligible pending batch first, then bulk
+ * expire whatever is still clock-overdue afterward. Order matters here — see
+ * pollPendingBatch()/expireOverdueInvoices()'s doc comments for why
+ * expiring first would race a payment that settles right at expires_at.
+ * `now` is overridable for tests only.
  */
 export async function runPollCycle(now: Date = new Date()): Promise<void> {
-  await expireOverdueInvoices(now);
   await pollPendingBatch(now);
+  await expireOverdueInvoices(now);
 }

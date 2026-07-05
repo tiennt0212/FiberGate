@@ -15,13 +15,9 @@ vi.mock("@/lib/db", () => ({
 vi.mock("@/lib/fiber/client", () => ({
   getInvoiceStatus: vi.fn(),
 }));
-vi.mock("@/lib/webhooks/trigger", () => ({
+vi.mock("@/lib/webhooks/trigger", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/webhooks/trigger")>()),
   triggerWebhook: vi.fn(),
-  WebhookEvent: {
-    PaymentPaid: "payment.paid",
-    InvoiceExpired: "invoice.expired",
-    InvoiceFailed: "invoice.failed",
-  },
 }));
 
 const { db } = await import("@/lib/db");
@@ -37,9 +33,11 @@ function mockSelectResult(rows: InvoiceRow[]): QueryChain {
   return chain;
 }
 
-// The poller can issue more than one db.update() call per cycle (the bulk
-// expire-overdue step, then up to one per polled invoice) — each queued
-// result corresponds to one call, in call order. mockReset() first so this
+// The poller can issue more than one db.update() call per cycle (up to one
+// per polled invoice, then the bulk expire-overdue step — pollPendingBatch()
+// runs before expireOverdueInvoices() in runPollCycle(), see its doc
+// comment) — each queued result corresponds to one call, in call order.
+// mockReset() first so this
 // call fully replaces the queue instead of appending to whatever beforeEach
 // (or an earlier call within the same test) already queued —
 // vi.clearAllMocks() clears call history but NOT queued
@@ -80,6 +78,35 @@ describe("runPollCycle — BR-STS-002(b) bulk expiry", () => {
     expect(getInvoiceStatus).not.toHaveBeenCalled();
     expect(triggerWebhook).toHaveBeenCalledWith(overdueRow, "invoice.expired");
   });
+
+  it("polls the Fiber node before bulk-expiring, so a payment settling right at expiry is observed as paid instead of expired", async () => {
+    // expiresAt is in the past (overdue) but well within BR-POL-002's 60s
+    // window, so it's eligible for BOTH steps — this is exactly the race
+    // the fix guards against: if expireOverdueInvoices() ran first, this
+    // row would be swept to 'expired' before ever getting an RPC check.
+    const row = buildInvoiceRow({ expiresAt: new Date("2026-07-01T11:59:59Z") });
+    const updatedRow = { ...row, status: "paid" as const, paidAt: NOW };
+    mockSelectResult([row]);
+    mockUpdateResults([[updatedRow], []]);
+    vi.mocked(getInvoiceStatus).mockResolvedValue({
+      invoiceAddress: row.invoiceAddress,
+      status: "Paid",
+    });
+
+    await runPollCycle(NOW);
+
+    expect(triggerWebhook).toHaveBeenCalledWith(updatedRow, "payment.paid");
+    expect(triggerWebhook).not.toHaveBeenCalledWith(expect.anything(), "invoice.expired");
+
+    // Order matters: the RPC-driven per-invoice update (call #1) must
+    // happen before the clock-based bulk-expire update (call #2) —
+    // reversing this order is exactly the regression this test guards
+    // against.
+    const [selectOrder] = vi.mocked(db.select).mock.invocationCallOrder;
+    const [firstUpdateOrder, secondUpdateOrder] = vi.mocked(db.update).mock.invocationCallOrder;
+    expect(selectOrder).toBeLessThan(secondUpdateOrder);
+    expect(firstUpdateOrder).toBeLessThan(secondUpdateOrder);
+  });
 });
 
 describe("runPollCycle — RPC-driven batch", () => {
@@ -116,8 +143,8 @@ describe("runPollCycle — RPC-driven batch", () => {
     const okRow = buildInvoiceRow({ id: "row-2", paymentHash: "0x2" });
     mockSelectResult([failingRow, okRow]);
     mockUpdateResults([
-      [], // bulk expire-overdue step
       [{ ...okRow, status: "paid", paidAt: NOW }], // per-invoice update for okRow
+      [], // bulk expire-overdue step
     ]);
     vi.mocked(getInvoiceStatus)
       .mockRejectedValueOnce(new Error("node connection reset"))
@@ -135,11 +162,41 @@ describe("runPollCycle — RPC-driven batch", () => {
     consoleErrorSpy.mockRestore();
   });
 
+  it("isolates a failure applying a status update, without aborting the rest of the batch", async () => {
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const failingRow = buildInvoiceRow({ id: "row-1", paymentHash: "0x1" });
+    const okRow = buildInvoiceRow({ id: "row-2", paymentHash: "0x2" });
+    const updatedOkRow = { ...okRow, status: "paid" as const, paidAt: NOW };
+    mockSelectResult([failingRow, okRow]);
+    vi.mocked(getInvoiceStatus).mockResolvedValue({ invoiceAddress: "n/a", status: "Paid" });
+
+    // Both invoices resolve a node status successfully — the failure is in
+    // applyNodeStatus()'s DB update for failingRow, not in getInvoiceStatus().
+    const mockedUpdate = vi.mocked(db.update);
+    mockedUpdate.mockReset();
+    mockedUpdate.mockImplementationOnce(() => {
+      throw new Error("connection reset");
+    });
+    mockedUpdate.mockReturnValueOnce(
+      createQueryChain([updatedOkRow]) as unknown as ReturnType<typeof db.update>,
+    );
+    mockedUpdate.mockReturnValueOnce(
+      createQueryChain([]) as unknown as ReturnType<typeof db.update>, // bulk expire-overdue step
+    );
+
+    await runPollCycle(NOW);
+
+    expect(triggerWebhook).toHaveBeenCalledWith(updatedOkRow, "payment.paid");
+    expect(consoleErrorSpy).toHaveBeenCalled();
+
+    consoleErrorSpy.mockRestore();
+  });
+
   it("maps node status Paid to invoices.status=paid and fires payment.paid", async () => {
     const row = buildInvoiceRow();
     const updatedRow = { ...row, status: "paid" as const, paidAt: NOW };
     mockSelectResult([row]);
-    mockUpdateResults([[], [updatedRow]]);
+    mockUpdateResults([[updatedRow], []]);
     vi.mocked(getInvoiceStatus).mockResolvedValue({
       invoiceAddress: row.invoiceAddress,
       status: "Paid",
@@ -154,7 +211,7 @@ describe("runPollCycle — RPC-driven batch", () => {
     const row = buildInvoiceRow();
     const updatedRow = { ...row, status: "failed" as const };
     mockSelectResult([row]);
-    mockUpdateResults([[], [updatedRow]]);
+    mockUpdateResults([[updatedRow], []]);
     vi.mocked(getInvoiceStatus).mockResolvedValue({
       invoiceAddress: row.invoiceAddress,
       status: "Cancelled",
@@ -169,7 +226,7 @@ describe("runPollCycle — RPC-driven batch", () => {
     const row = buildInvoiceRow();
     const updatedRow = { ...row, status: "expired" as const };
     mockSelectResult([row]);
-    mockUpdateResults([[], [updatedRow]]);
+    mockUpdateResults([[updatedRow], []]);
     vi.mocked(getInvoiceStatus).mockResolvedValue({
       invoiceAddress: row.invoiceAddress,
       status: "Expired",
