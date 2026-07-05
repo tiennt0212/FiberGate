@@ -1,1 +1,13 @@
-{}
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm --filter web typecheck)",
+      "Bash(docker compose config*)",
+      "Bash(pnpm --filter web test:unit)",
+      "Bash(pnpm lint)",
+      "Bash(pnpm --filter web lint)",
+      "Bash(pnpm --filter web exec vitest run *)",
+      "Bash(npm view *)"
+    ]
+  }
+}
