@@ -87,6 +87,18 @@ tags: [invoice, webhook, polling, limits]
 
 **BR-WHK-005:** Lưu toàn bộ delivery history trong `webhook_deliveries` dù thành công hay fail.
 
+**BR-WHK-006:** Phân loại retryable / non-retryable cho 1 lần delivery attempt (bổ sung 2026-07-06,
+issue #8, implement tại `apps/web/lib/webhooks/deliver.ts`):
+- **Retryable** (lên lịch attempt tiếp theo theo schedule của BR-WHK-003, tối đa 3 attempts): request
+  timeout (BR-WHK-002, không phản hồi trong 5s), lỗi tầng network (DNS/connection refused/reset),
+  HTTP 5xx (500-599), HTTP 429.
+- **Non-retryable** (lưu attempt với `status='failed'`, KHÔNG lên lịch attempt tiếp theo,
+  `attempt_count` dừng lại ở giá trị hiện tại): bất kỳ mã 4xx nào khác (400, 401, 403, 404, 405,
+  410, 422, ...) — báo hiệu lỗi cấu hình/logic phía merchant mà retry trong vài phút không thể tự
+  sửa được.
+- BR-WHK-005 (lưu mọi attempt bất kể kết quả) vẫn áp dụng vô điều kiện — rule này chỉ ảnh hưởng đến
+  việc có lên lịch thêm 1 attempt tiếp theo hay không, không ảnh hưởng đến việc lưu attempt hiện tại.
+
 ## Rate Limiting Rules
 
 **BR-RTE-001:** Toàn bộ deployment tối đa 100 invoices/phút (prototype, single-tenant — vẫn giữ làm anti-abuse guard).
