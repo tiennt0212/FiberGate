@@ -90,7 +90,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     return internalError();
   }
 
-  return ok(result.rows.map(serializeInvoice), {
+  return ok(result.rows.map((row) => serializeInvoice(row)), {
     limit: query.limit,
     next_cursor: result.nextCursor,
   });

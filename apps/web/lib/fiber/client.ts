@@ -135,13 +135,13 @@ export async function getNodeInfo(): Promise<FiberNodeInfo> {
   ]);
 
   const activeChannels = channels.filter((channel) => channel.enabled);
-  const { inboundCapacityShannon, outboundCapacityShannon } = activeChannels.reduce(
-    (capacity, channel) => ({
-      inboundCapacityShannon: capacity.inboundCapacityShannon + hexToBigInt(channel.remoteBalance),
-      outboundCapacityShannon:
-        capacity.outboundCapacityShannon + hexToBigInt(channel.localBalance),
-    }),
-    { inboundCapacityShannon: 0n, outboundCapacityShannon: 0n },
+  const inboundCapacityShannon = activeChannels.reduce(
+    (sum, channel) => sum + hexToBigInt(channel.remoteBalance),
+    0n,
+  );
+  const outboundCapacityShannon = activeChannels.reduce(
+    (sum, channel) => sum + hexToBigInt(channel.localBalance),
+    0n,
   );
 
   return {
