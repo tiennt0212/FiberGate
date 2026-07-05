@@ -102,3 +102,12 @@ tags: [invoice, webhook, polling, limits]
 **BR-SEC-003:** Webhook secret phải random, tối thiểu 32 bytes.
 
 **BR-SEC-004:** Dashboard session dùng httpOnly cookie ký bằng secret riêng (không phải `FIBERGATE_INTERNAL_SECRET`).
+
+> **Cập nhật 2026-07-05 (issue #9, implement `apps/web/lib/auth/session.ts`)**: Cookie
+> `Secure` attribute dựa vào header `X-Forwarded-Proto` của request thực tế (do reverse
+> proxy TLS termination set), không dựa vào `NODE_ENV` — bundle docker-compose mặc định
+> chưa có TLS termination nào, nên gắn `Secure` theo `NODE_ENV==="production"` sẽ khiến
+> browser âm thầm từ chối lưu cookie trên chính flow deploy mặc định (plain HTTP), login
+> trông như thành công nhưng session không lưu. Xem chi tiết + ràng buộc khi thêm TLS
+> reverse proxy sau này ở `architecture/system-design.md`'s "Dashboard auth: session
+> cookie + middleware guard".

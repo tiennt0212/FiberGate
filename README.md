@@ -71,13 +71,14 @@ Brings up all 3 services — `postgres`, `fiber-node` (CKB testnet), `fibergate-
 
 ### Generating secrets
 
-`.env.example` leaves 5 vars blank on purpose — they're required, no safe default
+`.env.example` leaves 6 vars blank on purpose — they're required, no safe default
 exists, and `docker compose up -d` will fail (postgres/fibergate-core/fiber-node
 erroring on an empty credential) if you skip them:
 
 ```bash
-# POSTGRES_PASSWORD, FIBERGATE_INTERNAL_SECRET, WEBHOOK_SIGNING_KEY — any random
-# secret works, openssl is on virtually every machine that has Docker:
+# POSTGRES_PASSWORD, FIBERGATE_INTERNAL_SECRET, WEBHOOK_SIGNING_KEY,
+# DASHBOARD_SESSION_SECRET — any random secret works, openssl is on virtually
+# every machine that has Docker:
 openssl rand -hex 32
 
 # FIBER_SECRET_KEY_PASSWORD — same command works to generate a candidate value,
@@ -101,13 +102,13 @@ docker run --rm httpd:alpine htpasswd -nbBC 10 admin 'your-real-password'
 **Prerequisites — do these before your first `docker compose up -d`:**
 
 1. Copy the root env file and fill in real values (see "Generating secrets"
-   above for all 5 required values):
+   above for all 6 required values):
    ```bash
    cp .env.example .env
    ```
 2. Provide `fiber-node`'s own CKB testnet signing key — encrypted with the
    passphrase you put in `FIBER_SECRET_KEY_PASSWORD` in step 1 (this key is
-   separate from the 7 app-level vars above — it belongs to the node, not to
+   separate from the 8 app-level vars above — it belongs to the node, not to
    fibergate-core):
    ```bash
    mkdir -p docker/fiber-node/ckb
