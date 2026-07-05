@@ -22,9 +22,15 @@ importers:
       antd:
         specifier: ^5.29.3
         version: 5.29.3(moment@2.30.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      bcryptjs:
+        specifier: ^3.0.3
+        version: 3.0.3
       drizzle-orm:
         specifier: ^0.45.2
         version: 0.45.2(postgres@3.4.9)
+      jose:
+        specifier: ^6.2.3
+        version: 6.2.3
       next:
         specifier: ^14.2.35
         version: 14.2.35(@babel/core@7.29.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -2137,6 +2143,10 @@ packages:
     engines: {node: '>=6.0.0'}
     hasBin: true
 
+  bcryptjs@3.0.3:
+    resolution: {integrity: sha512-GlF5wPWnSa/X5LKM1o0wz0suXIINz1iHRLvTS+sLyi7XPbe5ycmYI3DlZqVGZZtDgl4DmasFg7gOB3JYbphV5g==}
+    hasBin: true
+
   bech32@2.0.0:
     resolution: {integrity: sha512-LcknSilhIGatDAsY1ak2I8VtGaHNhgMSYVxFrGLXv+xLHytaKZKcaUJJUE7qmBr7h33o5YQwP55pMI0xmkpJwg==}
 
@@ -3248,6 +3258,9 @@ packages:
   jiti@2.7.0:
     resolution: {integrity: sha512-AC/7JofJvZGrrneWNaEnJeOLUx+JlGt7tNa0wZiRPT4MY1wmfKjt2+6O2p2uz2+skll8OZZmJMNqeke7kKbNgQ==}
     hasBin: true
+
+  jose@6.2.3:
+    resolution: {integrity: sha512-YYVDInQKFJfR/xa3ojUTl8c2KoTwiL1R5Wg9YCydwH0x0B9grbzlg5HC7mMjCtUJjbQ/YnGEZIhI5tCgfTb4Hw==}
 
   joycon@3.1.1:
     resolution: {integrity: sha512-34wB/Y7MW7bzjKRjUKTa46I2Z7eV62Rkhva+KkopW7Qvv/OSWBqvkSY7vusOPrNuZcUG3tApvdVgNB8POj3SPw==}
@@ -6446,7 +6459,7 @@ snapshots:
       '@usebruno/js': 0.49.0(debug@4.4.3)
       '@usebruno/lang': 0.37.1
       '@usebruno/requests': 0.18.0
-      aws4-axios: 3.4.0(axios@1.16.0)
+      aws4-axios: 3.4.0(axios@1.16.0(debug@4.4.3))
       axios: 1.16.0(debug@4.4.3)
       axios-ntlm: 1.4.6(debug@4.4.3)
       chai: 4.5.0
@@ -6811,7 +6824,7 @@ snapshots:
     dependencies:
       possible-typed-array-names: 1.1.0
 
-  aws4-axios@3.4.0(axios@1.16.0):
+  aws4-axios@3.4.0(axios@1.16.0(debug@4.4.3)):
     dependencies:
       '@aws-sdk/client-sts': 3.1079.0
       aws4: 1.13.2
@@ -6849,6 +6862,8 @@ snapshots:
   base64-js@1.5.1: {}
 
   baseline-browser-mapping@2.10.41: {}
+
+  bcryptjs@3.0.3: {}
 
   bech32@2.0.0: {}
 
@@ -8177,6 +8192,8 @@ snapshots:
       '@pkgjs/parseargs': 0.11.0
 
   jiti@2.7.0: {}
+
+  jose@6.2.3: {}
 
   joycon@3.1.1: {}
 

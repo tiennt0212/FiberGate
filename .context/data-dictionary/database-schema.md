@@ -8,7 +8,7 @@ tags: [postgresql, drizzle, schema, self-hosted]
 # Database Schema — PostgreSQL (self-hosted, Drizzle ORM)
 
 > Single-tenant: mỗi deployment chỉ phục vụ 1 merchant. Không có bảng users/accounts,
-> không có Auth — dashboard bảo vệ bằng single-admin password gate (xem `ADMIN_PASSWORD_HASH`
+> không có Auth — dashboard bảo vệ bằng single-admin password gate (xem `ADMIN_PASSWORD_HASH_B64`
 > trong `architecture/system-design.md`), không lưu trong DB.
 
 ## Bảng: `invoices`

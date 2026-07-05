@@ -178,7 +178,7 @@ const databaseUrl = `postgres://${process.env.POSTGRES_USER}:${process.env.POSTG
 ```
 
 **Chỉ 1 file chứa secret thật** — root `.env` (copy từ `.env.example`), dùng chung
-cho cả `docker compose up -d` lẫn `pnpm dev`. 5 biến required để trống có chủ đích
+cho cả `docker compose up -d` lẫn `pnpm dev`. 6 biến required để trống có chủ đích
 (không có default an toàn nào) — cách generate từng biến xem `README.md`
 "Generating secrets":
 
@@ -187,12 +187,18 @@ cho cả `docker compose up -d` lẫn `pnpm dev`. 5 biến required để trốn
 POSTGRES_USER=fibergate
 POSTGRES_DB=fibergate
 POSTGRES_PASSWORD=
-FIBER_SECRET_KEY_PASSWORD=       # không thuộc 7 biến app-level bên dưới — chỉ
+FIBER_SECRET_KEY_PASSWORD=       # không thuộc 8 biến app-level bên dưới — chỉ
                                   # fiber-node đọc, xem section "fiber-node
                                   # container" bên dưới — nhưng vẫn để trong
                                   # .env.example (section riêng) để merchant
                                   # thấy đủ giá trị required trong 1 lần cp
-ADMIN_PASSWORD_HASH=
+ADMIN_PASSWORD_HASH_B64=         # base64-encoded bcrypt hash — KHÔNG phải
+                                  # raw "$2y$10$..." — xem "Dashboard auth"
+                                  # bên dưới để biết lý do
+DASHBOARD_SESSION_SECRET=        # ký session cookie (JWT, qua jose) cho
+                                  # app/(dashboard)/** — cố ý tách biệt với
+                                  # FIBERGATE_INTERNAL_SECRET (BR-SEC-004), xem
+                                  # apps/web/lib/auth/session.ts + middleware.ts
 FIBERGATE_INTERNAL_SECRET=
 FIBER_NODE_URL=http://fiber-node:8227  # fixed value, docker internal network
 FIBER_NODE_RPC_AUTH_TOKEN=       # optional
@@ -217,6 +223,19 @@ CRON_SECRET=                     # optional
 Không có preflight/service nào tự động kiểm tra các biến này — để trống thì
 `docker compose up -d` sẽ fail rõ ràng ở `postgres`/`fibergate-core` (lỗi credential
 rỗng), đủ để merchant biết cần điền gì mà không cần thêm 1 service chỉ để validate.
+
+> **Cập nhật 2026-07-05 (issue #9, phát hiện lúc code review trước khi tạo PR)**:
+> `docker-compose.yml`'s `fibergate-core.environment` phải liệt kê tường minh **từng**
+> biến app-level muốn container thấy được — Compose không tự forward toàn bộ root
+> `.env` vào container, chỉ những biến có mặt trong `environment:` mới được inject.
+> `DASHBOARD_SESSION_SECRET` (thêm ở issue #9) ban đầu bị bỏ sót khỏi block này —
+> `pnpm dev` không lộ bug vì script `dev` load thẳng root `.env` qua `dotenv-cli`,
+> bỏ qua hẳn cơ chế allowlist của Compose. Verify bằng `docker compose config | grep
+> DASHBOARD_SESSION_SECRET` thấy resolve đúng sau khi thêm dòng
+> `DASHBOARD_SESSION_SECRET: ${DASHBOARD_SESSION_SECRET}` vào block đó. Bài học chung:
+> mọi biến app mới thêm vào `.env.example` đều phải đối chiếu lại
+> `docker-compose.yml`'s `fibergate-core.environment` trong cùng session — 2 file này
+> không tự đồng bộ.
 
 `apps/web/.env.local` chỉ còn 3 biến override cho local dev ngoài Docker — không
 duplicate lại các biến ở trên:
@@ -273,10 +292,10 @@ Deployment details chốt khi implement issue #3 (xem `decisions-log.md` để b
   `fnn-cli -u http://172.28.0.10:8227 info` vì loopback không còn reach được RPC.
 - Node cần `FIBER_SECRET_KEY_PASSWORD` (env) + CKB private key file mount tại
   `<data-dir>/ckb/key` (data dir mount ở container path `/fiber`) — đây là secret ký
-  CKB của merchant tự cung cấp. `FIBER_SECRET_KEY_PASSWORD` **không** thuộc 7 biến
+  CKB của merchant tự cung cấp. `FIBER_SECRET_KEY_PASSWORD` **không** thuộc 8 biến
   app-level ở `.env.example` phía trên (chỉ `fiber-node` đọc, không phải code
   `fibergate-core`), nhưng vẫn có mặt trong `.env.example` — ở section riêng, tách
-  biệt khỏi 7 biến app — để merchant không bỏ sót khi chỉ làm theo 1 bước
+  biệt khỏi 8 biến app — để merchant không bỏ sót khi chỉ làm theo 1 bước
   `cp .env.example .env`. Quyết định UX này đổi từ thiết kế ban đầu (cố tình loại
   hẳn khỏi `.env.example`), xem `decisions-log.md`.
 - Image có sẵn `fnn-cli`, dùng được cho healthcheck (`fnn-cli info`) mà không cần cài
@@ -290,3 +309,70 @@ Deployment details chốt khi implement issue #3 (xem `decisions-log.md` để b
   laptop hay VPS có IP public, nên vẫn khớp đúng yêu cầu "fiber-node does NOT bind a
   public IP/port" của issue #3. Đã verify: `docker compose ps` hiện đúng
   `127.0.0.1:8227->8227/tcp`, `ss -tlnp` xác nhận socket chỉ LISTEN trên `127.0.0.1`.
+
+## Dashboard auth: session cookie + middleware guard (issue #9)
+
+`apps/web/middleware.ts` guard mọi route dưới `app/(dashboard)/**` bằng session cookie
+JWT (ký qua `jose`, secret `DASHBOARD_SESSION_SECRET`, xem `apps/web/lib/auth/session.ts`).
+Login/logout là Next.js Server Action (`app/login/actions.ts`), không phải route
+`/api/*` — không đi qua envelope `{data,error}` (envelope đó chỉ áp dụng cho `/api/v1/*`,
+xem `api/rest-api-spec.md`).
+
+- **Gotcha quan trọng — `middleware.ts`'s `config.matcher` phải là literal, không được
+  import từ file khác**: Next.js static-extract `config` lúc build bằng AST parser giới
+  hạn, chỉ resolve được giá trị literal khai ngay tại chỗ, không resolve được identifier
+  import từ module khác. Ban đầu matcher được tách ra `lib/auth/routes.ts` (`PROTECTED_PATH_MATCHERS`)
+  cho gọn — verify bằng `next build` thật thấy warning `"Next.js can't recognize the
+  exported 'config' field... The default config will be used instead"` — nghĩa là guard
+  bị tắt hoàn toàn, middleware chạy trên **mọi** route thay vì chỉ 3 route đã định.
+  Hậu quả nếu không phát hiện: `/login` tự guard chính nó → infinite redirect loop; mọi
+  request `/api/v1/*`/`/api/cron/*` (auth qua Bearer header, không phải session cookie)
+  bị chặn nhầm redirect về `/login`. Fix: matcher array inline trực tiếp trong
+  `middleware.ts`'s `config` export, `lib/auth/routes.ts` chỉ còn giữ `ROUTE.LOGIN`/
+  `ROUTE.DASHBOARD` (dùng ở runtime bên trong function body, không phải static config,
+  nên import bình thường không sao). Route group `(dashboard)` không xuất hiện trong URL
+  nên matcher là allowlist thủ công liệt kê từng subroute hiện có
+  (`/dashboard`, `/webhooks`, `/transactions`) — thêm page mới dưới `(dashboard)/` phải
+  tự thêm path pattern vào matcher này, không tự động được guard.
+- **Cookie `Secure` flag dựa vào `X-Forwarded-Proto` header, không dựa vào
+  `NODE_ENV`**: `docker/fibergate-core/Dockerfile` hardcode `NODE_ENV=production`, nhưng
+  `docker-compose.yml` bundle **không có TLS termination nào built-in** — `fibergate-core`
+  publish thẳng port `3000:3000` qua plain HTTP, không giống pattern loopback-only của
+  `postgres`/`fiber-node`. Nếu gắn `Secure` cookie theo `NODE_ENV==="production"`, browser
+  sẽ âm thầm từ chối lưu cookie trên chính flow deploy mặc định (plain HTTP) — login trông
+  như thành công (redirect `/dashboard`) nhưng session không bao giờ thực sự lưu, middleware
+  bounce ngược `/login` ngay, không có error message nào. Thay vào đó,
+  `apps/web/lib/auth/session.ts`'s `isHttpsRequest()` đọc header `X-Forwarded-Proto` (chuẩn
+  do reverse proxy terminate TLS set khi forward request) — không có header (mặc định hiện
+  tại, không proxy) thì `secure: false`, khớp đúng thực tế plain HTTP.
+  **Nếu sau này thêm 1 container nginx/Caddy làm TLS termination phía trước**: chỉ cần
+  nginx set đúng `X-Forwarded-Proto: https` khi forward (cấu hình chuẩn), code này tự động
+  chuyển sang `secure: true` mà không cần sửa lại — nhưng đồng thời phải đổi
+  `fibergate-core`'s port publish trong `docker-compose.yml` từ `"3000:3000"` sang
+  **không publish trực tiếp ra host nữa** (chỉ nginx mới expose ra ngoài), nếu không ai đó
+  gọi thẳng `http://host:3000` bỏ qua nginx vẫn có thể tự set header giả để đánh lừa cookie
+  thành "secure" trong khi kết nối thật là HTTP thuần.
+- **`ADMIN_PASSWORD_HASH_B64` lưu base64, không phải raw bcrypt hash — 2 cơ chế load
+  `.env` khác nhau corrupt ký tự `$` theo 2 kiểu khác nhau, không có cách escape nào
+  thoả cả hai** (phát hiện lúc human tự test `pnpm dev` login sau khi PR #32 merge, xem
+  `decisions-log.md` 2026-07-05 để biết toàn bộ quá trình điều tra): Root `.env` được
+  dùng chung cho cả `docker compose up -d` (Docker Compose tự interpolate `$VAR`/`${VAR}`
+  bên trong giá trị `.env`, coi `$$` là escape cho 1 dấu `$` literal) lẫn `pnpm dev`/`build`/
+  `db:generate`/`db:migrate` (qua `dotenv-cli`, dùng `dotenv-expand` bên trong — cũng tự
+  interpolate `$VAR` nhưng theo thuật toán khác, KHÔNG coi `$$` là escape cho 1 dấu `$`).
+  Đã verify bằng container thật (`docker compose run --rm test printenv TESTVAR`, không chỉ
+  tin `docker compose config`'s output — lệnh đó tự re-escape `$` lúc hiển thị nên trông có
+  vẻ đúng dù giá trị runtime thật sai) và bằng `npx dotenv-cli -- node -e "console.log(...)"`:
+  không có bất kỳ cách viết `$`/`$$`/`\$` nào trong `.env` cho ra đúng giá trị ở **cả 2** cơ
+  chế cùng lúc — escape đúng cho bên này luôn sai ở bên kia. Đã thử thêm `--no-expand` flag
+  của `dotenv-cli` và `env_file:` directive của Docker Compose (thay cho `environment: ${VAR}`
+  hiện tại) — không giải quyết được, vì Docker Compose vẫn tự interpolate giá trị đọc từ
+  `env_file:` giống hệt cách nó làm với root `.env`. Fix: `ADMIN_PASSWORD_HASH_B64` lưu
+  base64 của hash gốc (bảng chữ base64 không có ký tự `$`), `app/login/actions.ts` decode lại
+  bằng `Buffer.from(value, "base64").toString("utf-8")` trước khi `bcrypt.compare()` — cả 2
+  cơ chế load `.env` đều pass-through base64 nguyên vẹn, không cần escape gì cả. Đánh đổi đã
+  biết: đây là fix tạm thời cho model env-var-only hiện tại — nếu/khi issue #30 (chuyển
+  `ADMIN_PASSWORD_HASH` sang DB-backed) triển khai, vấn đề này biến mất hoàn toàn cho việc
+  verify hàng ngày (Postgres/Drizzle không quan tâm ký tự `$`), chỉ còn lại đúng 1 lần lúc
+  seed dữ liệu ban đầu cần thiết kế riêng (không nên tái dùng nguyên si cơ chế env-var này
+  cho bước seed).

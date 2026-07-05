@@ -99,6 +99,24 @@ tags: [invoice, webhook, polling, limits]
 
 **BR-SEC-002:** `ADMIN_PASSWORD` (dashboard single-admin login) phải hash bằng bcrypt trước khi lưu/so sánh, không bao giờ lưu plaintext.
 
+> **Cập nhật 2026-07-05 (issue #9, phát hiện lúc human tự test `pnpm dev` login)**: Env var
+> đổi tên thành `ADMIN_PASSWORD_HASH_B64`, lưu **base64 của hash bcrypt**, không phải raw
+> `$2y$10$...`. Lý do: raw hash chứa dấu `$`, và 2 cơ chế load `.env` (Docker Compose vs
+> `dotenv-expand` dùng bởi `pnpm dev`) corrupt ký tự này theo 2 kiểu khác nhau — không có
+> cách escape nào đúng cho cả hai cùng lúc (đã verify bằng container thật). Base64 không có
+> ký tự `$` nên tránh được toàn bộ vấn đề. `app/login/actions.ts` decode lại trước khi
+> `bcrypt.compare()`. Chi tiết đầy đủ xem `decisions-log.md` 2026-07-05 và
+> `system-design.md`'s "Dashboard auth: session cookie + middleware guard".
+
 **BR-SEC-003:** Webhook secret phải random, tối thiểu 32 bytes.
 
 **BR-SEC-004:** Dashboard session dùng httpOnly cookie ký bằng secret riêng (không phải `FIBERGATE_INTERNAL_SECRET`).
+
+> **Cập nhật 2026-07-05 (issue #9, implement `apps/web/lib/auth/session.ts`)**: Cookie
+> `Secure` attribute dựa vào header `X-Forwarded-Proto` của request thực tế (do reverse
+> proxy TLS termination set), không dựa vào `NODE_ENV` — bundle docker-compose mặc định
+> chưa có TLS termination nào, nên gắn `Secure` theo `NODE_ENV==="production"` sẽ khiến
+> browser âm thầm từ chối lưu cookie trên chính flow deploy mặc định (plain HTTP), login
+> trông như thành công nhưng session không lưu. Xem chi tiết + ràng buộc khi thêm TLS
+> reverse proxy sau này ở `architecture/system-design.md`'s "Dashboard auth: session
+> cookie + middleware guard".
