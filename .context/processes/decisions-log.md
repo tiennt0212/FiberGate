@@ -133,6 +133,19 @@ Sau 2 fix trên, human tiếp tục chốt 2 quyết định thiết kế phát 
 
 5. **`verifySessionToken()` không nuốt lỗi thiếu `DASHBOARD_SESSION_SECRET`** — tách biệt khỏi trường hợp token invalid/expired (trước đó catch-all coi 2 case như nhau, đều redirect `/login` im lặng, không log gì). Giờ `getSigningKey()`'s throw (do biến env thiếu) nằm ngoài `try`, propagate ra ngoài (middleware sẽ crash rõ ràng thay vì âm thầm redirect) — khớp pattern `lib/api/auth.ts`'s `requireAuth()`, vốn cũng để lỗi thiếu `FIBERGATE_INTERNAL_SECRET` throw uncaught.
 
+[2026-07-05] **`ADMIN_PASSWORD_HASH` → `ADMIN_PASSWORD_HASH_B64` (issue #9, sau khi PR #32 merge) — phát hiện lúc human tự test login qua `pnpm dev`, không phải qua `docker compose up -d`:**
+
+Human thấy `bcrypt.compare()` fail dù password đúng lúc chạy `pnpm dev` local, dùng hash đã verify đúng bằng `bcrypt.compareSync()` trực tiếp (script test riêng). Điều tra kỹ hơn phát hiện đây **không phải** đơn giản là quên escape `$$` như bug đã ghi ở 2026-07-02 — mà là 1 xung đột kiến trúc thật giữa 2 cơ chế cùng đọc chung root `.env`:
+
+- **Docker Compose**: tự interpolate `$VAR`/`${VAR}` bên trong giá trị `.env`, coi `$$` là escape hợp lệ cho 1 dấu `$` literal (đã verify bằng container thật qua `docker compose run --rm test printenv TESTVAR` — **không chỉ tin `docker compose config`'s output**, vì lệnh đó tự re-escape `$` lúc hiển thị YAML nên trông như đúng dù giá trị runtime thật sai). Kết quả: `$$2y$$10$$abc` trong `.env` → đúng `$2y$10$abc` trong container.
+- **`dotenv-expand`** (dependency của `dotenv-cli`, dùng bởi 4 script `dev`/`build`/`db:generate`/`db:migrate`): cũng tự interpolate `$VAR` nhưng theo thuật toán khác, **không** coi `$$` là escape — cả giá trị raw (`$2y$10$abc`) lẫn giá trị đã escape (`$$2y$$10$$abc`) đều bị corrupt (mất hẳn 1 đoạn ký tự giữa chừng), chỉ khác nhau ở chỗ bị mất đoạn nào.
+
+Đã thử 2 hướng workaround trước khi kết luận không có cách escape nào chung: (a) `dotenv-cli`'s flag `--no-expand` — làm giá trị raw pass-through đúng, nhưng giá trị `$$`-escaped (cần cho Docker) thì vẫn sai (không tự collapse); (b) Docker Compose's `env_file:` directive thay cho `environment: ${VAR}` — verify bằng container thật vẫn bị corrupt y hệt, Compose áp dụng interpolation cho **mọi** cách đọc `.env`, không riêng gì cách đang dùng.
+
+Nêu 3 hướng fix cho human trước khi chọn: (a) base64-encode giá trị trong `.env` (bảng chữ base64 không có `$`, né hoàn toàn cả 2 cơ chế); (b) thêm `--no-expand` + chấp nhận `pnpm dev` cần giá trị khác Docker, phá vỡ quyết định "1 file `.env` duy nhất" (2026-07-02); (c) chỉ document hạn chế, không sửa code, chấp nhận không test được login qua `pnpm dev`.
+
+**Human chọn (a)** — Lý do: sửa đúng gốc rễ (loại bỏ hẳn ký tự `$` khỏi giá trị lưu trong `.env`), không cần escape gì nữa ở cả 2 phía, không phá quyết định "1 file `.env` duy nhất". Implement: đổi tên env var thành `ADMIN_PASSWORD_HASH_B64` (tên mới để không ai nhầm lẫn dán raw hash vào — khác hẳn giá trị cũ nên không có rủi ro tương thích ngược với hash cũ nào đang chạy thật), `README.md`'s "Generating secrets" thêm bước `| base64 | tr -d '\n'` vào lệnh generate, `app/login/actions.ts` decode bằng `Buffer.from(value, "base64").toString("utf-8")` trước khi `bcrypt.compare()`. Biết trước đây là fix tạm cho model env-var-only — nếu issue #30 (chuyển `ADMIN_PASSWORD_HASH` sang DB-backed) triển khai, vấn đề này biến mất hoàn toàn cho việc verify hàng ngày (Postgres/Drizzle không quan tâm `$`), chỉ còn đúng 1 lần lúc seed dữ liệu ban đầu cần thiết kế riêng.
+
 ---
 
 ## Business Logic

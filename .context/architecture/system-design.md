@@ -192,7 +192,9 @@ FIBER_SECRET_KEY_PASSWORD=       # không thuộc 8 biến app-level bên dướ
                                   # container" bên dưới — nhưng vẫn để trong
                                   # .env.example (section riêng) để merchant
                                   # thấy đủ giá trị required trong 1 lần cp
-ADMIN_PASSWORD_HASH=
+ADMIN_PASSWORD_HASH_B64=         # base64-encoded bcrypt hash — KHÔNG phải
+                                  # raw "$2y$10$..." — xem "Dashboard auth"
+                                  # bên dưới để biết lý do
 DASHBOARD_SESSION_SECRET=        # ký session cookie (JWT, qua jose) cho
                                   # app/(dashboard)/** — cố ý tách biệt với
                                   # FIBERGATE_INTERNAL_SECRET (BR-SEC-004), xem
@@ -350,3 +352,27 @@ xem `api/rest-api-spec.md`).
   **không publish trực tiếp ra host nữa** (chỉ nginx mới expose ra ngoài), nếu không ai đó
   gọi thẳng `http://host:3000` bỏ qua nginx vẫn có thể tự set header giả để đánh lừa cookie
   thành "secure" trong khi kết nối thật là HTTP thuần.
+- **`ADMIN_PASSWORD_HASH_B64` lưu base64, không phải raw bcrypt hash — 2 cơ chế load
+  `.env` khác nhau corrupt ký tự `$` theo 2 kiểu khác nhau, không có cách escape nào
+  thoả cả hai** (phát hiện lúc human tự test `pnpm dev` login sau khi PR #32 merge, xem
+  `decisions-log.md` 2026-07-05 để biết toàn bộ quá trình điều tra): Root `.env` được
+  dùng chung cho cả `docker compose up -d` (Docker Compose tự interpolate `$VAR`/`${VAR}`
+  bên trong giá trị `.env`, coi `$$` là escape cho 1 dấu `$` literal) lẫn `pnpm dev`/`build`/
+  `db:generate`/`db:migrate` (qua `dotenv-cli`, dùng `dotenv-expand` bên trong — cũng tự
+  interpolate `$VAR` nhưng theo thuật toán khác, KHÔNG coi `$$` là escape cho 1 dấu `$`).
+  Đã verify bằng container thật (`docker compose run --rm test printenv TESTVAR`, không chỉ
+  tin `docker compose config`'s output — lệnh đó tự re-escape `$` lúc hiển thị nên trông có
+  vẻ đúng dù giá trị runtime thật sai) và bằng `npx dotenv-cli -- node -e "console.log(...)"`:
+  không có bất kỳ cách viết `$`/`$$`/`\$` nào trong `.env` cho ra đúng giá trị ở **cả 2** cơ
+  chế cùng lúc — escape đúng cho bên này luôn sai ở bên kia. Đã thử thêm `--no-expand` flag
+  của `dotenv-cli` và `env_file:` directive của Docker Compose (thay cho `environment: ${VAR}`
+  hiện tại) — không giải quyết được, vì Docker Compose vẫn tự interpolate giá trị đọc từ
+  `env_file:` giống hệt cách nó làm với root `.env`. Fix: `ADMIN_PASSWORD_HASH_B64` lưu
+  base64 của hash gốc (bảng chữ base64 không có ký tự `$`), `app/login/actions.ts` decode lại
+  bằng `Buffer.from(value, "base64").toString("utf-8")` trước khi `bcrypt.compare()` — cả 2
+  cơ chế load `.env` đều pass-through base64 nguyên vẹn, không cần escape gì cả. Đánh đổi đã
+  biết: đây là fix tạm thời cho model env-var-only hiện tại — nếu/khi issue #30 (chuyển
+  `ADMIN_PASSWORD_HASH` sang DB-backed) triển khai, vấn đề này biến mất hoàn toàn cho việc
+  verify hàng ngày (Postgres/Drizzle không quan tâm ký tự `$`), chỉ còn lại đúng 1 lần lúc
+  seed dữ liệu ban đầu cần thiết kế riêng (không nên tái dùng nguyên si cơ chế env-var này
+  cho bước seed).

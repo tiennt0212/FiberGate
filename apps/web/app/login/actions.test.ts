@@ -21,6 +21,7 @@ const { login, logout } = await import("./actions");
 
 const REAL_PASSWORD = "correct-horse-battery-staple";
 const TEST_HASH = bcrypt.hashSync(REAL_PASSWORD, 10);
+const TEST_HASH_BASE64 = Buffer.from(TEST_HASH, "utf-8").toString("base64");
 
 function formDataWithPassword(password?: string): FormData {
   const formData = new FormData();
@@ -32,11 +33,11 @@ function formDataWithPassword(password?: string): FormData {
 
 describe("login", () => {
   beforeEach(() => {
-    process.env.ADMIN_PASSWORD_HASH = TEST_HASH;
+    process.env.ADMIN_PASSWORD_HASH_B64 = TEST_HASH_BASE64;
   });
 
   afterEach(() => {
-    delete process.env.ADMIN_PASSWORD_HASH;
+    delete process.env.ADMIN_PASSWORD_HASH_B64;
     vi.clearAllMocks();
   });
 

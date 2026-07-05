@@ -88,15 +88,18 @@ openssl rand -hex 32
 # here instead of generating a new one. Creating a new key? Generate the value
 # above first, then use that exact value when encrypting it.
 
-# ADMIN_PASSWORD_HASH — bcrypt hash of your dashboard login password. No local
-# install needed, uses Docker you already have:
-docker run --rm httpd:alpine htpasswd -nbBC 10 admin 'your-real-password'
-# Copy only the hash part after the first ":" (starts with $2y$) into .env —
-# but first double every "$" to "$$" (e.g. $2y$10$abc... -> $$2y$$10$$abc...).
-# Docker Compose interpolates "$VAR" inside .env values too, so an unescaped
-# bcrypt hash gets silently corrupted (you'll see a
-# "The \"...\" variable is not set" warning and dashboard login will fail).
-# Verify with: docker compose config | grep ADMIN_PASSWORD_HASH
+# ADMIN_PASSWORD_HASH_B64 — bcrypt hash of your dashboard login password,
+# base64-encoded. No local install needed, uses Docker you already have:
+docker run --rm httpd:alpine htpasswd -nbBC 10 admin 'your-real-password' | cut -d: -f2 | base64 | tr -d '\n'
+# Paste the entire output into .env as ADMIN_PASSWORD_HASH_B64 — it's
+# base64, not the raw "$2y$10$..." hash. This is deliberate: a raw bcrypt
+# hash contains literal "$" characters, and Docker Compose's .env
+# interpolation and dotenv-expand (used by `pnpm dev`/`build` via
+# dotenv-cli) each corrupt those differently — verified against real
+# containers, neither the raw hash nor a "$"-doubled ("$$") version survives
+# both paths intact. Base64 has no "$" in its alphabet, so it passes through
+# both unmangled — no escaping needed. See decisions-log.md 2026-07-05 for
+# the full investigation.
 ```
 
 **Prerequisites — do these before your first `docker compose up -d`:**
@@ -158,10 +161,11 @@ docker run --rm httpd:alpine htpasswd -nbBC 10 admin 'your-real-password'
   already pre-seeded with a static private IP (`172.28.0.10`) matching the
   `fiber-node` service's `ipv4_address` in `docker-compose.yml` — if you edited either
   of those, keep them in sync.
-- **Dashboard login fails even with the right password** — check
-  `docker compose config | grep ADMIN_PASSWORD_HASH`; if it looks truncated or
-  different from what you generated, you likely pasted an unescaped bcrypt hash into
-  `.env` (see "Generating secrets" above — every `$` must be doubled to `$$`).
+- **Dashboard login fails even with the right password** — check that
+  `ADMIN_PASSWORD_HASH_B64` in `.env` is the base64-encoded output from
+  "Generating secrets" above, not the raw `$2y$10$...` hash pasted directly.
+  Decode it locally to sanity-check: `echo "$ADMIN_PASSWORD_HASH_B64" | base64 -d`
+  should print a string starting with `$2y$` or `$2b$`.
 - **`fibergate-core` never starts** — it has `depends_on: condition: service_healthy`
   on both `postgres` and `fiber-node`, so it intentionally won't start until both are
   healthy. Check `docker compose ps` to see which one isn't healthy yet, then check
