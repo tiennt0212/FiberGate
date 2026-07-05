@@ -54,6 +54,8 @@ export const invoices = pgTable("invoices", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 
+export type InvoiceRow = typeof invoices.$inferSelect;
+
 export const webhookEndpoints = pgTable("webhook_endpoints", {
   id: uuid("id").primaryKey().defaultRandom(),
   url: text("url").notNull(),

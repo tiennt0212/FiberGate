@@ -27,6 +27,7 @@ apps/web/          — Next.js 14 App Router (fibergate-core: dashboard + API ro
   app/api/cron/    — Optional manual-trigger endpoint: /poll-invoices (nguồn chính là in-process interval worker)
   lib/db/          — Drizzle client + schema + helpers
   lib/fiber/       — Fiber JSON-RPC client (wraps FNN node calls)
+  lib/services/    — Business logic route.ts delegates to (xem "Service layer pattern" bên dưới)
 packages/sdk/      — npm package @fibergate/sdk (TypeScript, tsup)
 docker-compose.yml — Fiber node + PostgreSQL + fibergate-core, merchant tự deploy
 docker/            — docker/fibergate-core/Dockerfile, config fiber-node
@@ -78,6 +79,18 @@ Mọi API route `/api/v1/*` phải validate theo thứ tự:
 3. Reject nếu không khớp — single-tenant, không lookup theo user/client
 
 `FIBERGATE_INTERNAL_SECRET` là 1 shared secret duy nhất set lúc deploy, không phải per-client key. Không bao giờ log ra console hoặc trả về trong response (BR-SEC-001).
+
+### Service layer pattern
+
+`route.ts` handler chỉ làm auth, parse/validate request, map lỗi sang HTTP status, và shape response — **không** tự viết Drizzle query hay gọi Fiber RPC trực tiếp. Business logic (đọc/ghi DB, gọi `lib/fiber/client.ts`, domain rules) nằm trong `lib/services/*.ts` (ví dụ `lib/services/invoices.ts`, `lib/services/node.ts`), route chỉ gọi vào:
+```typescript
+// route.ts
+const row = await invoicesService.createInvoice(input); // domain logic ở service
+return ok(serializeCreatedInvoice(row), undefined, 201);  // shaping ở route
+```
+Rule request/route-level thuần túy (ví dụ rate limit `BR-RTE-*`) vẫn ở route, không đẩy xuống service. Test theo 2 tầng tương ứng: `lib/services/*.test.ts` mock `@/lib/db` + `@/lib/fiber/client`; `route.test.ts` mock `@/lib/services/*` (không mock lại db/fiber trực tiếp nữa).
+
+Ngoại lệ: `lib/poller/invoice-poller.ts` (background job, không phải request/response controller) hiện vẫn tự query DB trực tiếp — chưa gộp vào service layer.
 
 ### Database pattern trong API routes
 

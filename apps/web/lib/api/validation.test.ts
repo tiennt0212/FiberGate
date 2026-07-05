@@ -186,4 +186,9 @@ describe("validateListInvoicesQuery", () => {
     const result = validateListInvoicesQuery(new URLSearchParams({ cursor: "opaque-cursor" }));
     expect(result.cursor).toBe("opaque-cursor");
   });
+
+  it("normalizes an explicitly empty cursor to undefined, same as an omitted one", () => {
+    const result = validateListInvoicesQuery(new URLSearchParams({ cursor: "" }));
+    expect(result.cursor).toBeUndefined();
+  });
 });

@@ -1,9 +1,7 @@
 import { NextResponse } from "next/server";
 
-import { shannonToCkb } from "@/lib/api/format";
-import { err, ok } from "@/lib/api/response";
-import { getNodeInfo } from "@/lib/fiber/client";
-import { FiberRpcTimeoutError } from "@/lib/fiber/types";
+import { err, fiberTimeoutResponse, ok } from "@/lib/api/response";
+import { getNodeStatus } from "@/lib/services/node";
 
 // GET /node/info is intentionally public (no requireAuth() call) —
 // .context/api/rest-api-spec.md marks it as the one endpoint that doesn't
@@ -12,19 +10,14 @@ import { FiberRpcTimeoutError } from "@/lib/fiber/types";
 
 export async function GET(): Promise<NextResponse> {
   try {
-    const info = await getNodeInfo();
-    return ok({
-      pubkey: info.pubkey,
-      active_channels: info.activeChannels,
-      inbound_capacity_ckb: shannonToCkb(info.inboundCapacityShannon),
-      outbound_capacity_ckb: shannonToCkb(info.outboundCapacityShannon),
-      status: "online",
-    });
+    const status = await getNodeStatus();
+    return ok(status);
   } catch (error) {
-    if (error instanceof FiberRpcTimeoutError) {
-      return err(503, "NODE_UNAVAILABLE", "Fiber node did not respond in time");
+    const timeoutResponse = fiberTimeoutResponse(error);
+    if (timeoutResponse) {
+      return timeoutResponse;
     }
-    console.error("getNodeInfo failed:", error);
+    console.error("getNodeStatus failed:", error);
     return err(503, "NODE_UNAVAILABLE", "Fiber node is unavailable");
   }
 }

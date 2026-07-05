@@ -1,0 +1,29 @@
+meta {
+  name: Poll invoices - success (200)
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{cronUrl}}/poll-invoices
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{cronSecret}}
+}
+
+tests {
+  // Requires CRON_SECRET to be set (non-empty) in both the deployment under
+  // test's root .env and bruno/.env (see bruno/.env.example) — otherwise the
+  // route returns 503 CRON_NOT_CONFIGURED instead of running a poll cycle.
+  test("status is 200", function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("data confirms a poll cycle ran", function () {
+    expect(res.body.error).to.equal(null);
+    expect(res.body.data).to.have.property("triggered", true);
+  });
+}

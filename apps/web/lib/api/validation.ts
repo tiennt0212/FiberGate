@@ -56,6 +56,31 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+// Shared by every "must be one of: ..." enum check below (asset/status),
+// both for POST body fields (value may be any JSON type) and GET query
+// params (already known to be a string) — callers just supply the allowed
+// list, error code, and field label.
+function validateEnumParam<T extends string>(
+  value: unknown,
+  allowed: readonly T[],
+  code: string,
+  label: string,
+): T {
+  if (typeof value !== "string" || !allowed.includes(value as T)) {
+    throw new ApiValidationError(code, `${label} must be one of: ${allowed.join(", ")}`);
+  }
+  return value as T;
+}
+
+// invoices.id is a Postgres uuid column — passing a non-UUID string straight
+// to Drizzle's `eq()` would throw a Postgres "invalid input syntax for type
+// uuid" error instead of a clean 404.
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export function isValidUuid(value: string): boolean {
+  return UUID_PATTERN.test(value);
+}
+
 /**
  * Validates and normalizes a POST /invoices JSON body. Throws
  * ApiValidationError with a spec error code (INVALID_AMOUNT,
@@ -79,12 +104,7 @@ export function validateCreateInvoiceInput(body: unknown): CreateInvoiceInput {
     );
   }
 
-  if (typeof asset !== "string" || !INVOICE_ASSETS.includes(asset as InvoiceAssetValue)) {
-    throw new ApiValidationError(
-      "UNSUPPORTED_ASSET",
-      `asset must be one of: ${INVOICE_ASSETS.join(", ")}`,
-    );
-  }
+  const validatedAsset = validateEnumParam(asset, INVOICE_ASSETS, "UNSUPPORTED_ASSET", "asset");
 
   if (description !== undefined && typeof description !== "string") {
     throw new ApiValidationError("VALIDATION_ERROR", "description must be a string");
@@ -116,7 +136,7 @@ export function validateCreateInvoiceInput(body: unknown): CreateInvoiceInput {
   return {
     amountCkb: amount,
     amountShannon,
-    asset: asset as InvoiceAssetValue,
+    asset: validatedAsset,
     description,
     expiresInSeconds,
     metadata,
@@ -138,28 +158,16 @@ export interface ListInvoicesQuery {
  */
 export function validateListInvoicesQuery(searchParams: URLSearchParams): ListInvoicesQuery {
   const statusParam = searchParams.get("status");
-  let status: InvoiceStatusValue | undefined;
-  if (statusParam !== null) {
-    if (!INVOICE_STATUSES.includes(statusParam as InvoiceStatusValue)) {
-      throw new ApiValidationError(
-        "VALIDATION_ERROR",
-        `status must be one of: ${INVOICE_STATUSES.join(", ")}`,
-      );
-    }
-    status = statusParam as InvoiceStatusValue;
-  }
+  const status =
+    statusParam !== null
+      ? validateEnumParam(statusParam, INVOICE_STATUSES, "VALIDATION_ERROR", "status")
+      : undefined;
 
   const assetParam = searchParams.get("asset");
-  let asset: InvoiceAssetValue | undefined;
-  if (assetParam !== null) {
-    if (!INVOICE_ASSETS.includes(assetParam as InvoiceAssetValue)) {
-      throw new ApiValidationError(
-        "VALIDATION_ERROR",
-        `asset must be one of: ${INVOICE_ASSETS.join(", ")}`,
-      );
-    }
-    asset = assetParam as InvoiceAssetValue;
-  }
+  const asset =
+    assetParam !== null
+      ? validateEnumParam(assetParam, INVOICE_ASSETS, "VALIDATION_ERROR", "asset")
+      : undefined;
 
   const limitParam = searchParams.get("limit");
   let limit = DEFAULT_LIST_LIMIT;
@@ -173,8 +181,12 @@ export function validateListInvoicesQuery(searchParams: URLSearchParams): ListIn
     limit = Math.min(parsedLimit, MAX_LIST_LIMIT);
   }
 
+  // Treat an explicitly empty ?cursor= the same as an omitted one — an
+  // explicit, intentional normalization here, not left to an implicit
+  // falsy check further down the pipeline (which would silently swallow it
+  // as "no cursor" without anyone deciding that's the right behavior).
   const cursorParam = searchParams.get("cursor");
-  const cursor = cursorParam !== null ? cursorParam : undefined;
+  const cursor = cursorParam ? cursorParam : undefined;
 
   return { status, asset, limit, cursor };
 }
