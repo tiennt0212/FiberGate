@@ -1,7 +1,7 @@
 import { and, eq, gt, lt } from "drizzle-orm";
 
 import { db } from "@/lib/db";
-import { invoices } from "@/lib/db/schema";
+import { invoices, type InvoiceRow } from "@/lib/db/schema";
 import { getInvoiceStatus } from "@/lib/fiber/client";
 import { FiberRpcTimeoutError, type InvoiceStatus } from "@/lib/fiber/types";
 import { triggerWebhook, WebhookEvent } from "@/lib/webhooks/trigger";
@@ -12,8 +12,6 @@ import { triggerWebhook, WebhookEvent } from "@/lib/webhooks/trigger";
 
 const POLL_BATCH_SIZE = 50; // BR-POL-003
 const POLL_WINDOW_MS = 60_000; // BR-POL-002 "expires_at > now() - 60s"
-
-type InvoiceRow = typeof invoices.$inferSelect;
 
 /**
  * BR-STS-002(b): expire pending invoices whose expires_at has passed, purely

@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { FiberRpcTimeoutError } from "@/lib/fiber/types";
+
 // Shared `{ data, error, meta? }` / `{ data: null, error: { code, message } }`
 // envelope for every /api/v1/* route (CLAUDE.md "Response format",
 // .context/api/rest-api-spec.md). Routes must build responses through
@@ -44,4 +46,16 @@ export function err(
 // the original error themselves before calling this.
 export function internalError(): NextResponse<ApiErrorBody> {
   return err(500, "INTERNAL_ERROR", "Internal server error");
+}
+
+// Shared by every route that calls into lib/fiber/client.ts: turns a timed
+// out Fiber RPC call into the spec's 503 NODE_UNAVAILABLE shape. Returns null
+// for any other error so callers keep their own fallback behavior (e.g. some
+// routes fall back to a 500 internalError(), others to a different 503
+// message) instead of being forced into one shared non-timeout branch.
+export function fiberTimeoutResponse(error: unknown): NextResponse<ApiErrorBody> | null {
+  if (error instanceof FiberRpcTimeoutError) {
+    return err(503, "NODE_UNAVAILABLE", "Fiber node did not respond in time");
+  }
+  return null;
 }

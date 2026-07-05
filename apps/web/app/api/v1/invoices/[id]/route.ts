@@ -2,31 +2,11 @@ import { eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 
 import { requireAuth } from "@/lib/api/auth";
-import { shannonToCkb } from "@/lib/api/format";
 import { err, internalError, ok } from "@/lib/api/response";
+import { serializeInvoice } from "@/lib/api/serialize-invoice";
+import { isValidUuid } from "@/lib/api/validation";
 import { db } from "@/lib/db";
-import { invoices } from "@/lib/db/schema";
-
-type InvoiceRow = typeof invoices.$inferSelect;
-
-// UUIDs only — invoices.id is a Postgres uuid column, and passing a
-// non-UUID string straight to Drizzle's `eq()` would throw a Postgres
-// "invalid input syntax for type uuid" error instead of a clean 404.
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-function serializeInvoiceDetail(row: InvoiceRow) {
-  return {
-    id: row.id,
-    invoice_address: row.invoiceAddress,
-    payment_hash: row.paymentHash,
-    amount: shannonToCkb(row.amountShannon),
-    asset: row.asset,
-    status: row.status,
-    paid_at: row.paidAt ? row.paidAt.toISOString() : null,
-    expires_at: row.expiresAt.toISOString(),
-    created_at: (row.createdAt ?? new Date()).toISOString(),
-  };
-}
+import { invoices, type InvoiceRow } from "@/lib/db/schema";
 
 export async function GET(
   request: NextRequest,
@@ -37,7 +17,7 @@ export async function GET(
     return authError;
   }
 
-  if (!UUID_PATTERN.test(params.id)) {
+  if (!isValidUuid(params.id)) {
     return err(404, "NOT_FOUND", "Invoice not found");
   }
 
@@ -54,5 +34,5 @@ export async function GET(
     return err(404, "NOT_FOUND", "Invoice not found");
   }
 
-  return ok(serializeInvoiceDetail(row));
+  return ok(serializeInvoice(row));
 }

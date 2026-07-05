@@ -1,4 +1,4 @@
-import type { invoices } from "@/lib/db/schema";
+import type { InvoiceRow } from "@/lib/db/schema";
 
 // Stub webhook trigger point for issue #7 (background poller). Issue #8
 // ("Webhook delivery system: HMAC sign, retry, delivery log") owns the real
@@ -21,8 +21,6 @@ export const WebhookEvent = {
   InvoiceFailed: "invoice.failed",
 } as const;
 export type WebhookEvent = (typeof WebhookEvent)[keyof typeof WebhookEvent];
-
-type InvoiceRow = typeof invoices.$inferSelect;
 
 /**
  * Called by the poller whenever an invoice transitions into a terminal

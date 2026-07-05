@@ -1,8 +1,8 @@
 import { vi } from "vitest";
 
-import type { invoices } from "@/lib/db/schema";
+import type { InvoiceRow } from "@/lib/db/schema";
 
-export type InvoiceRow = typeof invoices.$inferSelect;
+export type { InvoiceRow };
 
 export function buildInvoiceRow(overrides: Partial<InvoiceRow> = {}): InvoiceRow {
   return {

@@ -2,9 +2,9 @@ import { and, desc, eq, lt, or, type SQL } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 
 import { requireAuth } from "@/lib/api/auth";
-import { shannonToCkb } from "@/lib/api/format";
 import { tryConsumeInvoiceCreationSlot } from "@/lib/api/rate-limit";
-import { err, internalError, ok } from "@/lib/api/response";
+import { err, fiberTimeoutResponse, internalError, ok } from "@/lib/api/response";
+import { serializeCreatedInvoice, serializeInvoice } from "@/lib/api/serialize-invoice";
 import {
   ApiValidationError,
   validateCreateInvoiceInput,
@@ -13,46 +13,9 @@ import {
   type ListInvoicesQuery,
 } from "@/lib/api/validation";
 import { db } from "@/lib/db";
-import { invoices } from "@/lib/db/schema";
+import { invoices, type InvoiceRow } from "@/lib/db/schema";
 import { createInvoice } from "@/lib/fiber/client";
-import {
-  FiberRpcTimeoutError,
-  UnsupportedAssetError,
-  type NewInvoiceOutput,
-} from "@/lib/fiber/types";
-
-// invoices row shape, as inferred by Drizzle from lib/db/schema.ts.
-type InvoiceRow = typeof invoices.$inferSelect;
-
-// POST /invoices response omits paid_at (always null at creation time) to
-// match the exact shape in .context/api/rest-api-spec.md's 201 example.
-function serializeCreatedInvoice(row: InvoiceRow) {
-  return {
-    id: row.id,
-    invoice_address: row.invoiceAddress,
-    payment_hash: row.paymentHash,
-    amount: shannonToCkb(row.amountShannon),
-    asset: row.asset,
-    status: row.status,
-    expires_at: row.expiresAt.toISOString(),
-    created_at: (row.createdAt ?? new Date()).toISOString(),
-  };
-}
-
-// GET /invoices list items include paid_at, mirroring GET /invoices/:id.
-function serializeListedInvoice(row: InvoiceRow) {
-  return {
-    id: row.id,
-    invoice_address: row.invoiceAddress,
-    payment_hash: row.paymentHash,
-    amount: shannonToCkb(row.amountShannon),
-    asset: row.asset,
-    status: row.status,
-    paid_at: row.paidAt ? row.paidAt.toISOString() : null,
-    expires_at: row.expiresAt.toISOString(),
-    created_at: (row.createdAt ?? new Date()).toISOString(),
-  };
-}
+import { UnsupportedAssetError, type NewInvoiceOutput } from "@/lib/fiber/types";
 
 // Opaque cursor = base64 JSON of the last row's { created_at, id }, used as
 // a compound (timestamp, id) key so pagination stays stable even when two
@@ -128,8 +91,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     if (error instanceof UnsupportedAssetError) {
       return err(400, "UNSUPPORTED_ASSET", error.message);
     }
-    if (error instanceof FiberRpcTimeoutError) {
-      return err(503, "NODE_UNAVAILABLE", "Fiber node did not respond in time");
+    const timeoutResponse = fiberTimeoutResponse(error);
+    if (timeoutResponse) {
+      return timeoutResponse;
     }
     console.error("createInvoice failed:", error);
     return internalError();
@@ -239,7 +203,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         })
       : null;
 
-  return ok(pageRows.map(serializeListedInvoice), {
+  return ok(pageRows.map(serializeInvoice), {
     limit: query.limit,
     next_cursor: nextCursor,
   });

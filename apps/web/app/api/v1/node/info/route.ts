@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
 
 import { shannonToCkb } from "@/lib/api/format";
-import { err, ok } from "@/lib/api/response";
+import { err, fiberTimeoutResponse, ok } from "@/lib/api/response";
 import { getNodeInfo } from "@/lib/fiber/client";
-import { FiberRpcTimeoutError } from "@/lib/fiber/types";
 
 // GET /node/info is intentionally public (no requireAuth() call) —
 // .context/api/rest-api-spec.md marks it as the one endpoint that doesn't
@@ -21,8 +20,9 @@ export async function GET(): Promise<NextResponse> {
       status: "online",
     });
   } catch (error) {
-    if (error instanceof FiberRpcTimeoutError) {
-      return err(503, "NODE_UNAVAILABLE", "Fiber node did not respond in time");
+    const timeoutResponse = fiberTimeoutResponse(error);
+    if (timeoutResponse) {
+      return timeoutResponse;
     }
     console.error("getNodeInfo failed:", error);
     return err(503, "NODE_UNAVAILABLE", "Fiber node is unavailable");
