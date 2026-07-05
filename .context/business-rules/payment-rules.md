@@ -1,8 +1,8 @@
 ---
 type: business_rules
 module: payment-processing
-version: 1.2
-last_updated: 2026-07-04
+version: 1.3
+last_updated: 2026-07-05
 tags: [invoice, webhook, polling, limits]
 ---
 
@@ -49,6 +49,17 @@ tags: [invoice, webhook, polling, limits]
 > ứng.
 
 **BR-STS-002:** Status "expired" được set khi: (a) Fiber node báo expired, hoặc (b) `expires_at < now()` dù chưa poll.
+
+> **Cập nhật 2026-07-05 (bug fix phát hiện qua code review, issue #7)**: (b) — bulk
+> clock-expire — **bắt buộc chạy SAU** bước RPC poll (a) trong cùng 1 cycle, không phải
+> trước. Bug ban đầu: `runPollCycle()` chạy expire-theo-đồng-hồ trước, nên 1 invoice
+> được trả tiền đúng lúc/ngay sau khi hết hạn (`expires_at < now()` tại thời điểm
+> cycle chạy, nhưng Fiber node đã ghi nhận `"Paid"`) sẽ bị đánh dấu `expired` trước khi
+> bước RPC kịp thấy nó — và vì BR-STS-001 chỉ đi 1 chiều, invoice này kẹt ở `expired`
+> vĩnh viễn dù khách đã trả tiền thật, merchant không bao giờ nhận `payment.paid`. Đã
+> fix bằng cách đổi thứ tự trong `apps/web/lib/poller/invoice-poller.ts`'s
+> `runPollCycle()`: poll RPC-batch (a) chạy trước, bulk clock-expire (b) chạy sau — xem
+> chi tiết luồng ở `architecture/system-design.md`'s "Data Flow — Tạo Invoice" mục 3.
 
 **BR-STS-003:** Status "failed" được set khi: Fiber node báo invoice bị cancelled.
 

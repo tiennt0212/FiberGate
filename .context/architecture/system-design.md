@@ -1,6 +1,6 @@
 ---
 type: architecture
-version: 1.3
+version: 1.4
 last_updated: 2026-07-05
 tags: [nextjs, postgresql, docker-compose, fiber-node, monorepo, self-hosted]
 ---
@@ -67,11 +67,16 @@ tags: [nextjs, postgresql, docker-compose, fiber-node, monorepo, self-hosted]
    d. Lưu invoice vào PostgreSQL: status = "pending"
    e. Trả về response cho storefront app
 
-3. Background Poller — Phase 1: in-process interval worker chạy trong container fibergate-core mỗi 10s:
-   a. Query invoices WHERE status = "pending" AND expires_at > now()
-   b. Với mỗi invoice: gọi Fiber Node RPC get_invoice { payment_hash }
-   c. Nếu status thay đổi → update PostgreSQL
-   d. Nếu status = "paid" → fire webhook đến merchant endpoint
+3. Background Poller — Phase 1: in-process interval worker chạy trong container fibergate-core mỗi 10s,
+   thực hiện đúng thứ tự 2 bước sau (thứ tự bắt buộc, xem `decisions-log.md`):
+   a. RPC-driven batch (BR-POL-002/003) — CHẠY TRƯỚC: query invoices WHERE status = "pending" AND
+      expires_at > now() - 60s, tối đa 50 invoice; với mỗi invoice gọi Fiber Node RPC get_invoice
+      { payment_hash }; nếu status đổi (paid/expired/failed) → update PostgreSQL + fire webhook.
+   b. Bulk clock-expire (BR-STS-002(b)) — CHẠY SAU: 1 câu UPDATE duy nhất, invoices WHERE
+      status = "pending" AND expires_at < now() → set "expired" + fire webhook, không gọi RPC
+      (bắt những invoice đã hết hạn quá lâu, ngoài cửa sổ 60s ở bước a nên chưa từng được RPC check).
+      Phải chạy SAU bước a — chạy trước sẽ có thể đánh dấu "expired" nhầm 1 invoice vừa được trả tiền
+      đúng lúc hết hạn (status chỉ chuyển 1 chiều — BR-STS-001 — nên không có đường quay lại "paid").
 
 3'. Background Listener — Phase 2 (thay Background Poller ở trên, đã verify khả thi — xem chi tiết ở
     "Phase 2 — Real-time Invoice Listener" bên dưới): fibergate-core mở 1 WebSocket client riêng
