@@ -17,7 +17,7 @@ export async function GET(): Promise<NextResponse> {
     if (timeoutResponse) {
       return timeoutResponse;
     }
-    console.error("getNodeInfo failed:", error);
+    console.error("getNodeStatus failed:", error);
     return err(503, "NODE_UNAVAILABLE", "Fiber node is unavailable");
   }
 }

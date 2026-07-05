@@ -51,6 +51,7 @@ export async function createInvoice(input: CreateInvoiceInput): Promise<InvoiceR
 
   const row = insertedRows[0];
   if (!row) {
+    console.error("Invoice insert returned no row");
     throw new Error("Invoice insert returned no row");
   }
 

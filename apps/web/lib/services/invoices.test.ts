@@ -92,6 +92,21 @@ describe("createInvoice", () => {
 
     await expect(createInvoice(CREATE_INPUT)).rejects.toThrow("connection refused");
   });
+
+  it("logs and throws if the insert succeeds but returns no row", async () => {
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.mocked(createFiberInvoice).mockResolvedValue({
+      invoiceAddress: "fibt1qpayme",
+      paymentHash: "0xabc123",
+      paymentPreimage: "0xdeadbeef",
+    });
+    mockInsertResult([]);
+
+    await expect(createInvoice(CREATE_INPUT)).rejects.toThrow("Invoice insert returned no row");
+    expect(consoleErrorSpy).toHaveBeenCalled();
+
+    consoleErrorSpy.mockRestore();
+  });
 });
 
 describe("listInvoices", () => {

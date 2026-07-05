@@ -181,8 +181,12 @@ export function validateListInvoicesQuery(searchParams: URLSearchParams): ListIn
     limit = Math.min(parsedLimit, MAX_LIST_LIMIT);
   }
 
+  // Treat an explicitly empty ?cursor= the same as an omitted one — an
+  // explicit, intentional normalization here, not left to an implicit
+  // falsy check further down the pipeline (which would silently swallow it
+  // as "no cursor" without anyone deciding that's the right behavior).
   const cursorParam = searchParams.get("cursor");
-  const cursor = cursorParam !== null ? cursorParam : undefined;
+  const cursor = cursorParam ? cursorParam : undefined;
 
   return { status, asset, limit, cursor };
 }
