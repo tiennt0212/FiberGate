@@ -1,48 +1,28 @@
 import { NextRequest } from "next/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { buildInvoiceRow, createQueryChain, type InvoiceRow } from "@/lib/db/test-fixtures";
+import { buildInvoiceRow } from "@/lib/db/test-fixtures";
 import { FiberRpcTimeoutError, UnsupportedAssetError } from "@/lib/fiber/types";
 
-// Mock at the module boundary CLAUDE.md designates — @/lib/db and
-// @/lib/fiber/client — never @ckb-ccc/fiber directly (harness-brief.md
-// "Risks"). Also mock @/lib/api/rate-limit so the 429 case is deterministic
-// instead of depending on 100 real calls against its module-level counter
-// (that counter is exercised for real in rate-limit.test.ts).
-vi.mock("@/lib/db", () => ({
-  db: {
-    select: vi.fn(),
-    insert: vi.fn(),
-  },
-}));
-vi.mock("@/lib/fiber/client", () => ({
+// Mock at the @/lib/services/invoices boundary — this route delegates all
+// DB/Fiber work there now; lib/services/invoices.test.ts covers that layer's
+// own @/lib/db + @/lib/fiber/client mocking. Also mock @/lib/api/rate-limit
+// so the 429 case is deterministic instead of depending on 100 real calls
+// against its module-level counter (that counter is exercised for real in
+// rate-limit.test.ts).
+vi.mock("@/lib/services/invoices", () => ({
   createInvoice: vi.fn(),
+  listInvoices: vi.fn(),
 }));
 vi.mock("@/lib/api/rate-limit", () => ({
   tryConsumeInvoiceCreationSlot: vi.fn(() => true),
 }));
 
-const { db } = await import("@/lib/db");
-const { createInvoice } = await import("@/lib/fiber/client");
+const { createInvoice, listInvoices } = await import("@/lib/services/invoices");
 const { tryConsumeInvoiceCreationSlot } = await import("@/lib/api/rate-limit");
 const { GET, POST } = await import("./route");
 
 const TEST_SECRET = "test-secret";
-
-// db.select()/db.insert() are typed against the real Drizzle
-// PgSelectBuilder/PgInsertBuilder at compile time (static `import { db }`
-// resolves to @/lib/db's real exported type, regardless of the vi.mock()
-// runtime replacement) — QueryChain intentionally only models the handful of
-// chained methods the routes actually call, so it's narrower than those
-// builder types. The `as unknown as` cast bridges that gap at the mock
-// call site only; it never leaks into production code.
-function mockSelectResult(rows: InvoiceRow[]): void {
-  vi.mocked(db.select).mockReturnValue(createQueryChain(rows) as unknown as ReturnType<typeof db.select>);
-}
-
-function mockInsertResult(rows: InvoiceRow[]): void {
-  vi.mocked(db.insert).mockReturnValue(createQueryChain(rows) as unknown as ReturnType<typeof db.insert>);
-}
 
 function postRequest(body: unknown, authHeader = `Bearer ${TEST_SECRET}`): NextRequest {
   return new NextRequest("http://localhost/api/v1/invoices", {
@@ -61,8 +41,7 @@ function getRequest(query = "", authHeader = `Bearer ${TEST_SECRET}`): NextReque
 beforeEach(() => {
   process.env.FIBERGATE_INTERNAL_SECRET = TEST_SECRET;
   vi.mocked(tryConsumeInvoiceCreationSlot).mockReturnValue(true);
-  mockSelectResult([]);
-  mockInsertResult([]);
+  vi.mocked(listInvoices).mockResolvedValue({ rows: [], nextCursor: null });
 });
 
 afterEach(() => {
@@ -71,14 +50,13 @@ afterEach(() => {
 });
 
 describe("POST /invoices", () => {
-  it("returns 401 UNAUTHORIZED without ever touching the DB or Fiber client", async () => {
+  it("returns 401 UNAUTHORIZED without ever calling the service", async () => {
     const response = await POST(postRequest({ amount: 1, asset: "CKB" }, "Bearer wrong"));
 
     expect(response.status).toBe(401);
     const body = (await response.json()) as { error: { code: string } };
     expect(body.error.code).toBe("UNAUTHORIZED");
     expect(createInvoice).not.toHaveBeenCalled();
-    expect(db.insert).not.toHaveBeenCalled();
   });
 
   it("returns 429 RATE_LIMITED when the deployment-wide budget is exhausted", async () => {
@@ -123,7 +101,7 @@ describe("POST /invoices", () => {
     expect(body.error.code).toBe("VALIDATION_ERROR");
   });
 
-  it("returns 400 UNSUPPORTED_ASSET when the Fiber client rejects the asset", async () => {
+  it("returns 400 UNSUPPORTED_ASSET when the service rejects the asset", async () => {
     vi.mocked(createInvoice).mockRejectedValue(new UnsupportedAssetError("RUSD"));
 
     const response = await POST(postRequest({ amount: 1, asset: "RUSD" }));
@@ -145,14 +123,19 @@ describe("POST /invoices", () => {
     expect(body.error.code).toBe("NODE_UNAVAILABLE");
   });
 
+  it("returns 500 INTERNAL_ERROR for any other service failure", async () => {
+    vi.mocked(createInvoice).mockRejectedValue(new Error("connection refused"));
+
+    const response = await POST(postRequest({ amount: 1, asset: "CKB" }));
+
+    expect(response.status).toBe(500);
+    const body = (await response.json()) as { error: { code: string } };
+    expect(body.error.code).toBe("INTERNAL_ERROR");
+  });
+
   it("returns 201 with the created invoice on the happy path", async () => {
-    vi.mocked(createInvoice).mockResolvedValue({
-      invoiceAddress: "fibt1qpayme",
-      paymentHash: "0xabc123",
-      paymentPreimage: "0xdeadbeef",
-    });
     const insertedRow = buildInvoiceRow();
-    mockInsertResult([insertedRow]);
+    vi.mocked(createInvoice).mockResolvedValue(insertedRow);
 
     const response = await POST(
       postRequest({ amount: 1.5, asset: "CKB", description: "Order #123" }),
@@ -177,16 +160,14 @@ describe("POST /invoices", () => {
 });
 
 describe("GET /invoices", () => {
-  it("returns 401 UNAUTHORIZED without touching the DB", async () => {
+  it("returns 401 UNAUTHORIZED without ever calling the service", async () => {
     const response = await GET(getRequest("", "Bearer wrong"));
 
     expect(response.status).toBe(401);
-    expect(db.select).not.toHaveBeenCalled();
+    expect(listInvoices).not.toHaveBeenCalled();
   });
 
   it("returns 200 with an empty list when no filters are given", async () => {
-    mockSelectResult([]);
-
     const response = await GET(getRequest());
 
     expect(response.status).toBe(200);
@@ -200,9 +181,9 @@ describe("GET /invoices", () => {
     expect(body.meta).toEqual({ limit: 20, next_cursor: null });
   });
 
-  it("returns 200 when filtering by status", async () => {
+  it("returns 200 when the service resolves rows", async () => {
     const row = buildInvoiceRow({ status: "paid", paidAt: new Date("2026-07-01T11:05:00Z") });
-    mockSelectResult([row]);
+    vi.mocked(listInvoices).mockResolvedValue({ rows: [row], nextCursor: null });
 
     const response = await GET(getRequest("?status=paid"));
 
@@ -212,17 +193,14 @@ describe("GET /invoices", () => {
     expect(body.data[0]?.status).toBe("paid");
   });
 
-  it("returns 200 when filtering by asset", async () => {
-    mockSelectResult([buildInvoiceRow()]);
+  it("returns 400 VALIDATION_ERROR for an unsupported status filter", async () => {
+    const response = await GET(getRequest("?status=not-a-status"));
 
-    const response = await GET(getRequest("?asset=CKB"));
-
-    expect(response.status).toBe(200);
+    expect(response.status).toBe(400);
+    expect(listInvoices).not.toHaveBeenCalled();
   });
 
   it("returns 200 and clamps/echoes limit in the response meta", async () => {
-    mockSelectResult([]);
-
     const response = await GET(getRequest("?limit=5"));
 
     expect(response.status).toBe(200);
@@ -230,14 +208,26 @@ describe("GET /invoices", () => {
     expect(body.meta.limit).toBe(5);
   });
 
-  it("returns 200 and accepts a cursor param", async () => {
-    mockSelectResult([]);
-    const cursor = Buffer.from(
-      JSON.stringify({ createdAt: "2026-07-01T11:00:00.000Z", id: buildInvoiceRow().id }),
-    ).toString("base64url");
+  it("returns 400 VALIDATION_ERROR when the service rejects a malformed cursor", async () => {
+    const { ApiValidationError } = await import("@/lib/api/validation");
+    vi.mocked(listInvoices).mockRejectedValue(
+      new ApiValidationError("VALIDATION_ERROR", "Invalid cursor: bad payload"),
+    );
 
-    const response = await GET(getRequest(`?cursor=${cursor}`));
+    const response = await GET(getRequest("?cursor=not-base64-json"));
 
-    expect(response.status).toBe(200);
+    expect(response.status).toBe(400);
+    const body = (await response.json()) as { error: { code: string } };
+    expect(body.error.code).toBe("VALIDATION_ERROR");
+  });
+
+  it("returns 500 INTERNAL_ERROR for any other service failure", async () => {
+    vi.mocked(listInvoices).mockRejectedValue(new Error("connection reset"));
+
+    const response = await GET(getRequest());
+
+    expect(response.status).toBe(500);
+    const body = (await response.json()) as { error: { code: string } };
+    expect(body.error.code).toBe("INTERNAL_ERROR");
   });
 });

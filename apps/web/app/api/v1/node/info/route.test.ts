@@ -2,14 +2,16 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { FiberRpcTimeoutError } from "@/lib/fiber/types";
 
-// Mock at the @/lib/fiber/client module boundary — this route has no DB
-// dependency at all, and is intentionally public (no requireAuth() call, see
-// CLAUDE.md's auth-flow carve-out for GET /node/info).
-vi.mock("@/lib/fiber/client", () => ({
-  getNodeInfo: vi.fn(),
+// Mock at the @/lib/services/node boundary — the shannon->ckb conversion
+// this route used to assert on directly now lives in
+// lib/services/node.test.ts. This route has no DB dependency, and is
+// intentionally public (no requireAuth() call, see CLAUDE.md's auth-flow
+// carve-out for GET /node/info).
+vi.mock("@/lib/services/node", () => ({
+  getNodeStatus: vi.fn(),
 }));
 
-const { getNodeInfo } = await import("@/lib/fiber/client");
+const { getNodeStatus } = await import("@/lib/services/node");
 const { GET } = await import("./route");
 
 afterEach(() => {
@@ -17,14 +19,13 @@ afterEach(() => {
 });
 
 describe("GET /node/info", () => {
-  it("returns 200 with capacities converted from shannon to CKB", async () => {
-    vi.mocked(getNodeInfo).mockResolvedValue({
+  it("returns 200 with the service's result", async () => {
+    vi.mocked(getNodeStatus).mockResolvedValue({
       pubkey: "02fee732ac31e04f990dd7e1e25283d714b55f5dba822e3edbd9170557dd7bf0c5",
-      totalChannels: 4,
-      activeChannels: 3,
-      inboundCapacityShannon: 80_000_000_000n,
-      outboundCapacityShannon: 40_000_000_000n,
-      peerCount: 2,
+      active_channels: 3,
+      inbound_capacity_ckb: 800,
+      outbound_capacity_ckb: 400,
+      status: "online",
     });
 
     const response = await GET();
@@ -42,7 +43,7 @@ describe("GET /node/info", () => {
   });
 
   it("returns 503 NODE_UNAVAILABLE when the Fiber node times out", async () => {
-    vi.mocked(getNodeInfo).mockRejectedValue(
+    vi.mocked(getNodeStatus).mockRejectedValue(
       new FiberRpcTimeoutError("node_info", 5000, new Error("aborted")),
     );
 
@@ -55,7 +56,7 @@ describe("GET /node/info", () => {
   });
 
   it("also maps a generic (non-timeout) error to 503 NODE_UNAVAILABLE", async () => {
-    vi.mocked(getNodeInfo).mockRejectedValue(new Error("connection reset"));
+    vi.mocked(getNodeStatus).mockRejectedValue(new Error("connection reset"));
 
     const response = await GET();
 

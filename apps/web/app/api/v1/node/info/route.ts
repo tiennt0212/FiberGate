@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 
-import { shannonToCkb } from "@/lib/api/format";
 import { err, fiberTimeoutResponse, ok } from "@/lib/api/response";
-import { getNodeInfo } from "@/lib/fiber/client";
+import { getNodeStatus } from "@/lib/services/node";
 
 // GET /node/info is intentionally public (no requireAuth() call) —
 // .context/api/rest-api-spec.md marks it as the one endpoint that doesn't
@@ -11,14 +10,8 @@ import { getNodeInfo } from "@/lib/fiber/client";
 
 export async function GET(): Promise<NextResponse> {
   try {
-    const info = await getNodeInfo();
-    return ok({
-      pubkey: info.pubkey,
-      active_channels: info.activeChannels,
-      inbound_capacity_ckb: shannonToCkb(info.inboundCapacityShannon),
-      outbound_capacity_ckb: shannonToCkb(info.outboundCapacityShannon),
-      status: "online",
-    });
+    const status = await getNodeStatus();
+    return ok(status);
   } catch (error) {
     const timeoutResponse = fiberTimeoutResponse(error);
     if (timeoutResponse) {
