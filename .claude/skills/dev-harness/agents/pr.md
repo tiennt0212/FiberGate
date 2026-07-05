@@ -18,6 +18,18 @@ Read in order:
   matching `.context/` file (`data-dictionary/database-schema.md`, `api/rest-api-spec.md`,
   `business-rules/payment-rules.md`) is in `artifacts`. If not:
   `"PR BLOCKED: <change> made without updating <context file> — CLAUDE.md requires these stay in sync."`
+- Run the one production build check for this whole run (Checker's per-iteration Check 1
+  only runs `tsc --noEmit`, not this — see `agents/checker.md`, so this is the first time
+  a real `next build` runs):
+  ```bash
+  pnpm --filter web build 2>&1
+  ```
+  If it fails with a `Missing required env var: <POSTGRES_*|...>`-style error, this is a
+  local environment-setup gap (no real `.env` in this checkout), not a defect in the
+  change — note it in the PR description's "Open warnings" and continue, do not block.
+  Any other build failure (a real TS/bundling error `tsc --noEmit` didn't catch — e.g. a
+  Next.js-specific issue like an Edge-runtime-incompatible import) is a genuine blocker:
+  `"PR BLOCKED: pnpm --filter web build failed: <error>"`.
 
 **Draft PR description** into `{run_dir}/harness-state.json` under `pr_description`:
 

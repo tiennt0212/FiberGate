@@ -99,8 +99,11 @@ CKB Scripts (see CLAUDE.md).
 
 Error object shape:
 ```json
-{ "iteration": 0, "type": "build | lint | structural", "severity": "ERROR | WARN", "file": "", "message": "" }
+{ "iteration": 0, "type": "build | lint | test | structural | quality", "severity": "ERROR | WARN", "file": "", "message": "" }
 ```
+`test` = a failing unit test (Checker's Check 3). `quality` = a `/code-review` finding
+surfaced by Checker's Check 5 — `ERROR` for a correctness bug (reopens the loop), `WARN`
+for a reuse/simplification/efficiency finding (recorded only, never blocks).
 
 Proceed to Step 1.
 
@@ -109,7 +112,10 @@ Proceed to Step 1.
 ## Step 1 — Planner phase
 
 Read `agents/planner.md`. Replace every `{run_dir}` with `<run-dir>` and `{iteration}`
-with `0`. Spawn a sub-agent using the Agent tool with the resulting text as the prompt.
+with `0`. Spawn a sub-agent using the Agent tool with `subagent_type: "Plan"` (the
+built-in software-architect agent — its job already matches this phase: read context,
+produce a step-by-step brief, identify critical files, weigh architectural trade-offs —
+use it instead of the generic default) and the resulting text as the prompt.
 
 After the agent returns, confirm `feature_type` and `target_files` are populated in
 state and that `<run-dir>/harness-brief.md` exists.
