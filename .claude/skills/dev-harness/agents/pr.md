@@ -44,7 +44,9 @@ Read in order:
 <table: item | result | notes — from eval_scores>
 
 ## Open warnings
-<WARNs from the errors array with type and message>
+<WARNs from the errors array where `resolved` is not `true`, with type and message —
+WARNs the run's Step 4a bounded pass already addressed (`resolved: true`) are done, not
+open, and should not appear here>
 
 ## Definition of Done checklist
 <checklist items from .context/processes/definition-of-done.md, checked off if passed>

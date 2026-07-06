@@ -35,7 +35,27 @@ from the brief. In particular:
 - If `feature_type` is `db-schema`, update `.context/data-dictionary/database-schema.md`
   in this same iteration to match the Drizzle schema change.
 
-Do not run build or lint.
+**Before finishing, self-verify:**
+```bash
+pnpm --filter web typecheck 2>&1
+pnpm lint 2>&1
+pnpm --filter web test:unit 2>&1
+```
+Fix anything these surface yourself — do not hand off a build/lint/test break for the
+Checker to discover; that costs a full extra loop iteration (spawn Checker, spawn Decision
+gate, spawn Implementer again) for something you could fix in this same pass. This does
+not replace the Checker — it independently re-runs the same checks as the authoritative
+gate — it just means most iterations should arrive at Checker already clean on Checks 1–3.
+If `target_files` only touches `packages/sdk`, run `pnpm --filter sdk build` instead of the
+`web` typecheck/test commands.
+
+If this iteration's task (see `errors` filtered above) is specifically a **WARN-recheck
+pass** (the orchestrator's prompt will say so explicitly — addressing outstanding
+reuse/simplification/efficiency findings from Checker's Check 5, not new feature work or
+ERROR fixes): read every `errors` entry with `severity: "WARN"` and `resolved` not `true`,
+address as many as reasonable without changing scope or behavior, and set `resolved: true`
+on each entry you address (leave the rest as `false` — this pass is best-effort, not all
+WARNs need fixing).
 
 Update `{run_dir}/harness-state.json`:
 - Set `phase: "checker"`

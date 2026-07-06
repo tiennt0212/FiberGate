@@ -82,6 +82,7 @@ Write `<run-dir>/harness-state.json`:
   "target_files": [],
   "needs_human_decision": [],
   "artifacts": [],
+  "warn_pass_done": false,
   "errors": [],
   "context_log": [],
   "eval_scores": {},
@@ -99,11 +100,15 @@ CKB Scripts (see CLAUDE.md).
 
 Error object shape:
 ```json
-{ "iteration": 0, "type": "build | lint | test | structural | quality", "severity": "ERROR | WARN", "file": "", "message": "" }
+{ "iteration": 0, "type": "build | lint | test | structural | quality", "severity": "ERROR | WARN", "file": "", "message": "", "resolved": false }
 ```
 `test` = a failing unit test (Checker's Check 3). `quality` = a `/code-review` finding
-surfaced by Checker's Check 5 — `ERROR` for a correctness bug (reopens the loop), `WARN`
-for a reuse/simplification/efficiency finding (recorded only, never blocks).
+surfaced by Checker's Check 5 (effort `medium`, every iteration) — `ERROR` for a
+correctness bug including security-relevant ones (reopens the loop), `WARN` for a
+reuse/simplification/efficiency finding. `resolved` only applies to `WARN` entries: it
+starts `false` and Step 4a's bounded WARN pass flips it to `true` once the Implementer
+addresses it — WARNs never block the normal Decision gate on their own, but they are not
+merely filed away either (see Step 4a).
 
 Proceed to Step 1.
 
@@ -163,7 +168,7 @@ Read `<run-dir>/harness-state.json`. Apply this logic:
 current_errors = [e for e in errors if e.iteration == N and e.severity == "ERROR"]
 
 if len(current_errors) == 0:
-    set phase = "eval" → write state → proceed to Step 5
+    set phase = "warn-pass" → write state → proceed to Step 4a
 
 elif N >= max_iterations - 1:
     set phase = "done" → write state
@@ -177,7 +182,41 @@ else:
     jump to Step 2
 ```
 
-WARNs do not trigger re-implementation. They are recorded and surfaced in the PR.
+WARNs never block this gate on their own — reaching zero ERRORs always moves forward.
+They are not ignored either: see Step 4a.
+
+---
+
+## Step 4a — Bounded WARN pass (orchestrator only — runs at most once per harness run)
+
+This exists so reuse/simplification/efficiency findings (Checker's Check 5, effort
+`medium`, accumulating every iteration) get addressed as part of the same run instead of
+being silently deferred to whoever reads the PR's "Open warnings" later — without turning
+into an unbounded polishing loop, and without needing a separate phase after Eval (a WARN
+fix is still a code change; Eval must score the code that actually ships, so any
+WARN-fixing has to happen *before* Eval, not after).
+
+Read `warn_pass_done` from state.
+
+- If `true`: this run already spent its one WARN pass. Skip straight to Step 5 regardless
+  of whether WARNs remain.
+- If `false`: collect every `errors` entry where `severity == "WARN"` and `resolved` is not
+  `true`.
+  - If none: set `warn_pass_done: true`, write state, proceed to Step 5 (nothing to do).
+  - If any exist: increment `iteration`, set `warn_pass_done: true` right away (the pass is
+    spent the moment it starts, regardless of outcome — this must never become a second
+    WARN-hunting loop), write state, then:
+    1. Spawn the Implementer per Step 2's `agents/implementer.md` substitution, with this
+       appended to the prompt: *"This iteration is a WARN-recheck pass — address
+       outstanding `errors` entries with `severity: WARN`, not new feature work. Best-effort;
+       set `resolved: true` on each entry you address."*
+    2. Spawn the Checker per Step 3's `agents/checker.md` substitution, with this appended:
+       *"This is the WARN-recheck pass — run Checks 1–4 only. Do not run Check 5."*
+    3. Re-apply Step 4's decision logic against *this* iteration's ERRORs. A WARN fix that
+       broke something is a genuine regression and still reopens the normal loop — spending
+       the WARN pass only means Step 4a itself won't run a second time, it does not exempt
+       new ERRORs from the usual `max_iterations`-bounded Implementer/Checker loop.
+    4. Once that settles at zero ERRORs, proceed to Step 5.
 
 ---
 
