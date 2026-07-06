@@ -16,15 +16,18 @@
 **/build/
 **/*.tsbuildinfo
 
-# Env files — never bake secrets into the image
-.env
-.env.local
-.env*.local
-.env.production
+# Env files — never bake secrets into the image, except root .env and
+# apps/web/.env.local: `next build` imports lib/db/lib/fiber at module load
+# time, which need real POSTGRES_*/FIBER_NODE_URL values to not throw during
+# build (no real DB/Fiber connection happens at build time). Both excluded
+# again from the final runner stage in the Dockerfile, so neither ships in
+# the image — only sits in the local build cache.
 **/.env
 **/.env.local
 **/.env*.local
 **/.env.production
+!/.env
+!/apps/web/.env.local
 
 # Fiber node runtime data / keys — irrelevant to the fibergate-core build
 docker/fiber-node/
