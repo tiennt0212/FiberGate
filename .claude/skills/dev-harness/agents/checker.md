@@ -85,19 +85,35 @@ Skip this check entirely if any ERROR was found above — there's no value revie
 that doesn't build/lint/test/structurally-pass yet; it comes back next iteration once
 that's clean.
 
-Otherwise, invoke the `code-review` skill (Skill tool, `skill: "code-review"`, effort
-`low`) against the diff this iteration produced. This is what catches the class of
-finding grep-based structural rules can't — reuse, simplification, efficiency,
-altitude cleanups, and correctness bugs outside the specific invariants Check 4 knows
-to look for. Map its findings into `errors`:
-- A correctness bug → `{ "type": "quality", "severity": "ERROR", ... }` — reopens the
-  loop, Implementer gets another iteration to fix it.
-- A reuse/simplification/efficiency finding → `{ "type": "quality", "severity": "WARN", ... }`
-  — recorded only, never blocks, surfaced later in the PR's "Open warnings".
+Also skip this check entirely if the orchestrator's prompt for this spawn marks the
+iteration as a **WARN-recheck pass** (see `SKILL.md`'s Step 4a) — that pass exists only to
+confirm the Implementer's WARN-fixes didn't regress Checks 1–4, not to generate a fresh
+round of quality findings.
 
-Keep this at effort `low` (or `medium` at most) — it runs on every iteration up to
-`max_iterations` times, so cost/speed matter. A deeper pass (`high`/`ultra`) is the
-human's call to trigger explicitly later, not a per-iteration default.
+Otherwise, invoke the `code-review` skill (Skill tool, `skill: "code-review"`, effort
+`medium`) against the diff this iteration produced. `medium` (bumped from the previous
+`low` default) is deliberate: `low` is tuned for high-confidence correctness bugs only and
+was found to systematically miss the reuse/simplification/efficiency class of finding
+(dedup-able helpers, magic numbers that should be named constants, types declared in the
+wrong file, duplicated test fixtures) — exactly what a manual `/simplify` pass caught after
+a run that Checker had already signed off on. `medium` is still bounded/cheap enough to run
+every iteration. This is also where security-relevant correctness bugs in signing/auth/
+encryption code surface (e.g. secret handling in `lib/webhooks/secret-crypto.ts`-style
+files) — treat those as ordinary correctness bugs (`ERROR`), not a separate category; Check
+4's structural greps already catch the mechanical cases (hardcoded secrets, missing
+`httpOnly`), code-review is what catches the subtler ones a grep can't express. Map
+findings into `errors`:
+- A correctness bug (including a security-relevant one) → `{ "type": "quality", "severity": "ERROR", ... }`
+  — reopens the loop, Implementer gets another iteration to fix it.
+- A reuse/simplification/efficiency finding → `{ "type": "quality", "severity": "WARN", "resolved": false, ... }`
+  — does not block this iteration's progress to the Decision gate, but is not just filed
+  away either: `SKILL.md`'s Step 4a spends exactly one bounded Implementer↔Checker pass
+  addressing outstanding WARNs once the run reaches zero ERRORs, before Eval. Any WARN
+  still `resolved: false` after that one pass is surfaced in the PR's "Open warnings".
+
+A deeper pass (`high`/`ultra`) is still the human's call to trigger explicitly later
+(e.g. `/code-review ultra` before merge) — `medium` per iteration plus the one bounded
+WARN pass is the harness's own default ceiling, not a replacement for that.
 
 Update `{run_dir}/harness-state.json`:
 - Append all findings to `errors` (do NOT replace prior entries)
