@@ -1,7 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { buildInvoiceRow } from "@/lib/db/test-fixtures";
-import type { WebhookEndpointRow } from "@/lib/services/webhooks";
+import { buildInvoiceRow, createQueryChain } from "@/lib/db/test-fixtures";
+
+import { buildWebhookEndpointRow } from "./test-fixtures";
 
 // Mock at the module boundary — @/lib/db and the retry-scheduler's
 // scheduleAttempt() — never touch the real DB or arm a real timer from this
@@ -20,35 +21,6 @@ vi.mock("./retry-scheduler", () => ({
 const { db } = await import("@/lib/db");
 const { scheduleAttempt } = await import("./retry-scheduler");
 const { triggerWebhook, WebhookEvent } = await import("./trigger");
-
-// Minimal Drizzle query-chain mock, generic over row type (lib/db/test-
-// fixtures.ts's createQueryChain is hardcoded to InvoiceRow[] and isn't
-// reusable for webhook_endpoints/webhook_deliveries rows).
-function createQueryChain<T>(rows: T[]) {
-  const chain = Promise.resolve(rows) as Promise<T[]> & {
-    from: (...args: unknown[]) => typeof chain;
-    where: (...args: unknown[]) => typeof chain;
-    values: (...args: unknown[]) => typeof chain;
-    returning: (...args: unknown[]) => typeof chain;
-  };
-  chain.from = vi.fn(() => chain);
-  chain.where = vi.fn(() => chain);
-  chain.values = vi.fn(() => chain);
-  chain.returning = vi.fn(() => chain);
-  return chain;
-}
-
-function buildWebhookEndpointRow(overrides: Partial<WebhookEndpointRow> = {}): WebhookEndpointRow {
-  return {
-    id: "endpoint-1",
-    url: "https://merchant.example.com/webhooks",
-    secret: "encrypted-secret-value",
-    events: ["payment.paid", "invoice.expired", "invoice.failed"],
-    isActive: true,
-    createdAt: new Date("2026-07-01T10:00:00Z"),
-    ...overrides,
-  };
-}
 
 afterEach(() => {
   vi.clearAllMocks();

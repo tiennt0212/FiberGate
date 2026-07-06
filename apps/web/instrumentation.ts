@@ -26,15 +26,13 @@ export async function register(): Promise<void> {
     startInvoicePoller();
 
     const { recoverPendingDeliveries } = await import("./lib/webhooks/retry-scheduler");
-    // Error boundary: mirrors startInvoicePoller()'s convention in
-    // lib/poller/worker.ts — a DB hiccup at the exact instant register()
-    // runs (transient connection issue, cold Postgres, or any non-Docker
-    // dev run without docker-compose's `condition: service_healthy` gate)
-    // must never crash Next.js server startup.
-    try {
-      await recoverPendingDeliveries();
-    } catch (error: unknown) {
+    // Fire-and-forget, same as startInvoicePoller() above: a DB hiccup at the
+    // exact instant register() runs (transient connection issue, cold
+    // Postgres, or any non-Docker dev run without docker-compose's
+    // `condition: service_healthy` gate) must never block or crash Next.js
+    // server startup.
+    recoverPendingDeliveries().catch((error: unknown) => {
       console.error("[webhooks] Retry recovery failed:", error);
-    }
+    });
   }
 }

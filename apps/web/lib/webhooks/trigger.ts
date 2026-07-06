@@ -1,5 +1,6 @@
 import { eq } from "drizzle-orm";
 
+import { SHANNON_PER_CKB } from "@/lib/api/validation";
 import { db } from "@/lib/db";
 import type { InvoiceRow } from "@/lib/db/schema";
 import { webhookDeliveries, webhookEndpoints } from "@/lib/db/schema";
@@ -48,7 +49,7 @@ interface WebhookPayload {
  * section for all three terminal events (Resolved Decision #5: same
  * `data{}` field set for invoice.expired/invoice.failed as payment.paid,
  * with `paid_at: null`). `amount` is the inverse of BR-INV-004
- * (amountShannon / 100_000_000) converting back to a float.
+ * (amountShannon / SHANNON_PER_CKB) converting back to a float.
  */
 function buildWebhookPayload(invoice: InvoiceRow, eventType: WebhookEvent): WebhookPayload {
   return {
@@ -57,7 +58,7 @@ function buildWebhookPayload(invoice: InvoiceRow, eventType: WebhookEvent): Webh
     data: {
       invoice_id: invoice.id,
       payment_hash: invoice.paymentHash,
-      amount: Number(invoice.amountShannon) / 100_000_000,
+      amount: Number(invoice.amountShannon) / SHANNON_PER_CKB,
       asset: invoice.asset,
       paid_at: eventType === WebhookEvent.PaymentPaid ? invoice.paidAt?.toISOString() ?? null : null,
       metadata: invoice.metadata,

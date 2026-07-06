@@ -65,6 +65,8 @@ export const webhookEndpoints = pgTable("webhook_endpoints", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 
+export type WebhookEndpointRow = typeof webhookEndpoints.$inferSelect;
+
 export const webhookDeliveries = pgTable("webhook_deliveries", {
   id: uuid("id").primaryKey().defaultRandom(),
   // FK default (no onDelete specified) is Postgres/Drizzle's own default,
@@ -87,6 +89,8 @@ export const webhookDeliveries = pgTable("webhook_deliveries", {
   deliveredAt: timestamp("delivered_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
+
+export type WebhookDeliveryRow = typeof webhookDeliveries.$inferSelect;
 
 export const nodeSnapshots = pgTable("node_snapshots", {
   id: uuid("id").primaryKey().defaultRandom(),

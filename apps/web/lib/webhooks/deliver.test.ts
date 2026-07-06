@@ -1,6 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { WebhookDeliveryRow, WebhookEndpointRow } from "@/lib/services/webhooks";
+import type { WebhookDeliveryRow, WebhookEndpointRow } from "@/lib/db/schema";
+import { createQueryChain } from "@/lib/db/test-fixtures";
+
+import { buildWebhookDeliveryRow, buildWebhookEndpointRow } from "./test-fixtures";
 
 // Mock at the module boundary: @/lib/db, decryptWebhookSecret/
 // signWebhookPayload (pure crypto helpers, not worth exercising for real
@@ -29,50 +32,6 @@ const { signWebhookPayload } = await import("./sign");
 const { scheduleAttempt } = await import("./retry-scheduler");
 const { attemptDelivery } = await import("./deliver");
 
-function createQueryChain<T>(rows: T[]) {
-  const chain = Promise.resolve(rows) as Promise<T[]> & {
-    from: (...args: unknown[]) => typeof chain;
-    where: (...args: unknown[]) => typeof chain;
-    limit: (...args: unknown[]) => typeof chain;
-    set: (...args: unknown[]) => typeof chain;
-  };
-  chain.from = vi.fn(() => chain);
-  chain.where = vi.fn(() => chain);
-  chain.limit = vi.fn(() => chain);
-  chain.set = vi.fn(() => chain);
-  return chain;
-}
-
-function buildDeliveryRow(overrides: Partial<WebhookDeliveryRow> = {}): WebhookDeliveryRow {
-  return {
-    id: "delivery-1",
-    endpointId: "endpoint-1",
-    invoiceId: "inv-1",
-    eventType: "payment.paid",
-    payload: { event: "payment.paid", created_at: "2026-07-01T11:05:00.000Z", data: { invoice_id: "inv-1" } },
-    httpStatus: null,
-    responseBody: null,
-    attemptCount: 0,
-    status: "pending",
-    nextRetryAt: null,
-    deliveredAt: null,
-    createdAt: new Date("2026-07-01T11:05:00Z"),
-    ...overrides,
-  };
-}
-
-function buildEndpointRow(overrides: Partial<WebhookEndpointRow> = {}): WebhookEndpointRow {
-  return {
-    id: "endpoint-1",
-    url: "https://merchant.example.com/webhooks",
-    secret: "encrypted-secret-value",
-    events: ["payment.paid"],
-    isActive: true,
-    createdAt: new Date("2026-07-01T10:00:00Z"),
-    ...overrides,
-  };
-}
-
 function mockDeliveryAndEndpointLookup(delivery: WebhookDeliveryRow | undefined, endpoint?: WebhookEndpointRow) {
   const deliveryChain = createQueryChain(delivery ? [delivery] : []);
   const mockedSelect = vi.mocked(db.select);
@@ -100,7 +59,7 @@ afterEach(() => {
 
 describe("attemptDelivery", () => {
   it("persists a successful delivery as status=success with delivered_at set, and does not schedule a retry", async () => {
-    mockDeliveryAndEndpointLookup(buildDeliveryRow({ attemptCount: 0 }), buildEndpointRow());
+    mockDeliveryAndEndpointLookup(buildWebhookDeliveryRow({ attemptCount: 0 }), buildWebhookEndpointRow());
     vi.mocked(fetch).mockResolvedValue(new Response("ok", { status: 200 }));
 
     await attemptDelivery("delivery-1");
@@ -114,8 +73,8 @@ describe("attemptDelivery", () => {
   });
 
   it("signs the exact stored payload bytes and posts them with the X-Fiber-Signature header", async () => {
-    const delivery = buildDeliveryRow({ payload: { event: "payment.paid", data: { invoice_id: "inv-1" } } });
-    mockDeliveryAndEndpointLookup(delivery, buildEndpointRow());
+    const delivery = buildWebhookDeliveryRow({ payload: { event: "payment.paid", data: { invoice_id: "inv-1" } } });
+    mockDeliveryAndEndpointLookup(delivery, buildWebhookEndpointRow());
     vi.mocked(fetch).mockResolvedValue(new Response("ok", { status: 200 }));
 
     await attemptDelivery("delivery-1");
@@ -133,7 +92,7 @@ describe("attemptDelivery", () => {
   });
 
   it("schedules attempt 2 at +60s on a retryable HTTP 500 (attempt 1)", async () => {
-    mockDeliveryAndEndpointLookup(buildDeliveryRow({ attemptCount: 0 }), buildEndpointRow());
+    mockDeliveryAndEndpointLookup(buildWebhookDeliveryRow({ attemptCount: 0 }), buildWebhookEndpointRow());
     vi.mocked(fetch).mockResolvedValue(new Response("server error", { status: 500 }));
 
     await attemptDelivery("delivery-1");
@@ -143,7 +102,7 @@ describe("attemptDelivery", () => {
   });
 
   it("schedules attempt 3 at +300s on a retryable HTTP 429 (attempt 2)", async () => {
-    mockDeliveryAndEndpointLookup(buildDeliveryRow({ attemptCount: 1 }), buildEndpointRow());
+    mockDeliveryAndEndpointLookup(buildWebhookDeliveryRow({ attemptCount: 1 }), buildWebhookEndpointRow());
     vi.mocked(fetch).mockResolvedValue(new Response("too many requests", { status: 429 }));
 
     await attemptDelivery("delivery-1");
@@ -153,7 +112,7 @@ describe("attemptDelivery", () => {
   });
 
   it("marks status=failed with no further retry once the 3-attempt cap is reached (BR-WHK-003)", async () => {
-    mockDeliveryAndEndpointLookup(buildDeliveryRow({ attemptCount: 2 }), buildEndpointRow());
+    mockDeliveryAndEndpointLookup(buildWebhookDeliveryRow({ attemptCount: 2 }), buildWebhookEndpointRow());
     vi.mocked(fetch).mockResolvedValue(new Response("server error", { status: 503 }));
 
     await attemptDelivery("delivery-1");
@@ -163,7 +122,7 @@ describe("attemptDelivery", () => {
   });
 
   it("marks status=failed immediately (no retry) on a non-retryable 4xx, even on attempt 1", async () => {
-    mockDeliveryAndEndpointLookup(buildDeliveryRow({ attemptCount: 0 }), buildEndpointRow());
+    mockDeliveryAndEndpointLookup(buildWebhookDeliveryRow({ attemptCount: 0 }), buildWebhookEndpointRow());
     vi.mocked(fetch).mockResolvedValue(new Response("bad request", { status: 400 }));
 
     await attemptDelivery("delivery-1");
@@ -173,7 +132,7 @@ describe("attemptDelivery", () => {
   });
 
   it("treats a request timeout/abort as retryable with no http_status", async () => {
-    mockDeliveryAndEndpointLookup(buildDeliveryRow({ attemptCount: 0 }), buildEndpointRow());
+    mockDeliveryAndEndpointLookup(buildWebhookDeliveryRow({ attemptCount: 0 }), buildWebhookEndpointRow());
     vi.mocked(fetch).mockRejectedValue(new DOMException("The operation was aborted", "AbortError"));
 
     await attemptDelivery("delivery-1");
@@ -185,7 +144,7 @@ describe("attemptDelivery", () => {
   });
 
   it("treats a network-level failure as retryable", async () => {
-    mockDeliveryAndEndpointLookup(buildDeliveryRow({ attemptCount: 0 }), buildEndpointRow());
+    mockDeliveryAndEndpointLookup(buildWebhookDeliveryRow({ attemptCount: 0 }), buildWebhookEndpointRow());
     vi.mocked(fetch).mockRejectedValue(new Error("connect ECONNREFUSED"));
 
     await attemptDelivery("delivery-1");
@@ -195,7 +154,7 @@ describe("attemptDelivery", () => {
   });
 
   it("truncates a response body over 1KB without splitting a multi-byte UTF-8 character", async () => {
-    mockDeliveryAndEndpointLookup(buildDeliveryRow({ attemptCount: 0 }), buildEndpointRow());
+    mockDeliveryAndEndpointLookup(buildWebhookDeliveryRow({ attemptCount: 0 }), buildWebhookEndpointRow());
     // 1022 ascii bytes + a 4-byte emoji = 1026 bytes total; a naive
     // byte-1024 cut would land 2 bytes into the emoji's 4-byte sequence.
     const oversizedBody = "a".repeat(1022) + "😀";
@@ -212,7 +171,7 @@ describe("attemptDelivery", () => {
 
   it("logs and marks the delivery failed if no webhook_endpoints row exists for it", async () => {
     const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-    mockDeliveryAndEndpointLookup(buildDeliveryRow(), undefined);
+    mockDeliveryAndEndpointLookup(buildWebhookDeliveryRow(), undefined);
 
     await attemptDelivery("delivery-1");
 
@@ -237,7 +196,7 @@ describe("attemptDelivery", () => {
 
   it("marks the delivery failed if decrypting the endpoint secret throws", async () => {
     const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-    mockDeliveryAndEndpointLookup(buildDeliveryRow(), buildEndpointRow());
+    mockDeliveryAndEndpointLookup(buildWebhookDeliveryRow(), buildWebhookEndpointRow());
     vi.mocked(decryptWebhookSecret).mockImplementation(() => {
       throw new Error("bad ciphertext");
     });

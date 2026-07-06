@@ -1,8 +1,7 @@
 import { eq } from "drizzle-orm";
 
 import { db } from "@/lib/db";
-import { webhookDeliveries, webhookEndpoints } from "@/lib/db/schema";
-import type { WebhookDeliveryRow } from "@/lib/services/webhooks";
+import { webhookDeliveries, webhookEndpoints, type WebhookDeliveryRow } from "@/lib/db/schema";
 
 import { decryptWebhookSecret } from "./secret-crypto";
 import { signWebhookPayload } from "./sign";
@@ -61,6 +60,10 @@ function classifyResponse(response: Response): DeliveryOutcome {
   return "non-retryable";
 }
 
+function markDeliveryFailed(deliveryId: string): Promise<unknown> {
+  return db.update(webhookDeliveries).set({ status: "failed" }).where(eq(webhookDeliveries.id, deliveryId));
+}
+
 export async function attemptDelivery(deliveryId: string): Promise<void> {
   const deliveryRows = await db
     .select()
@@ -77,7 +80,7 @@ export async function attemptDelivery(deliveryId: string): Promise<void> {
     console.error(
       `[webhooks] attemptDelivery: delivery ${deliveryId} has no endpoint_id; marking failed`,
     );
-    await db.update(webhookDeliveries).set({ status: "failed" }).where(eq(webhookDeliveries.id, deliveryId));
+    await markDeliveryFailed(deliveryId);
     return;
   }
 
@@ -91,7 +94,7 @@ export async function attemptDelivery(deliveryId: string): Promise<void> {
     console.error(
       `[webhooks] attemptDelivery: no webhook_endpoints row for id ${delivery.endpointId}; marking delivery ${deliveryId} failed`,
     );
-    await db.update(webhookDeliveries).set({ status: "failed" }).where(eq(webhookDeliveries.id, deliveryId));
+    await markDeliveryFailed(deliveryId);
     return;
   }
 
@@ -107,7 +110,7 @@ export async function attemptDelivery(deliveryId: string): Promise<void> {
     decryptedSecret = decryptWebhookSecret(endpoint.secret);
   } catch (error) {
     console.error(`[webhooks] Failed to decrypt secret for endpoint ${endpoint.id}:`, error);
-    await db.update(webhookDeliveries).set({ status: "failed" }).where(eq(webhookDeliveries.id, deliveryId));
+    await markDeliveryFailed(deliveryId);
     return;
   }
 

@@ -1,5 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { createQueryChain } from "@/lib/db/test-fixtures";
+import { buildWebhookDeliveryRow } from "@/lib/webhooks/test-fixtures";
+
 // Mock at the module boundary: @/lib/db, @/lib/webhooks/secret-crypto
 // (pure crypto, covered by its own secret-crypto.test.ts), and
 // @/lib/webhooks/retry-scheduler (arming real timers has no place in a
@@ -29,26 +32,6 @@ const {
   deactivateWebhookEndpoint,
   resendDelivery,
 } = await import("./webhooks");
-
-function createQueryChain<T>(rows: T[]) {
-  const chain = Promise.resolve(rows) as Promise<T[]> & {
-    from: (...args: unknown[]) => typeof chain;
-    where: (...args: unknown[]) => typeof chain;
-    orderBy: (...args: unknown[]) => typeof chain;
-    limit: (...args: unknown[]) => typeof chain;
-    values: (...args: unknown[]) => typeof chain;
-    set: (...args: unknown[]) => typeof chain;
-    returning: (...args: unknown[]) => typeof chain;
-  };
-  chain.from = vi.fn(() => chain);
-  chain.where = vi.fn(() => chain);
-  chain.orderBy = vi.fn(() => chain);
-  chain.limit = vi.fn(() => chain);
-  chain.values = vi.fn(() => chain);
-  chain.set = vi.fn(() => chain);
-  chain.returning = vi.fn(() => chain);
-  return chain;
-}
 
 afterEach(() => {
   vi.clearAllMocks();
@@ -139,20 +122,21 @@ describe("deactivateWebhookEndpoint", () => {
 });
 
 describe("resendDelivery", () => {
-  const ORIGINAL = {
-    id: "delivery-original",
-    endpointId: "endpoint-1",
-    invoiceId: "inv-1",
-    eventType: "payment.paid",
-    payload: { event: "payment.paid", created_at: "2026-07-01T11:05:00.000Z", data: { invoice_id: "inv-1" } },
-    status: "failed",
-    attemptCount: 3,
-  };
+  const ORIGINAL = buildWebhookDeliveryRow({ id: "delivery-original", status: "failed", attemptCount: 3 });
 
-  it("creates a brand-new row reusing the original payload byte-for-byte, with a fresh attempt cycle", async () => {
+  function mockOriginalDelivery() {
     vi.mocked(db.select).mockReturnValue(createQueryChain([ORIGINAL]) as unknown as ReturnType<typeof db.select>);
+  }
+
+  function mockNewDeliveryInsert() {
     const insertChain = createQueryChain([{ id: "delivery-new" }]);
     vi.mocked(db.insert).mockReturnValue(insertChain as unknown as ReturnType<typeof db.insert>);
+    return insertChain;
+  }
+
+  it("creates a brand-new row reusing the original payload byte-for-byte, with a fresh attempt cycle", async () => {
+    mockOriginalDelivery();
+    const insertChain = mockNewDeliveryInsert();
 
     await resendDelivery("delivery-original");
 
@@ -167,10 +151,8 @@ describe("resendDelivery", () => {
   });
 
   it("cancels any armed timer for the original delivery id before dispatching the resend", async () => {
-    vi.mocked(db.select).mockReturnValue(createQueryChain([ORIGINAL]) as unknown as ReturnType<typeof db.select>);
-    vi.mocked(db.insert).mockReturnValue(
-      createQueryChain([{ id: "delivery-new" }]) as unknown as ReturnType<typeof db.insert>,
-    );
+    mockOriginalDelivery();
+    mockNewDeliveryInsert();
 
     await resendDelivery("delivery-original");
 
@@ -178,10 +160,8 @@ describe("resendDelivery", () => {
   });
 
   it("arms an immediate (delay 0) attempt for the newly-created row, without awaiting delivery", async () => {
-    vi.mocked(db.select).mockReturnValue(createQueryChain([ORIGINAL]) as unknown as ReturnType<typeof db.select>);
-    vi.mocked(db.insert).mockReturnValue(
-      createQueryChain([{ id: "delivery-new" }]) as unknown as ReturnType<typeof db.insert>,
-    );
+    mockOriginalDelivery();
+    mockNewDeliveryInsert();
 
     const resent = await resendDelivery("delivery-original");
 
@@ -197,7 +177,7 @@ describe("resendDelivery", () => {
   });
 
   it("throws if the insert returns no row", async () => {
-    vi.mocked(db.select).mockReturnValue(createQueryChain([ORIGINAL]) as unknown as ReturnType<typeof db.select>);
+    mockOriginalDelivery();
     vi.mocked(db.insert).mockReturnValue(createQueryChain([]) as unknown as ReturnType<typeof db.insert>);
 
     await expect(resendDelivery("delivery-original")).rejects.toThrow(

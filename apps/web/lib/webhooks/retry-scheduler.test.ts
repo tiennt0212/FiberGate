@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { WebhookDeliveryRow } from "@/lib/services/webhooks";
+import { createQueryChain } from "@/lib/db/test-fixtures";
+
+import { buildWebhookDeliveryRow } from "./test-fixtures";
 
 // Mock at the module boundary: @/lib/db (for recoverPendingDeliveries()'s
 // scan) and ./deliver (deliver.ts and retry-scheduler.ts import each other —
@@ -18,34 +20,6 @@ vi.mock("./deliver", () => ({
 const { db } = await import("@/lib/db");
 const { attemptDelivery } = await import("./deliver");
 const { scheduleAttempt, cancelScheduledAttempt, recoverPendingDeliveries } = await import("./retry-scheduler");
-
-function createQueryChain<T>(rows: T[]) {
-  const chain = Promise.resolve(rows) as Promise<T[]> & {
-    from: (...args: unknown[]) => typeof chain;
-    where: (...args: unknown[]) => typeof chain;
-  };
-  chain.from = vi.fn(() => chain);
-  chain.where = vi.fn(() => chain);
-  return chain;
-}
-
-function buildDeliveryRow(overrides: Partial<WebhookDeliveryRow> = {}): WebhookDeliveryRow {
-  return {
-    id: "delivery-1",
-    endpointId: "endpoint-1",
-    invoiceId: "inv-1",
-    eventType: "payment.paid",
-    payload: {},
-    httpStatus: null,
-    responseBody: null,
-    attemptCount: 1,
-    status: "pending",
-    nextRetryAt: new Date("2026-07-01T12:01:00Z"),
-    deliveredAt: null,
-    createdAt: new Date("2026-07-01T11:00:00Z"),
-    ...overrides,
-  };
-}
 
 beforeEach(() => {
   vi.useFakeTimers();
@@ -115,7 +89,7 @@ describe("cancelScheduledAttempt", () => {
 
 describe("recoverPendingDeliveries", () => {
   it("re-arms a timer for each pending delivery, delayed by next_retry_at minus now", async () => {
-    const row = buildDeliveryRow({ id: "delivery-future", nextRetryAt: new Date("2026-07-01T12:02:00Z") });
+    const row = buildWebhookDeliveryRow({ id: "delivery-future", nextRetryAt: new Date("2026-07-01T12:02:00Z") });
     vi.mocked(db.select).mockReturnValue(createQueryChain([row]) as unknown as ReturnType<typeof db.select>);
 
     await recoverPendingDeliveries(new Date("2026-07-01T12:00:00Z"));
@@ -127,7 +101,7 @@ describe("recoverPendingDeliveries", () => {
   });
 
   it("clamps an already-overdue next_retry_at to a 0ms delay instead of a negative one", async () => {
-    const row = buildDeliveryRow({ id: "delivery-overdue", nextRetryAt: new Date("2026-07-01T11:00:00Z") });
+    const row = buildWebhookDeliveryRow({ id: "delivery-overdue", nextRetryAt: new Date("2026-07-01T11:00:00Z") });
     vi.mocked(db.select).mockReturnValue(createQueryChain([row]) as unknown as ReturnType<typeof db.select>);
 
     await recoverPendingDeliveries(new Date("2026-07-01T12:00:00Z"));

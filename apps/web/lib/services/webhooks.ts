@@ -3,7 +3,12 @@ import { randomBytes } from "node:crypto";
 import { desc, eq } from "drizzle-orm";
 
 import { db } from "@/lib/db";
-import { webhookDeliveries, webhookEndpoints } from "@/lib/db/schema";
+import {
+  webhookDeliveries,
+  webhookEndpoints,
+  type WebhookDeliveryRow,
+  type WebhookEndpointRow,
+} from "@/lib/db/schema";
 import { encryptWebhookSecret } from "@/lib/webhooks/secret-crypto";
 import type { WebhookEvent } from "@/lib/webhooks/trigger";
 import { cancelScheduledAttempt, scheduleAttempt } from "@/lib/webhooks/retry-scheduler";
@@ -16,12 +21,10 @@ import { cancelScheduledAttempt, scheduleAttempt } from "@/lib/webhooks/retry-sc
 // scheduler) is the poller-style exception CLAUDE.md carves out for
 // background-job code and queries the DB directly.
 
-// webhook_endpoints/webhook_deliveries have no dedicated row types exported
-// from lib/db/schema.ts yet (only InvoiceRow is) — declared here via
-// Drizzle's own $inferSelect rather than editing schema.ts for a type-only
-// addition outside this issue's scope.
-export type WebhookEndpointRow = typeof webhookEndpoints.$inferSelect;
-export type WebhookDeliveryRow = typeof webhookDeliveries.$inferSelect;
+function logAndThrow(message: string): never {
+  console.error(message);
+  throw new Error(message);
+}
 
 // BR-SEC-003: webhook secret must be random and >= 32 bytes. Mirrors the
 // randomBytes(32) precedent in lib/fiber/client.ts's preimage generation.
@@ -62,8 +65,7 @@ export async function createWebhookEndpoint(
 
   const endpoint = insertedRows[0];
   if (!endpoint) {
-    console.error("Webhook endpoint insert returned no row");
-    throw new Error("Webhook endpoint insert returned no row");
+    logAndThrow("Webhook endpoint insert returned no row");
   }
 
   return { endpoint, secret: plaintextSecret };
@@ -147,8 +149,7 @@ export async function resendDelivery(deliveryId: string): Promise<WebhookDeliver
 
   const resent = resentRows[0];
   if (!resent) {
-    console.error("Webhook delivery resend insert returned no row");
-    throw new Error("Webhook delivery resend insert returned no row");
+    logAndThrow("Webhook delivery resend insert returned no row");
   }
 
   // Non-blocking dispatch, same as trigger.ts — only the DB insert above is
