@@ -118,15 +118,29 @@ subscription — xác nhận tồn tại từ bản stable v0.8.1 trở đi, và
 
 ## Data Flow — Webhook Delivery
 
+> **Cập nhật 2026-07-06 (issue #8, implement `lib/webhooks/*`)**: Bản mô tả dưới đây đã sửa 2 chỗ
+> stale còn sót lại từ 1 bản nháp multi-tenant cũ hơn: (1) không có cột `user_id` nào trong
+> `webhook_endpoints` (single-tenant) — filter đúng là `is_active = true AND eventType IN events`;
+> (2) retry KHÔNG phải exponential backoff — là schedule cố định `immediate → 1 phút → 5 phút`
+> (BR-WHK-003). Key ký HMAC luôn là `webhook_endpoints.secret` **riêng theo từng endpoint**
+> (mã hoá tại rest bằng `WEBHOOK_SECRET_ENCRYPTION_KEY`, xem mục Environment Variables), không phải
+> 1 global signing key.
+
 ```
-1. Invoice status → "paid"
-2. Query webhook_endpoints WHERE user_id = ? AND "payment.paid" IN events
-3. Với mỗi endpoint:
-   a. Build payload: { event: "payment.paid", invoice: {...} }
-   b. Sign payload: HMAC-SHA256(payload, webhook_secret)
-   c. POST đến merchant URL với header X-Fiber-Signature: sha256=xxx
-   d. Lưu delivery record (attempt, status, response)
-   e. Nếu fail → retry với exponential backoff (tối đa 3 lần)
+1. Invoice status → paid/expired/failed (BR-WHK-001)
+2. Query webhook_endpoints WHERE is_active = true AND eventType IN events
+3. Với mỗi endpoint match (dispatch không block poller — trigger.ts chỉ await phần insert
+   webhook_deliveries bên dưới, không await bước gửi HTTP thật; xem lib/webhooks/trigger.ts):
+   a. Build payload: { event, created_at, data: {...} } (api/rest-api-spec.md "Webhook Payload")
+   b. Insert 1 row webhook_deliveries (status='pending', attempt_count=0)
+   c. Arm attempt qua lib/webhooks/retry-scheduler.ts's scheduleAttempt(deliveryId, 0)
+4. Khi attempt thật thi hành (lib/webhooks/deliver.ts):
+   a. Decrypt endpoint's secret (lib/webhooks/secret-crypto.ts), sign: HMAC-SHA256(rawBody, secret)
+   b. POST đến merchant URL với header X-Fiber-Signature: sha256=xxx, timeout 5s (BR-WHK-002)
+   c. Lưu delivery record (http_status, response_body truncated 1KB, attempt_count, status)
+   d. Nếu retryable (timeout/network/5xx/429, BR-WHK-006) và chưa đạt 3 attempts (BR-WHK-003) →
+      scheduleAttempt() lần tiếp theo (+60s rồi +300s); nếu non-retryable (4xx khác) hoặc đã đạt
+      3 attempts → status='failed', dừng hẳn
 ```
 
 ## Monorepo Structure
@@ -202,7 +216,16 @@ DASHBOARD_SESSION_SECRET=        # ký session cookie (JWT, qua jose) cho
 FIBERGATE_INTERNAL_SECRET=
 FIBER_NODE_URL=http://fiber-node:8227  # fixed value, docker internal network
 FIBER_NODE_RPC_AUTH_TOKEN=       # optional
-WEBHOOK_SIGNING_KEY=
+WEBHOOK_SECRET_ENCRYPTION_KEY=   # 64-char hex (32-byte AES-256 key) encrypting
+                                  # webhook_endpoints.secret at rest — NOT a
+                                  # signing key itself. Each endpoint's own
+                                  # secret (webhook_endpoints.secret, random
+                                  # >=32 bytes per BR-SEC-003) is what signs
+                                  # that endpoint's payloads (BR-WHK-004); this
+                                  # env var only protects that per-endpoint
+                                  # secret at rest. See
+                                  # apps/web/lib/webhooks/secret-crypto.ts.
+                                  # Generate via: openssl rand -hex 32
 ```
 
 > **Cập nhật 2026-07-03 (issue #5, verified khi implement `lib/fiber/client.ts`)**:

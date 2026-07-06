@@ -22,23 +22,25 @@ export function buildInvoiceRow(overrides: Partial<InvoiceRow> = {}): InvoiceRow
 }
 
 // A thenable that also exposes every Drizzle query-builder method used across
-// the invoices route and poller tests (from/where/orderBy/limit/values/set/
-// returning), each returning itself. Since it's a real Promise, `await`
-// works no matter how many/which methods are chained before it. Each method
-// is a vi.fn() so a test can assert on call args (e.g. the batch-size cap)
-// when that's the thing under test, not just use it as a passthrough stub.
-export type QueryChain = Promise<InvoiceRow[]> & {
-  from: (...args: unknown[]) => QueryChain;
-  where: (...args: unknown[]) => QueryChain;
-  orderBy: (...args: unknown[]) => QueryChain;
-  limit: (...args: unknown[]) => QueryChain;
-  values: (...args: unknown[]) => QueryChain;
-  set: (...args: unknown[]) => QueryChain;
-  returning: (...args: unknown[]) => QueryChain;
+// the invoices/webhooks route and poller tests (from/where/orderBy/limit/
+// values/set/returning), each returning itself. Since it's a real Promise,
+// `await` works no matter how many/which methods are chained before it. Each
+// method is a vi.fn() so a test can assert on call args (e.g. the batch-size
+// cap) when that's the thing under test, not just use it as a passthrough
+// stub. Generic over row type so non-invoice tables (webhook_endpoints,
+// webhook_deliveries) can reuse this instead of redefining it locally.
+export type QueryChain<T = InvoiceRow> = Promise<T[]> & {
+  from: (...args: unknown[]) => QueryChain<T>;
+  where: (...args: unknown[]) => QueryChain<T>;
+  orderBy: (...args: unknown[]) => QueryChain<T>;
+  limit: (...args: unknown[]) => QueryChain<T>;
+  values: (...args: unknown[]) => QueryChain<T>;
+  set: (...args: unknown[]) => QueryChain<T>;
+  returning: (...args: unknown[]) => QueryChain<T>;
 };
 
-export function createQueryChain(rows: InvoiceRow[]): QueryChain {
-  const chain = Promise.resolve(rows) as QueryChain;
+export function createQueryChain<T = InvoiceRow>(rows: T[]): QueryChain<T> {
+  const chain = Promise.resolve(rows) as QueryChain<T>;
   chain.from = vi.fn(() => chain);
   chain.where = vi.fn(() => chain);
   chain.orderBy = vi.fn(() => chain);

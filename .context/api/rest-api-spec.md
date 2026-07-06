@@ -172,6 +172,40 @@ Khi invoice paid, POST đến merchant endpoint:
 }
 ```
 
+Khi invoice expired (cùng `data{}` field set như `payment.paid`, `paid_at` luôn là `null` vì
+invoice chưa từng được trả — bổ sung 2026-07-06, issue #8):
+```json
+{
+  "event": "invoice.expired",
+  "created_at": "2026-07-01T13:00:00Z",
+  "data": {
+    "invoice_id": "inv_uuid",
+    "payment_hash": "0xabc...",
+    "amount": 1.5,
+    "asset": "CKB",
+    "paid_at": null,
+    "metadata": {}
+  }
+}
+```
+
+Khi invoice failed (Fiber node báo cancelled — BR-STS-003; cùng `data{}` field set, `paid_at`
+cũng luôn `null`):
+```json
+{
+  "event": "invoice.failed",
+  "created_at": "2026-07-01T12:30:00Z",
+  "data": {
+    "invoice_id": "inv_uuid",
+    "payment_hash": "0xabc...",
+    "amount": 1.5,
+    "asset": "CKB",
+    "paid_at": null,
+    "metadata": {}
+  }
+}
+```
+
 Header: `X-Fiber-Signature: sha256=hmac_hex`
 
 Merchant verify:

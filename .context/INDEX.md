@@ -26,6 +26,7 @@ Dự án được xây dựng cho **Gone in 60ms: Fiber Network Infrastructure H
 | `data-dictionary/database-schema.md` | Toàn bộ PostgreSQL tables, columns, relations |
 | `api/rest-api-spec.md` | REST API spec đầy đủ (request/response/errors) |
 | `business-rules/payment-rules.md` | Logic xử lý invoice, webhook, rate limiting |
+| `guides/webhook-signature.md` | Giải thích HMAC-SHA256 và cách verify webhook signature |
 | `user-stories/developer-flows.md` | User stories từ góc nhìn developer tích hợp |
 | `processes/decisions-log.md` | Quyết định kiến trúc và nghiệp vụ đã được human chốt |
 | `processes/definition-of-done.md` | DoD và checklist tự verify cuối mỗi AI coding session |
