@@ -2,7 +2,13 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "outDir": "dist",
-    "declaration": true
+    "declaration": true,
+    // Root tsconfig's lib is ES2022-only; the SDK's public API is built on
+    // `fetch`/`RequestInit`/`URLSearchParams` (assumed global per Node
+    // 18+/browser, see harness-brief.md acceptance criteria #9) which only
+    // ES2022 doesn't declare. "dom" is a bundled TypeScript lib, not an npm
+    // dependency — same override apps/web/tsconfig.json already makes.
+    "lib": ["ES2022", "dom"]
   },
   "include": ["src"]
 }
