@@ -1,7 +1,7 @@
 ---
 type: architecture
-version: 1.4
-last_updated: 2026-07-05
+version: 1.5
+last_updated: 2026-07-06
 tags: [nextjs, postgresql, docker-compose, fiber-node, monorepo, self-hosted]
 ---
 
@@ -20,7 +20,7 @@ tags: [nextjs, postgresql, docker-compose, fiber-node, monorepo, self-hosted]
 | Hosting | Docker Compose | Merchant tự deploy trên VPS của họ (`docker compose up -d`) |
 | Package manager | pnpm workspaces | Monorepo standard |
 | Dev tooling | `dotenv-cli` (dep của `apps/web`) | `pnpm dev`'s script dùng để merge root `.env` + `apps/web/.env.local`, tránh duplicate secret giữa 2 file — xem mục Environment Variables |
-| Dev tooling | `vitest` (devDep của `apps/web`) | Unit test 2 tầng: `lib/services/*.test.ts` mock ở boundary `@/lib/db` + `@/lib/fiber/client`; `app/api/v1/**/route.test.ts` mock ở boundary `@/lib/services/*` (không mock lại db/fiber trực tiếp nữa) (`pnpm --filter web test:unit`) |
+| Dev tooling | `vitest` (devDep của cả `apps/web` và `packages/sdk`) | `apps/web`: unit test 2 tầng — `lib/services/*.test.ts` mock ở boundary `@/lib/db` + `@/lib/fiber/client`; `app/api/v1/**/route.test.ts` mock ở boundary `@/lib/services/*` (`pnpm --filter web test:unit`). `packages/sdk`: `webhooks.test.ts` verify HMAC edge cases, `client.test.ts` mock global `fetch` (`pnpm --filter sdk test:unit`) — 2 package.json khai báo version riêng (cùng `^4.1.9`, tự dedupe qua pnpm content-addressable store), không hoist lên root |
 | Dev tooling | `@usebruno/cli` (devDep của `apps/web`) | HTTP integration test chạy qua `bru run` nhắm vào `/api/v1/*` thật — collection tại root `bruno/` (`pnpm --filter web test:integration`) |
 
 ## Kiến trúc tổng thể

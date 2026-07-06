@@ -59,6 +59,7 @@ pnpm build                      # build all workspaces
 pnpm lint                       # lint the whole workspace
 pnpm --filter web typecheck     # TypeScript strict check for the web app
 pnpm --filter sdk build         # build only the sdk package
+pnpm --filter sdk test:unit     # run the sdk package's unit tests
 pnpm --filter web dev           # run only the web app
 pnpm --filter web db:generate   # generate a Drizzle SQL migration from lib/db/schema.ts
 pnpm --filter web db:migrate    # apply pending migrations to POSTGRES_* (run manually — see below)
