@@ -19,25 +19,70 @@ body{background:#f7f7f8;-webkit-font-smoothing:antialiased}
 ::-webkit-scrollbar-thumb:hover{background:#a1a1aa}
 @keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:.4}}
 @keyframes fade-in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+@keyframes slide-in-right{from{transform:translateX(100%)}to{transform:translateX(0)}}
 </style>
 </helmet>
 
+<!-- ═══════════════ LOGIN ═══════════════ -->
+<sc-if value="{{ isLogin }}" hint-placeholder-val="{{ false }}">
+  <div style="min-height:100vh;background:#f7f7f8;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:'DM Sans',system-ui,sans-serif;padding:24px">
+    <div style="background:white;border:1px solid #e4e4e7;border-radius:8px;padding:36px 40px;width:100%;max-width:380px;box-shadow:0 1px 3px rgba(0,0,0,.04)">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:28px">
+        <div style="width:36px;height:36px;background:#4f46e5;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <svg width="20" height="20" viewBox="0 0 18 18" fill="none"><circle cx="4.5" cy="9" r="3" fill="white" opacity=".95"/><circle cx="14" cy="4.5" r="2" fill="white" opacity=".7"/><circle cx="14" cy="13.5" r="2" fill="white" opacity=".7"/><line x1="7.4" y1="7.8" x2="12.1" y2="5.3" stroke="white" stroke-width="1.1" opacity=".55"/><line x1="7.4" y1="10.2" x2="12.1" y2="12.7" stroke="white" stroke-width="1.1" opacity=".55"/></svg>
+        </div>
+        <div>
+          <div style="font-weight:700;font-size:15px;color:#141414;line-height:1.2">FiberGate</div>
+          <div style="font-size:11px;color:#a1a1aa;line-height:1.3;margin-top:1px">Self-Hosted Payment Gateway</div>
+        </div>
+      </div>
+      <div style="margin-bottom:24px">
+        <div style="font-size:18px;font-weight:700;color:#141414;margin-bottom:5px">Sign in</div>
+        <div style="font-size:13px;color:#71717a;line-height:1.5">Enter your admin password to access the dashboard.</div>
+      </div>
+      <div style="margin-bottom:16px">
+        <label style="display:block;font-size:12.5px;font-weight:500;color:#374151;margin-bottom:6px">Password</label>
+        <div style="position:relative">
+          <input type="{{ pwInputType }}" value="{{ loginPass }}" onChange="{{ setLoginPass }}" onKeyDown="{{ loginKeyDown }}" placeholder="Enter admin password" style="width:100%;padding:8px 38px 8px 12px;border:1px solid {{ loginInputBorder }};border-radius:6px;font-size:13.5px;font-family:'DM Sans',system-ui,sans-serif;color:#141414;background:white;outline:none;transition:border-color .15s" />
+          <button onClick="{{ togglePwShow }}" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;padding:2px;color:#a1a1aa;display:flex;align-items:center" style-hover="color:#52525b">
+            <sc-if value="{{ showPw }}" hint-placeholder-val="{{ false }}">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8C2 8 4.5 3.5 8 3.5S14 8 14 8S11.5 12.5 8 12.5 2 8 2 8z"/><circle cx="8" cy="8" r="2"/><line x1="2.5" y1="2.5" x2="13.5" y2="13.5"/></svg>
+            </sc-if>
+            <sc-if value="{{ hidePw }}" hint-placeholder-val="{{ true }}">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8C2 8 4.5 3.5 8 3.5S14 8 14 8S11.5 12.5 8 12.5 2 8 2 8z"/><circle cx="8" cy="8" r="2"/></svg>
+            </sc-if>
+          </button>
+        </div>
+        <sc-if value="{{ hasLoginError }}" hint-placeholder-val="{{ false }}">
+          <div style="margin-top:6px;font-size:12px;color:#dc2626;display:flex;align-items:center;gap:5px">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="6" cy="6" r="5"/><line x1="6" y1="3.5" x2="6" y2="6.5"/><circle cx="6" cy="8.5" r=".5" fill="currentColor" stroke="none"/></svg>
+            Incorrect password. Try again.
+          </div>
+        </sc-if>
+      </div>
+      <button onClick="{{ submitLogin }}" style="width:100%;padding:9px 16px;background:#4f46e5;color:white;border:none;border-radius:6px;font-size:13.5px;font-weight:500;cursor:pointer;font-family:'DM Sans',system-ui,sans-serif;transition:background .15s" style-hover="background:#4338ca">Sign in</button>
+      <div style="margin-top:20px;padding:10px 12px;background:#f7f7f8;border-radius:6px;border:1px solid #e4e4e7">
+        <div style="font-size:11.5px;color:#71717a;margin-bottom:3px;font-weight:500">Demo</div>
+        <div style="font-size:12px;color:#a1a1aa">Password: <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#52525b;font-weight:500">admin</span></div>
+      </div>
+    </div>
+    <div style="margin-top:20px;font-size:12px;color:#a1a1aa;display:flex;align-items:center;gap:6px">
+      <div style="width:6px;height:6px;border-radius:50%;background:#16a34a"></div>
+      fiber-mainnet-01 · self-hosted
+    </div>
+  </div>
+</sc-if>
+
+<!-- ═══════════════ DASHBOARD ═══════════════ -->
+<sc-if value="{{ isDashboard }}" hint-placeholder-val="{{ true }}">
 <div style="display:flex;min-height:100vh;font-family:'DM Sans',system-ui,sans-serif;font-size:14px;color:#141414;background:#f7f7f8">
 
-  <!-- ═══════════════ SIDEBAR ═══════════════ -->
+  <!-- ═══ SIDEBAR ═══ -->
   <aside style="width:240px;min-height:100vh;background:white;border-right:1px solid #e4e4e7;display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:30">
-
-    <!-- Logo -->
     <div style="padding:18px 16px 14px;border-bottom:1px solid #f0f0f2">
       <div style="display:flex;align-items:center;gap:9px">
         <div style="width:32px;height:32px;background:#4f46e5;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
-          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-            <circle cx="4.5" cy="9" r="3" fill="white" opacity=".95"/>
-            <circle cx="14" cy="4.5" r="2" fill="white" opacity=".7"/>
-            <circle cx="14" cy="13.5" r="2" fill="white" opacity=".7"/>
-            <line x1="7.4" y1="7.8" x2="12.1" y2="5.3" stroke="white" stroke-width="1.1" opacity=".55"/>
-            <line x1="7.4" y1="10.2" x2="12.1" y2="12.7" stroke="white" stroke-width="1.1" opacity=".55"/>
-          </svg>
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="4.5" cy="9" r="3" fill="white" opacity=".95"/><circle cx="14" cy="4.5" r="2" fill="white" opacity=".7"/><circle cx="14" cy="13.5" r="2" fill="white" opacity=".7"/><line x1="7.4" y1="7.8" x2="12.1" y2="5.3" stroke="white" stroke-width="1.1" opacity=".55"/><line x1="7.4" y1="10.2" x2="12.1" y2="12.7" stroke="white" stroke-width="1.1" opacity=".55"/></svg>
         </div>
         <div>
           <div style="font-weight:700;font-size:14.5px;color:#141414;line-height:1.2">FiberGate</div>
@@ -46,7 +91,6 @@ body{background:#f7f7f8;-webkit-font-smoothing:antialiased}
       </div>
     </div>
 
-    <!-- Navigation -->
     <nav style="flex:1;padding:10px 10px 8px;display:flex;flex-direction:column;gap:1px;overflow-y:auto">
       <div style="padding:4px 6px 4px;font-size:10.5px;font-weight:600;color:#c0bfcc;letter-spacing:0.07em;text-transform:uppercase">Main</div>
 
@@ -55,14 +99,19 @@ body{background:#f7f7f8;-webkit-font-smoothing:antialiased}
         Overview
       </button>
 
+      <button onClick="{{ goInvoices }}" style="display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:6px;border:none;cursor:pointer;width:100%;text-align:left;font-family:inherit;font-size:13.5px;background:{{ nIBg }};color:{{ nIC }};font-weight:{{ nIW }}" style-hover="opacity:0.85">
+        <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="2" y="1.5" width="11" height="12" rx="1.5"/><line x1="5" y1="5" x2="10" y2="5"/><line x1="5" y1="7.8" x2="10" y2="7.8"/><line x1="5" y1="10.5" x2="8" y2="10.5"/></svg>
+        Invoices
+      </button>
+
+      <button onClick="{{ goSettlement }}" style="display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:6px;border:none;cursor:pointer;width:100%;text-align:left;font-family:inherit;font-size:13.5px;background:{{ nSBg }};color:{{ nSC }};font-weight:{{ nSW }}" style-hover="opacity:0.85">
+        <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4.5h11M2 7.8h7M2 11h5"/><circle cx="12.5" cy="11" r="2"/><path d="M11.8 11l.4.4L13.5 9.8"/></svg>
+        Settlement Log
+      </button>
+
       <button onClick="{{ goWebhooks }}" style="display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:6px;border:none;cursor:pointer;width:100%;text-align:left;font-family:inherit;font-size:13.5px;background:{{ nWBg }};color:{{ nWC }};font-weight:{{ nWW }}" style-hover="opacity:0.85">
         <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 1.5L3.5 8H8L6 13.5L13.5 6H9.5z"/></svg>
         Webhooks
-      </button>
-
-      <button onClick="{{ goTransactions }}" style="display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:6px;border:none;cursor:pointer;width:100%;text-align:left;font-family:inherit;font-size:13.5px;background:{{ nTBg }};color:{{ nTC }};font-weight:{{ nTW }}" style-hover="opacity:0.85">
-        <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="2" y="1.5" width="11" height="12" rx="1.5"/><line x1="5" y1="5" x2="10" y2="5"/><line x1="5" y1="7.8" x2="10" y2="7.8"/><line x1="5" y1="10.5" x2="8" y2="10.5"/></svg>
-        Transactions
       </button>
 
       <div style="padding:8px 6px 4px;font-size:10.5px;font-weight:600;color:#c0bfcc;letter-spacing:0.07em;text-transform:uppercase;margin-top:4px">Setup</div>
@@ -74,7 +123,6 @@ body{background:#f7f7f8;-webkit-font-smoothing:antialiased}
       </button>
     </nav>
 
-    <!-- Bottom: docs + admin indicator -->
     <div style="padding:10px 10px 12px;border-top:1px solid #f0f0f2;display:flex;flex-direction:column;gap:2px">
       <a href="#" style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:6px;color:#71717a;font-size:13px;text-decoration:none" style-hover="background:#f4f4f5;color:#374151">
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 1H3C2 1 1 2 1 3v8c0 1 1 2 2 2h8c1 0 2-1 2-2V7"/><path d="M8 1H13V6M13 1L8 6"/></svg>
@@ -88,26 +136,23 @@ body{background:#f7f7f8;-webkit-font-smoothing:antialiased}
     </div>
   </aside>
 
-  <!-- ═══════════════ MAIN AREA ═══════════════ -->
+  <!-- ═══ MAIN ═══ -->
   <div style="margin-left:240px;flex:1;display:flex;flex-direction:column;min-height:100vh">
 
-    <!-- Sticky header -->
     <header style="height:52px;background:white;border-bottom:1px solid #e4e4e7;display:flex;align-items:center;padding:0 28px;justify-content:space-between;position:sticky;top:0;z-index:20">
       <span style="font-size:15px;font-weight:600;color:#141414">{{ pageTitle }}</span>
       <div style="display:flex;align-items:center;gap:8px">
-        <button onClick="{{ headerCtaAction }}" style="display:flex;align-items:center;gap:6px;padding:6px 14px;background:#4f46e5;color:white;border:none;border-radius:6px;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit" style-hover="background:#4338ca">
-          {{ ctaLabel }}
-        </button>
+        <sc-if value="{{ showHeaderCta }}" hint-placeholder-val="{{ false }}">
+          <button onClick="{{ headerCtaAction }}" style="display:flex;align-items:center;gap:6px;padding:6px 14px;background:#4f46e5;color:white;border:none;border-radius:6px;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit" style-hover="background:#4338ca">{{ ctaLabel }}</button>
+        </sc-if>
       </div>
     </header>
 
-    <!-- Content -->
     <main style="flex:1;padding:28px 28px 56px;position:relative">
 
-      <!-- ───── OVERVIEW ───── -->
+      <!-- ─── OVERVIEW ─── -->
       <sc-if value="{{ isOverview }}" hint-placeholder-val="{{ true }}">
         <div style="animation:fade-in .2s ease-out forwards">
-
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
             <div style="font-size:13px;color:#71717a">fiber-mainnet-01 · Updated just now</div>
             <div style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:#52525b;background:white;border:1px solid #e4e4e7;border-radius:6px;padding:5px 11px;cursor:pointer" style-hover="background:#f4f4f5">
@@ -117,7 +162,6 @@ body{background:#f7f7f8;-webkit-font-smoothing:antialiased}
             </div>
           </div>
 
-          <!-- Stats cards -->
           <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px">
             <sc-for list="{{ statsCards }}" as="card" hint-placeholder-count="4">
               <div style="background:white;border:1px solid #e4e4e7;border-radius:8px;padding:18px 20px" style-hover="border-color:#c9c7e5">
@@ -129,13 +173,11 @@ body{background:#f7f7f8;-webkit-font-smoothing:antialiased}
             </sc-for>
           </div>
 
-          <!-- Two-col: Node Status + Recent Transactions -->
           <div style="display:grid;grid-template-columns:272px 1fr;gap:14px">
 
             <!-- Node Status -->
             <div style="background:white;border:1px solid #e4e4e7;border-radius:8px;padding:18px 20px;align-self:start">
               <div style="font-size:13px;font-weight:600;color:#141414;margin-bottom:14px">Node Status</div>
-
               <div style="display:flex;align-items:center;gap:9px;padding:10px 12px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;margin-bottom:14px">
                 <div style="width:8px;height:8px;border-radius:50%;background:#16a34a;animation:pulse-dot 2s ease-in-out infinite;flex-shrink:0"></div>
                 <div>
@@ -143,7 +185,6 @@ body{background:#f7f7f8;-webkit-font-smoothing:antialiased}
                   <div style="font-size:11.5px;color:#4ade80">All systems operational</div>
                 </div>
               </div>
-
               <div style="display:flex;flex-direction:column;gap:9px;margin-bottom:14px">
                 <div style="display:flex;justify-content:space-between;align-items:center">
                   <span style="font-size:12.5px;color:#71717a">Node ID</span>
@@ -162,7 +203,6 @@ body{background:#f7f7f8;-webkit-font-smoothing:antialiased}
                   <span style="font-size:12.5px;font-weight:500;color:#141414">8</span>
                 </div>
               </div>
-
               <div style="border-top:1px solid #f3f4f6;padding-top:14px;display:flex;flex-direction:column;gap:11px">
                 <div>
                   <div style="display:flex;justify-content:space-between;margin-bottom:5px">
@@ -185,8 +225,6 @@ body{background:#f7f7f8;-webkit-font-smoothing:antialiased}
                   <div style="font-size:11px;color:#a1a1aa;margin-top:3px">30% of capacity</div>
                 </div>
               </div>
-
-              <!-- Internal secret note -->
               <div style="border-top:1px solid #f3f4f6;padding-top:12px;margin-top:12px;display:flex;align-items:flex-start;gap:7px">
                 <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="#a1a1aa" stroke-width="1.4" stroke-linecap="round" style="flex-shrink:0;margin-top:1px"><rect x="3" y="6" width="7" height="5.5" rx="1"/><path d="M4.5 6V4.5a2 2 0 014 0V6"/></svg>
                 <div>
@@ -196,11 +234,11 @@ body{background:#f7f7f8;-webkit-font-smoothing:antialiased}
               </div>
             </div>
 
-            <!-- Recent Transactions -->
+            <!-- Recent Invoices -->
             <div style="background:white;border:1px solid #e4e4e7;border-radius:8px;overflow:hidden">
               <div style="display:flex;align-items:center;justify-content:space-between;padding:15px 20px;border-bottom:1px solid #f3f4f6">
-                <span style="font-size:13px;font-weight:600;color:#141414">Recent Transactions</span>
-                <button onClick="{{ goTransactions }}" style="font-size:12.5px;color:#4f46e5;background:none;border:none;cursor:pointer;font-family:inherit;font-weight:500" style-hover="color:#4338ca">View all →</button>
+                <span style="font-size:13px;font-weight:600;color:#141414">Recent Invoices</span>
+                <button onClick="{{ goInvoices }}" style="font-size:12.5px;color:#4f46e5;background:none;border:none;cursor:pointer;font-family:inherit;font-weight:500" style-hover="color:#4338ca">View all →</button>
               </div>
               <table style="width:100%;border-collapse:collapse">
                 <thead>
@@ -234,44 +272,174 @@ body{background:#f7f7f8;-webkit-font-smoothing:antialiased}
         </div>
       </sc-if>
 
+      <!-- ─── INVOICES ─── -->
+      <sc-if value="{{ isInvoices }}" hint-placeholder-val="{{ false }}">
+        <div style="animation:fade-in .2s ease-out forwards">
+          <div style="margin-bottom:18px">
+            <div style="font-size:12.5px;color:#71717a">All payment invoices</div>
+          </div>
 
-      <!-- ───── WEBHOOKS ───── -->
+          <!-- Filter bar -->
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+            <div style="position:relative">
+              <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="#a1a1aa" stroke-width="1.5" stroke-linecap="round" style="position:absolute;left:9px;top:50%;transform:translateY(-50%);pointer-events:none"><circle cx="5.5" cy="5.5" r="4"/><line x1="8.5" y1="8.5" x2="12" y2="12"/></svg>
+              <input placeholder="Search ID or description…" value="{{ invSearch }}" onChange="{{ setInvSearch }}" style="padding:6px 10px 6px 29px;border:1px solid #e4e4e7;border-radius:6px;background:white;font-size:13px;color:#374151;font-family:'DM Sans',system-ui,sans-serif;outline:none;width:216px" />
+            </div>
+
+            <div style="position:relative">
+              <select value="{{ txStatus }}" onChange="{{ setTxStatusDrop }}" style="padding:6px 28px 6px 10px;border:1px solid #e4e4e7;border-radius:6px;background:white;font-size:13px;color:#374151;font-family:'DM Sans',system-ui,sans-serif;outline:none;cursor:pointer;min-width:120px;appearance:none">
+                <option value="all">All Status</option>
+                <option value="paid">Paid</option>
+                <option value="pending">Pending</option>
+                <option value="expired">Expired</option>
+                <option value="failed">Failed</option>
+              </select>
+              <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="#71717a" stroke-width="1.6" stroke-linecap="round" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);pointer-events:none"><path d="M2 4l3 3 3-3"/></svg>
+            </div>
+
+            <div style="position:relative">
+              <select value="{{ txAsset }}" onChange="{{ setTxAssetDrop }}" style="padding:6px 28px 6px 10px;border:1px solid #e4e4e7;border-radius:6px;background:white;font-size:13px;color:#374151;font-family:'DM Sans',system-ui,sans-serif;outline:none;cursor:pointer;min-width:108px;appearance:none">
+                <option value="all">All Assets</option>
+                <option value="CKB">CKB</option>
+                <option value="RUSD">RUSD</option>
+              </select>
+              <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="#71717a" stroke-width="1.6" stroke-linecap="round" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);pointer-events:none"><path d="M2 4l3 3 3-3"/></svg>
+            </div>
+
+            <input type="date" value="{{ invDateFrom }}" onChange="{{ setInvDateFrom }}" style="padding:5px 9px;border:1px solid #e4e4e7;border-radius:6px;font-size:12.5px;color:#374151;font-family:'DM Sans',system-ui,sans-serif;background:white;cursor:pointer;outline:none" />
+            <span style="font-size:12px;color:#a1a1aa">–</span>
+            <input type="date" value="{{ invDateTo }}" onChange="{{ setInvDateTo }}" style="padding:5px 9px;border:1px solid #e4e4e7;border-radius:6px;font-size:12.5px;color:#374151;font-family:'DM Sans',system-ui,sans-serif;background:white;cursor:pointer;outline:none" />
+
+            <div style="display:flex;align-items:center;gap:4px;border:1px solid #e4e4e7;border-radius:6px;padding:5px 9px;background:white">
+              <input type="number" placeholder="Min" value="{{ invAmtMin }}" onChange="{{ setInvAmtMin }}" style="width:52px;border:none;font-size:12.5px;color:#374151;font-family:'DM Sans',system-ui,sans-serif;outline:none;background:transparent" />
+              <span style="color:#d4d4d8;font-size:12px;flex-shrink:0">–</span>
+              <input type="number" placeholder="Max" value="{{ invAmtMax }}" onChange="{{ setInvAmtMax }}" style="width:52px;border:none;font-size:12.5px;color:#374151;font-family:'DM Sans',system-ui,sans-serif;outline:none;background:transparent" />
+              <span style="font-size:11px;color:#a1a1aa;flex-shrink:0;margin-left:2px">amt</span>
+            </div>
+
+            <div style="margin-left:auto;font-size:12.5px;color:#71717a">{{ filteredCount }} invoices</div>
+          </div>
+
+          <div style="background:white;border:1px solid #e4e4e7;border-radius:8px;overflow:hidden">
+            <table style="width:100%;border-collapse:collapse">
+              <thead>
+                <tr style="background:#f9f9fb;border-bottom:1px solid #e4e4e7">
+                  <th style="padding:10px 20px;text-align:left;font-size:11.5px;font-weight:600;color:#9898a8;text-transform:uppercase;letter-spacing:0.04em;white-space:nowrap">Invoice ID</th>
+                  <th style="padding:10px 16px;text-align:left;font-size:11.5px;font-weight:600;color:#9898a8;text-transform:uppercase;letter-spacing:0.04em">Description</th>
+                  <th style="padding:10px 16px;text-align:right;font-size:11.5px;font-weight:600;color:#9898a8;text-transform:uppercase;letter-spacing:0.04em;white-space:nowrap">Amount</th>
+                  <th style="padding:10px 16px;text-align:left;font-size:11.5px;font-weight:600;color:#9898a8;text-transform:uppercase;letter-spacing:0.04em">Asset</th>
+                  <th style="padding:10px 16px;text-align:left;font-size:11.5px;font-weight:600;color:#9898a8;text-transform:uppercase;letter-spacing:0.04em">Status</th>
+                  <th style="padding:10px 20px 10px 16px;text-align:left;font-size:11.5px;font-weight:600;color:#9898a8;text-transform:uppercase;letter-spacing:0.04em;white-space:nowrap">Date</th>
+                  <th style="padding:10px 16px;text-align:right;font-size:11.5px;font-weight:600;color:#9898a8;text-transform:uppercase;letter-spacing:0.04em"></th>
+                </tr>
+              </thead>
+              <tbody>
+                <sc-for list="{{ filteredTxs }}" as="tx" hint-placeholder-count="8">
+                  <tr style-hover="background:#f9f9fb">
+                    <td style="padding:12px 20px;border-bottom:1px solid #f3f4f6;font-family:'JetBrains Mono',monospace;font-size:12px;color:#71717a;white-space:nowrap">{{ tx.id }}</td>
+                    <td style="padding:12px 16px;border-bottom:1px solid #f3f4f6;font-size:13px;color:#141414">{{ tx.desc }}</td>
+                    <td style="padding:12px 16px;border-bottom:1px solid #f3f4f6;text-align:right;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:500;color:#141414;white-space:nowrap">{{ tx.amount }}</td>
+                    <td style="padding:12px 16px;border-bottom:1px solid #f3f4f6">
+                      <span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:11.5px;font-weight:600;background:#f3f4f6;color:#374151;font-family:'JetBrains Mono',monospace">{{ tx.asset }}</span>
+                    </td>
+                    <td style="padding:12px 16px;border-bottom:1px solid #f3f4f6">
+                      <span style="display:inline-block;padding:2px 8px;border-radius:9999px;font-size:11.5px;font-weight:500;background:{{ tx.badge.bg }};color:{{ tx.badge.color }}">{{ tx.badge.label }}</span>
+                    </td>
+                    <td style="padding:12px 20px 12px 16px;border-bottom:1px solid #f3f4f6;font-size:12px;color:#71717a;white-space:nowrap">{{ tx.date }}</td>
+                    <td style="padding:12px 16px;border-bottom:1px solid #f3f4f6;text-align:right;white-space:nowrap">
+                      <sc-if value="{{ tx.isPaid }}" hint-placeholder-val="{{ false }}">
+                        <button onClick="{{ tx.onReceipt }}" style="padding:4px 10px;border:1px solid #e4e4e7;border-radius:5px;background:white;cursor:pointer;font-size:11.5px;color:#52525b;font-family:inherit;display:inline-flex;align-items:center;gap:5px" style-hover="background:#f4f4f5">
+                          <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="1.5" y="1" width="8" height="9" rx="1"/><line x1="3.5" y1="3.5" x2="7.5" y2="3.5"/><line x1="3.5" y1="5.5" x2="7.5" y2="5.5"/><line x1="3.5" y1="7.5" x2="5.5" y2="7.5"/></svg>
+                          Receipt
+                        </button>
+                      </sc-if>
+                    </td>
+                  </tr>
+                </sc-for>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ─── SETTLEMENT LOG ─── -->
+      <sc-if value="{{ isSettlement }}" hint-placeholder-val="{{ false }}">
+        <div style="animation:fade-in .2s ease-out forwards">
+          <div style="margin-bottom:18px">
+            <div style="font-size:12.5px;color:#71717a">Webhook delivery log for all payment events</div>
+          </div>
+
+          <!-- Filters -->
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+            <div style="position:relative">
+              <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="#a1a1aa" stroke-width="1.5" stroke-linecap="round" style="position:absolute;left:9px;top:50%;transform:translateY(-50%);pointer-events:none"><circle cx="5.5" cy="5.5" r="4"/><line x1="8.5" y1="8.5" x2="12" y2="12"/></svg>
+              <input placeholder="Search invoice ID…" value="{{ logSearch }}" onChange="{{ setLogSearch }}" style="padding:6px 10px 6px 29px;border:1px solid #e4e4e7;border-radius:6px;background:white;font-size:13px;color:#374151;font-family:'DM Sans',system-ui,sans-serif;outline:none;width:196px" />
+            </div>
+
+            <div style="position:relative">
+              <select value="{{ logEndpoint }}" onChange="{{ setLogEndpoint }}" style="padding:6px 28px 6px 10px;border:1px solid #e4e4e7;border-radius:6px;background:white;font-size:13px;color:#374151;font-family:'DM Sans',system-ui,sans-serif;outline:none;cursor:pointer;min-width:180px;appearance:none">
+                <option value="all">All Endpoints</option>
+                <option value="api">api.myapp.com</option>
+                <option value="staging">staging.myapp.com</option>
+              </select>
+              <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="#71717a" stroke-width="1.6" stroke-linecap="round" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);pointer-events:none"><path d="M2 4l3 3 3-3"/></svg>
+            </div>
+
+            <div style="position:relative">
+              <select value="{{ logStatus }}" onChange="{{ setLogStatus }}" style="padding:6px 28px 6px 10px;border:1px solid #e4e4e7;border-radius:6px;background:white;font-size:13px;color:#374151;font-family:'DM Sans',system-ui,sans-serif;outline:none;cursor:pointer;min-width:144px;appearance:none">
+                <option value="all">All HTTP</option>
+                <option value="2xx">2xx Success</option>
+                <option value="error">4xx / 5xx Error</option>
+              </select>
+              <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="#71717a" stroke-width="1.6" stroke-linecap="round" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);pointer-events:none"><path d="M2 4l3 3 3-3"/></svg>
+            </div>
+
+            <input type="date" value="{{ logDateFrom }}" onChange="{{ setLogDateFrom }}" style="padding:5px 9px;border:1px solid #e4e4e7;border-radius:6px;font-size:12.5px;color:#374151;font-family:'DM Sans',system-ui,sans-serif;background:white;cursor:pointer;outline:none" />
+            <span style="font-size:12px;color:#a1a1aa">–</span>
+            <input type="date" value="{{ logDateTo }}" onChange="{{ setLogDateTo }}" style="padding:5px 9px;border:1px solid #e4e4e7;border-radius:6px;font-size:12.5px;color:#374151;font-family:'DM Sans',system-ui,sans-serif;background:white;cursor:pointer;outline:none" />
+
+            <div style="margin-left:auto;font-size:12.5px;color:#71717a">{{ logCount }} events</div>
+          </div>
+
+          <div style="background:white;border:1px solid #e4e4e7;border-radius:8px;overflow:hidden">
+            <table style="width:100%;border-collapse:collapse">
+              <thead>
+                <tr style="background:#f9f9fb;border-bottom:1px solid #e4e4e7">
+                  <th style="padding:10px 20px;text-align:left;font-size:11.5px;font-weight:600;color:#9898a8;text-transform:uppercase;letter-spacing:0.04em;white-space:nowrap">Invoice ID</th>
+                  <th style="padding:10px 16px;text-align:left;font-size:11.5px;font-weight:600;color:#9898a8;text-transform:uppercase;letter-spacing:0.04em">Event</th>
+                  <th style="padding:10px 16px;text-align:left;font-size:11.5px;font-weight:600;color:#9898a8;text-transform:uppercase;letter-spacing:0.04em">Endpoint</th>
+                  <th style="padding:10px 16px;text-align:left;font-size:11.5px;font-weight:600;color:#9898a8;text-transform:uppercase;letter-spacing:0.04em">HTTP</th>
+                  <th style="padding:10px 20px 10px 16px;text-align:left;font-size:11.5px;font-weight:600;color:#9898a8;text-transform:uppercase;letter-spacing:0.04em;white-space:nowrap">Delivered</th>
+                </tr>
+              </thead>
+              <tbody>
+                <sc-for list="{{ filteredLogs }}" as="row" hint-placeholder-count="5">
+                  <tr style-hover="background:#f9f9fb">
+                    <td style="padding:12px 20px;border-bottom:1px solid #f3f4f6;font-family:'JetBrains Mono',monospace;font-size:12px;color:#71717a;white-space:nowrap">{{ row.invoiceId }}</td>
+                    <td style="padding:12px 16px;border-bottom:1px solid #f3f4f6">
+                      <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#141414">{{ row.event }}</span>
+                    </td>
+                    <td style="padding:12px 16px;border-bottom:1px solid #f3f4f6;font-size:12px;color:#71717a;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ row.endpoint }}</td>
+                    <td style="padding:12px 16px;border-bottom:1px solid #f3f4f6">
+                      <span style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;color:{{ row.codeColor }}">{{ row.code }}</span>
+                    </td>
+                    <td style="padding:12px 20px 12px 16px;border-bottom:1px solid #f3f4f6;font-size:12px;color:#71717a;white-space:nowrap">{{ row.time }}</td>
+                  </tr>
+                </sc-for>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ─── WEBHOOKS ─── -->
       <sc-if value="{{ isWebhooks }}" hint-placeholder-val="{{ false }}">
         <div style="animation:fade-in .2s ease-out forwards">
-
           <div style="margin-bottom:22px">
             <div style="font-size:12.5px;color:#71717a">Real-time event notifications sent to your endpoints</div>
           </div>
 
-          <!-- Add endpoint form -->
-          <sc-if value="{{ showAddWebhook }}" hint-placeholder-val="{{ false }}">
-            <div style="background:white;border:1px solid #c7d2fe;border-radius:8px;padding:20px;margin-bottom:14px;animation:fade-in .15s ease-out">
-              <div style="font-size:13.5px;font-weight:600;color:#141414;margin-bottom:16px">New Webhook Endpoint</div>
-              <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:16px">
-                <div>
-                  <label style="display:block;font-size:12px;font-weight:500;color:#374151;margin-bottom:5px">Endpoint URL</label>
-                  <input placeholder="https://yourdomain.com/webhooks/fibergate" style="width:100%;padding:7px 10px;border:1px solid #e4e4e7;border-radius:6px;font-size:13px;font-family:'JetBrains Mono',monospace;color:#141414;outline:none;background:white" />
-                </div>
-                <div>
-                  <label style="display:block;font-size:12px;font-weight:500;color:#374151;margin-bottom:8px">Events to listen for</label>
-                  <div style="display:flex;flex-wrap:wrap;gap:7px">
-                    <label style="display:flex;align-items:center;gap:6px;padding:5px 10px;border:1px solid #e4e4e7;border-radius:6px;cursor:pointer;font-size:12.5px;color:#374151"><input type="checkbox" defaultChecked style="accent-color:#4f46e5" /> payment.paid</label>
-                    <label style="display:flex;align-items:center;gap:6px;padding:5px 10px;border:1px solid #e4e4e7;border-radius:6px;cursor:pointer;font-size:12.5px;color:#374151"><input type="checkbox" defaultChecked style="accent-color:#4f46e5" /> invoice.expired</label>
-                    <label style="display:flex;align-items:center;gap:6px;padding:5px 10px;border:1px solid #e4e4e7;border-radius:6px;cursor:pointer;font-size:12.5px;color:#374151"><input type="checkbox" style="accent-color:#4f46e5" /> invoice.failed</label>
-                    <label style="display:flex;align-items:center;gap:6px;padding:5px 10px;border:1px solid #e4e4e7;border-radius:6px;cursor:pointer;font-size:12.5px;color:#374151"><input type="checkbox" style="accent-color:#4f46e5" /> * all events</label>
-                  </div>
-                </div>
-              </div>
-              <div style="display:flex;gap:8px;justify-content:flex-end">
-                <button onClick="{{ toggleAddWebhook }}" style="padding:7px 14px;border:1px solid #e4e4e7;border-radius:6px;background:white;color:#374151;font-size:13px;cursor:pointer;font-family:inherit" style-hover="background:#f4f4f5">Cancel</button>
-                <button style="padding:7px 14px;background:#4f46e5;color:white;border:none;border-radius:6px;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit" style-hover="background:#4338ca">Add Endpoint</button>
-              </div>
-            </div>
-          </sc-if>
-
-          <!-- Two-col: endpoints + delivery history -->
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
-
             <div style="background:white;border:1px solid #e4e4e7;border-radius:8px;overflow:hidden;align-self:start">
               <div style="padding:14px 18px;border-bottom:1px solid #f3f4f6;font-size:13px;font-weight:600;color:#141414">Endpoints</div>
               <sc-for list="{{ webhooks }}" as="wh" hint-placeholder-count="3">
@@ -315,135 +483,14 @@ body{background:#f7f7f8;-webkit-font-smoothing:antialiased}
         </div>
       </sc-if>
 
-
-      <!-- ───── TRANSACTIONS ───── -->
-      <sc-if value="{{ isTransactions }}" hint-placeholder-val="{{ false }}">
-        <div style="animation:fade-in .2s ease-out forwards">
-
-          <div style="margin-bottom:18px">
-            <div style="font-size:15px;font-weight:600;color:#141414">Transactions</div>
-            <div style="font-size:12.5px;color:#71717a;margin-top:2px">All invoices and payment events</div>
-          </div>
-
-          <!-- Tab switcher -->
-          <div style="display:flex;gap:0;margin-bottom:16px;border-bottom:1px solid #e4e4e7">
-            <button onClick="{{ setTabInvoices }}" style="padding:8px 18px;border:none;border-bottom:2px solid {{ tabInvBorder }};cursor:pointer;font-size:13px;font-weight:500;font-family:inherit;background:transparent;color:{{ tabInvColor }};margin-bottom:-1px" style-hover="color:#141414">Invoices</button>
-            <button onClick="{{ setTabSettlement }}" style="padding:8px 18px;border:none;border-bottom:2px solid {{ tabSetBorder }};cursor:pointer;font-size:13px;font-weight:500;font-family:inherit;background:transparent;color:{{ tabSetColor }};margin-bottom:-1px" style-hover="color:#141414">Settlement log</button>
-          </div>
-
-          <!-- ── Invoices tab ── -->
-          <sc-if value="{{ isTabInvoices }}" hint-placeholder-val="{{ true }}">
-            <div>
-              <!-- Filter bar -->
-              <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
-                <div style="display:flex;background:white;border:1px solid #e4e4e7;border-radius:6px;overflow:hidden">
-                  <button onClick="{{ setStatusAll }}"  style="padding:6px 12px;border:none;border-right:1px solid #e4e4e7;cursor:pointer;font-size:12.5px;font-family:inherit;font-weight:500;background:{{ fsAllBg }};color:{{ fsAllC }}" style-hover="opacity:0.88">All</button>
-                  <button onClick="{{ setStatusPaid }}" style="padding:6px 12px;border:none;border-right:1px solid #e4e4e7;cursor:pointer;font-size:12.5px;font-family:inherit;font-weight:500;background:{{ fsPdBg }};color:{{ fsPdC }}" style-hover="opacity:0.88">Paid</button>
-                  <button onClick="{{ setStatusPend }}" style="padding:6px 12px;border:none;border-right:1px solid #e4e4e7;cursor:pointer;font-size:12.5px;font-family:inherit;font-weight:500;background:{{ fsPnBg }};color:{{ fsPnC }}" style-hover="opacity:0.88">Pending</button>
-                  <button onClick="{{ setStatusExp }}"  style="padding:6px 12px;border:none;border-right:1px solid #e4e4e7;cursor:pointer;font-size:12.5px;font-family:inherit;font-weight:500;background:{{ fsExBg }};color:{{ fsExC }}" style-hover="opacity:0.88">Expired</button>
-                  <button onClick="{{ setStatusFail }}" style="padding:6px 12px;border:none;cursor:pointer;font-size:12.5px;font-family:inherit;font-weight:500;background:{{ fsFaBg }};color:{{ fsFaC }}" style-hover="opacity:0.88">Failed</button>
-                </div>
-                <div style="display:flex;background:white;border:1px solid #e4e4e7;border-radius:6px;overflow:hidden">
-                  <button onClick="{{ setAssetAll }}"  style="padding:6px 12px;border:none;border-right:1px solid #e4e4e7;cursor:pointer;font-size:12.5px;font-family:inherit;font-weight:500;background:{{ faAllBg }};color:{{ faAllC }}" style-hover="opacity:0.88">All assets</button>
-                  <button onClick="{{ setAssetCKB }}"  style="padding:6px 12px;border:none;border-right:1px solid #e4e4e7;cursor:pointer;font-size:12.5px;font-family:'JetBrains Mono',monospace;font-weight:600;background:{{ faCkbBg }};color:{{ faCkbC }}" style-hover="opacity:0.88">CKB</button>
-                  <button onClick="{{ setAssetRUSD }}" style="padding:6px 12px;border:none;cursor:pointer;font-size:12.5px;font-family:'JetBrains Mono',monospace;font-weight:600;background:{{ faRusdBg }};color:{{ faRusdC }}" style-hover="opacity:0.88">RUSD</button>
-                </div>
-                <div style="margin-left:auto;font-size:12.5px;color:#71717a">{{ filteredCount }} transactions</div>
-              </div>
-
-              <div style="background:white;border:1px solid #e4e4e7;border-radius:8px;overflow:hidden">
-                <table style="width:100%;border-collapse:collapse">
-                  <thead>
-                    <tr style="background:#f9f9fb;border-bottom:1px solid #e4e4e7">
-                      <th style="padding:10px 20px;text-align:left;font-size:11.5px;font-weight:600;color:#9898a8;text-transform:uppercase;letter-spacing:0.04em;white-space:nowrap">Invoice ID</th>
-                      <th style="padding:10px 16px;text-align:left;font-size:11.5px;font-weight:600;color:#9898a8;text-transform:uppercase;letter-spacing:0.04em">Description</th>
-                      <th style="padding:10px 16px;text-align:right;font-size:11.5px;font-weight:600;color:#9898a8;text-transform:uppercase;letter-spacing:0.04em;white-space:nowrap">Amount</th>
-                      <th style="padding:10px 16px;text-align:left;font-size:11.5px;font-weight:600;color:#9898a8;text-transform:uppercase;letter-spacing:0.04em">Asset</th>
-                      <th style="padding:10px 16px;text-align:left;font-size:11.5px;font-weight:600;color:#9898a8;text-transform:uppercase;letter-spacing:0.04em">Status</th>
-                      <th style="padding:10px 20px 10px 16px;text-align:left;font-size:11.5px;font-weight:600;color:#9898a8;text-transform:uppercase;letter-spacing:0.04em;white-space:nowrap">Date</th>
-                      <th style="padding:10px 16px;text-align:right;font-size:11.5px;font-weight:600;color:#9898a8;text-transform:uppercase;letter-spacing:0.04em"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <sc-for list="{{ filteredTxs }}" as="tx" hint-placeholder-count="8">
-                      <tr style-hover="background:#f9f9fb">
-                        <td style="padding:12px 20px;border-bottom:1px solid #f3f4f6;font-family:'JetBrains Mono',monospace;font-size:12px;color:#71717a;white-space:nowrap">{{ tx.id }}</td>
-                        <td style="padding:12px 16px;border-bottom:1px solid #f3f4f6;font-size:13px;color:#141414">{{ tx.desc }}</td>
-                        <td style="padding:12px 16px;border-bottom:1px solid #f3f4f6;text-align:right;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:500;color:#141414;white-space:nowrap">{{ tx.amount }}</td>
-                        <td style="padding:12px 16px;border-bottom:1px solid #f3f4f6">
-                          <span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:11.5px;font-weight:600;background:#f3f4f6;color:#374151;font-family:'JetBrains Mono',monospace">{{ tx.asset }}</span>
-                        </td>
-                        <td style="padding:12px 16px;border-bottom:1px solid #f3f4f6">
-                          <span style="display:inline-block;padding:2px 8px;border-radius:9999px;font-size:11.5px;font-weight:500;background:{{ tx.badge.bg }};color:{{ tx.badge.color }}">{{ tx.badge.label }}</span>
-                        </td>
-                        <td style="padding:12px 20px 12px 16px;border-bottom:1px solid #f3f4f6;font-size:12px;color:#71717a;white-space:nowrap">{{ tx.date }}</td>
-                        <td style="padding:12px 16px;border-bottom:1px solid #f3f4f6;text-align:right;white-space:nowrap">
-                          <sc-if value="{{ tx.isPaid }}" hint-placeholder-val="{{ false }}">
-                            <button onClick="{{ tx.onReceipt }}" style="padding:4px 10px;border:1px solid #e4e4e7;border-radius:5px;background:white;cursor:pointer;font-size:11.5px;color:#52525b;font-family:inherit;display:inline-flex;align-items:center;gap:5px" style-hover="background:#f4f4f5">
-                              <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="1.5" y="1" width="8" height="9" rx="1"/><line x1="3.5" y1="3.5" x2="7.5" y2="3.5"/><line x1="3.5" y1="5.5" x2="7.5" y2="5.5"/><line x1="3.5" y1="7.5" x2="5.5" y2="7.5"/></svg>
-                              Receipt
-                            </button>
-                          </sc-if>
-                        </td>
-                      </tr>
-                    </sc-for>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </sc-if>
-
-          <!-- ── Settlement tab ── -->
-          <sc-if value="{{ isTabSettlement }}" hint-placeholder-val="{{ false }}">
-            <div style="background:white;border:1px solid #e4e4e7;border-radius:8px;overflow:hidden">
-              <div style="padding:14px 20px;border-bottom:1px solid #f3f4f6;display:flex;align-items:center;justify-content:space-between">
-                <div>
-                  <span style="font-size:13px;font-weight:600;color:#141414">Webhook Delivery Log</span>
-                  <span style="font-size:12px;color:#a1a1aa;margin-left:10px">Payment events sent to your endpoints</span>
-                </div>
-              </div>
-              <table style="width:100%;border-collapse:collapse">
-                <thead>
-                  <tr style="background:#f9f9fb;border-bottom:1px solid #e4e4e7">
-                    <th style="padding:10px 20px;text-align:left;font-size:11.5px;font-weight:600;color:#9898a8;text-transform:uppercase;letter-spacing:0.04em;white-space:nowrap">Invoice ID</th>
-                    <th style="padding:10px 16px;text-align:left;font-size:11.5px;font-weight:600;color:#9898a8;text-transform:uppercase;letter-spacing:0.04em">Event</th>
-                    <th style="padding:10px 16px;text-align:left;font-size:11.5px;font-weight:600;color:#9898a8;text-transform:uppercase;letter-spacing:0.04em">Endpoint</th>
-                    <th style="padding:10px 16px;text-align:left;font-size:11.5px;font-weight:600;color:#9898a8;text-transform:uppercase;letter-spacing:0.04em">HTTP</th>
-                    <th style="padding:10px 20px 10px 16px;text-align:left;font-size:11.5px;font-weight:600;color:#9898a8;text-transform:uppercase;letter-spacing:0.04em;white-space:nowrap">Delivered</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <sc-for list="{{ settlementRows }}" as="row" hint-placeholder-count="5">
-                    <tr style-hover="background:#f9f9fb">
-                      <td style="padding:12px 20px;border-bottom:1px solid #f3f4f6;font-family:'JetBrains Mono',monospace;font-size:12px;color:#71717a;white-space:nowrap">{{ row.invoiceId }}</td>
-                      <td style="padding:12px 16px;border-bottom:1px solid #f3f4f6">
-                        <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#141414">{{ row.event }}</span>
-                      </td>
-                      <td style="padding:12px 16px;border-bottom:1px solid #f3f4f6;font-size:12px;color:#71717a;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ row.endpoint }}</td>
-                      <td style="padding:12px 16px;border-bottom:1px solid #f3f4f6">
-                        <span style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;color:{{ row.codeColor }}">{{ row.code }}</span>
-                      </td>
-                      <td style="padding:12px 20px 12px 16px;border-bottom:1px solid #f3f4f6;font-size:12px;color:#71717a;white-space:nowrap">{{ row.time }}</td>
-                    </tr>
-                  </sc-for>
-                </tbody>
-              </table>
-            </div>
-          </sc-if>
-        </div>
-      </sc-if>
-
-
-      <!-- ───── QUICK START ───── -->
+      <!-- ─── QUICK START ─── -->
       <sc-if value="{{ isQuickStart }}" hint-placeholder-val="{{ false }}">
         <div style="animation:fade-in .2s ease-out forwards;max-width:800px">
-
           <div style="margin-bottom:22px">
             <div style="font-size:15px;font-weight:600;color:#141414">Quick Start</div>
             <div style="font-size:12.5px;color:#71717a;margin-top:2px">Self-host FiberGate and accept your first payment</div>
           </div>
 
-          <!-- Progress -->
           <div style="background:white;border:1px solid #e4e4e7;border-radius:8px;padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;gap:14px">
             <div style="flex:1;height:6px;background:#f3f4f6;border-radius:9999px;overflow:hidden">
               <div style="height:100%;width:40%;background:linear-gradient(90deg,#4f46e5,#7c3aed);border-radius:9999px"></div>
@@ -452,8 +499,6 @@ body{background:#f7f7f8;-webkit-font-smoothing:antialiased}
           </div>
 
           <div style="display:flex;flex-direction:column;gap:10px">
-
-            <!-- Step 1 Done -->
             <div style="background:white;border:1px solid #e4e4e7;border-radius:8px;overflow:hidden">
               <div style="padding:16px 20px;display:flex;align-items:center;gap:14px">
                 <div style="width:28px;height:28px;border-radius:50%;background:#4f46e5;display:flex;align-items:center;justify-content:center;flex-shrink:0">
@@ -470,7 +515,6 @@ body{background:#f7f7f8;-webkit-font-smoothing:antialiased}
               </div>
             </div>
 
-            <!-- Step 2 Done -->
             <div style="background:white;border:1px solid #e4e4e7;border-radius:8px;overflow:hidden">
               <div style="padding:16px 20px;display:flex;align-items:center;gap:14px">
                 <div style="width:28px;height:28px;border-radius:50%;background:#4f46e5;display:flex;align-items:center;justify-content:center;flex-shrink:0">
@@ -484,7 +528,6 @@ body{background:#f7f7f8;-webkit-font-smoothing:antialiased}
               </div>
             </div>
 
-            <!-- Step 3 Current -->
             <div style="background:white;border:2px solid #4f46e5;border-radius:8px;overflow:hidden;box-shadow:0 0 0 3px rgba(79,70,229,.08)">
               <div style="padding:16px 20px;display:flex;align-items:center;gap:14px">
                 <div style="width:28px;height:28px;border-radius:50%;background:#4f46e5;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:white;font-weight:700;font-size:13px">3</div>
@@ -502,7 +545,6 @@ body{background:#f7f7f8;-webkit-font-smoothing:antialiased}
               </div>
             </div>
 
-            <!-- Step 4 Pending -->
             <div style="background:#f9f9fb;border:1px solid #e4e4e7;border-radius:8px;overflow:hidden;opacity:0.7">
               <div style="padding:16px 20px;display:flex;align-items:center;gap:14px">
                 <div style="width:28px;height:28px;border-radius:50%;background:#e4e4e7;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#71717a;font-weight:700;font-size:13px">4</div>
@@ -516,7 +558,6 @@ body{background:#f7f7f8;-webkit-font-smoothing:antialiased}
               </div>
             </div>
 
-            <!-- Step 5 Pending -->
             <div style="background:#f9f9fb;border:1px solid #e4e4e7;border-radius:8px;overflow:hidden;opacity:0.7">
               <div style="padding:16px 20px;display:flex;align-items:center;gap:14px">
                 <div style="width:28px;height:28px;border-radius:50%;background:#e4e4e7;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#71717a;font-weight:700;font-size:13px">5</div>
@@ -529,7 +570,6 @@ body{background:#f7f7f8;-webkit-font-smoothing:antialiased}
                 <pre style="background:#1e293b;border-radius:6px;padding:12px 16px;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.65;color:#94a3b8;overflow-x:auto;margin:0">{{ codeWebhook }}</pre>
               </div>
             </div>
-
           </div>
         </div>
       </sc-if>
@@ -537,74 +577,181 @@ body{background:#f7f7f8;-webkit-font-smoothing:antialiased}
     </main>
   </div>
 
-  <!-- ───── RECEIPT MODAL ───── -->
+  <!-- ═══ WEBHOOK DRAWER ═══ -->
+  <sc-if value="{{ showAddWebhook }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ toggleAddWebhook }}" style="position:fixed;inset:0;background:rgba(0,0,0,0.28);z-index:50;display:flex;justify-content:flex-end">
+      <div onClick="{{ stopProp }}" style="width:480px;background:white;border-left:1px solid #e4e4e7;display:flex;flex-direction:column;height:100vh;animation:slide-in-right .2s ease-out">
+        <div style="padding:20px 24px;border-bottom:1px solid #e4e4e7;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+          <div>
+            <div style="font-size:15px;font-weight:600;color:#141414">Add Webhook Endpoint</div>
+            <div style="font-size:12.5px;color:#71717a;margin-top:2px">Configure a new event destination</div>
+          </div>
+          <button onClick="{{ toggleAddWebhook }}" style="width:28px;height:28px;border-radius:6px;border:1px solid #e4e4e7;background:white;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#71717a" style-hover="background:#f4f4f5">
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="2" y1="2" x2="11" y2="11"/><line x1="11" y1="2" x2="2" y2="11"/></svg>
+          </button>
+        </div>
+        <div style="flex:1;overflow-y:auto;padding:24px;display:flex;flex-direction:column;gap:18px">
+          <div>
+            <label style="display:block;font-size:12px;font-weight:500;color:#374151;margin-bottom:6px">Endpoint URL</label>
+            <input placeholder="https://yourdomain.com/webhooks/fibergate" style="width:100%;padding:8px 10px;border:1px solid #e4e4e7;border-radius:6px;font-size:13px;font-family:'JetBrains Mono',monospace;color:#141414;outline:none;background:white" />
+            <div style="font-size:12px;color:#a1a1aa;margin-top:5px">Must be a publicly reachable HTTPS URL.</div>
+          </div>
+          <div>
+            <label style="display:block;font-size:12px;font-weight:500;color:#374151;margin-bottom:8px">Events to listen for</label>
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <label style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border:1px solid #e4e4e7;border-radius:6px;cursor:pointer">
+                <input type="checkbox" defaultChecked style="accent-color:#4f46e5;margin-top:2px;width:14px;height:14px;flex-shrink:0" />
+                <div>
+                  <div style="font-size:13px;font-weight:500;color:#141414">payment.paid</div>
+                  <div style="font-size:12px;color:#71717a;margin-top:2px">Invoice successfully paid</div>
+                </div>
+              </label>
+              <label style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border:1px solid #e4e4e7;border-radius:6px;cursor:pointer">
+                <input type="checkbox" defaultChecked style="accent-color:#4f46e5;margin-top:2px;width:14px;height:14px;flex-shrink:0" />
+                <div>
+                  <div style="font-size:13px;font-weight:500;color:#141414">invoice.expired</div>
+                  <div style="font-size:12px;color:#71717a;margin-top:2px">Invoice expired without payment</div>
+                </div>
+              </label>
+              <label style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border:1px solid #e4e4e7;border-radius:6px;cursor:pointer">
+                <input type="checkbox" style="accent-color:#4f46e5;margin-top:2px;width:14px;height:14px;flex-shrink:0" />
+                <div>
+                  <div style="font-size:13px;font-weight:500;color:#141414">invoice.failed</div>
+                  <div style="font-size:12px;color:#71717a;margin-top:2px">Payment failure or rejection</div>
+                </div>
+              </label>
+              <label style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border:1px solid #e4e4e7;border-radius:6px;cursor:pointer">
+                <input type="checkbox" style="accent-color:#4f46e5;margin-top:2px;width:14px;height:14px;flex-shrink:0" />
+                <div>
+                  <div style="font-size:13px;font-weight:500;color:#141414">* all events</div>
+                  <div style="font-size:12px;color:#71717a;margin-top:2px">All current and future event types</div>
+                </div>
+              </label>
+            </div>
+          </div>
+        </div>
+        <div style="padding:16px 24px;border-top:1px solid #e4e4e7;display:flex;gap:8px;justify-content:flex-end;flex-shrink:0">
+          <button onClick="{{ toggleAddWebhook }}" style="padding:8px 16px;border:1px solid #e4e4e7;border-radius:6px;background:white;color:#374151;font-size:13px;cursor:pointer;font-family:inherit" style-hover="background:#f4f4f5">Cancel</button>
+          <button style="padding:8px 16px;background:#4f46e5;color:white;border:none;border-radius:6px;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit" style-hover="background:#4338ca">Add Endpoint</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ═══ RECEIPT DRAWER ═══ -->
   <sc-if value="{{ showReceipt }}" hint-placeholder-val="{{ false }}">
-    <div onClick="{{ closeReceipt }}" style="position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:50;display:flex;align-items:center;justify-content:center">
-      <div onClick="{{ stopProp }}" style="background:white;border-radius:12px;padding:0;width:440px;box-shadow:0 20px 60px rgba(0,0,0,0.15);overflow:hidden;animation:fade-in .15s ease-out">
-        <!-- Header -->
-        <div style="padding:20px 24px 16px;border-bottom:1px solid #f3f4f6;display:flex;align-items:center;justify-content:space-between">
+    <div onClick="{{ closeReceipt }}" style="position:fixed;inset:0;background:rgba(0,0,0,0.28);z-index:50;display:flex;justify-content:flex-end">
+      <div onClick="{{ stopProp }}" style="width:540px;background:white;border-left:1px solid #e4e4e7;display:flex;flex-direction:column;height:100vh;animation:slide-in-right .2s ease-out">
+        <div style="padding:20px 24px;border-bottom:1px solid #e4e4e7;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
           <div style="display:flex;align-items:center;gap:10px">
-            <div style="width:32px;height:32px;border-radius:8px;background:#f0fdf4;display:flex;align-items:center;justify-content:center">
+            <div style="width:34px;height:34px;border-radius:8px;background:#f0fdf4;display:flex;align-items:center;justify-content:center">
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#16a34a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2H13a1 1 0 011 1v11l-2-1.5L10 14l-2-1.5L6 14l-2-1.5L2 14V3a1 1 0 011-1z"/><line x1="5" y1="6" x2="11" y2="6"/><line x1="5" y1="8.5" x2="11" y2="8.5"/><line x1="5" y1="11" x2="8" y2="11"/></svg>
             </div>
             <div>
-              <div style="font-size:14px;font-weight:600;color:#141414">Payment Receipt</div>
-              <div style="font-size:11.5px;color:#a1a1aa;margin-top:1px">{{ receiptId }}</div>
+              <div style="font-size:15px;font-weight:600;color:#141414">Payment Receipt</div>
+              <div style="font-size:12px;color:#a1a1aa;margin-top:1px;font-family:'JetBrains Mono',monospace">{{ receiptId }}</div>
             </div>
           </div>
           <button onClick="{{ closeReceipt }}" style="width:28px;height:28px;border-radius:6px;border:1px solid #e4e4e7;background:white;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#71717a" style-hover="background:#f4f4f5">
             <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="2" y1="2" x2="11" y2="11"/><line x1="11" y1="2" x2="2" y2="11"/></svg>
           </button>
         </div>
-        <!-- Body -->
-        <div style="padding:20px 24px">
-          <div style="display:flex;flex-direction:column;gap:13px">
-            <div style="display:flex;justify-content:space-between;align-items:baseline">
-              <span style="font-size:12.5px;color:#71717a">Description</span>
-              <span style="font-size:13.5px;font-weight:500;color:#141414">{{ receiptDesc }}</span>
-            </div>
-            <div style="display:flex;justify-content:space-between;align-items:baseline">
-              <span style="font-size:12.5px;color:#71717a">Amount</span>
-              <span style="font-size:13.5px;font-weight:700;color:#141414;font-family:'JetBrains Mono',monospace">{{ receiptAmount }} <span style="font-size:11.5px;font-weight:400;color:#71717a">{{ receiptAsset }}</span></span>
-            </div>
-            <div style="display:flex;justify-content:space-between;align-items:center">
-              <span style="font-size:12.5px;color:#71717a">Status</span>
-              <span style="display:inline-block;padding:2px 9px;border-radius:9999px;font-size:11.5px;font-weight:500;background:#dcfce7;color:#15803d">Paid</span>
-            </div>
-            <div style="display:flex;justify-content:space-between;align-items:baseline">
-              <span style="font-size:12.5px;color:#71717a">Paid at</span>
-              <span style="font-size:12.5px;color:#141414">{{ receiptDate }}</span>
-            </div>
-            <div style="border-top:1px solid #f3f4f6;padding-top:13px">
-              <div style="font-size:12px;color:#71717a;margin-bottom:5px">Payment hash</div>
-              <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#374151;background:#f3f4f6;padding:8px 10px;border-radius:5px;word-break:break-all;line-height:1.5">{{ receiptHash }}</div>
+
+        <div style="flex:1;overflow-y:auto">
+          <!-- Receipt details -->
+          <div style="padding:24px;border-bottom:1px solid #f3f4f6">
+            <div style="display:flex;flex-direction:column;gap:14px">
+              <div style="display:flex;justify-content:space-between;align-items:baseline">
+                <span style="font-size:12.5px;color:#71717a">Description</span>
+                <span style="font-size:13.5px;font-weight:500;color:#141414">{{ receiptDesc }}</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:baseline">
+                <span style="font-size:12.5px;color:#71717a">Amount</span>
+                <span style="font-size:13.5px;font-weight:700;color:#141414;font-family:'JetBrains Mono',monospace">{{ receiptAmount }} <span style="font-size:11.5px;font-weight:400;color:#71717a">{{ receiptAsset }}</span></span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <span style="font-size:12.5px;color:#71717a">Status</span>
+                <span style="display:inline-block;padding:2px 9px;border-radius:9999px;font-size:11.5px;font-weight:500;background:#dcfce7;color:#15803d">Paid</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:baseline">
+                <span style="font-size:12.5px;color:#71717a">Paid at</span>
+                <span style="font-size:12.5px;color:#141414">{{ receiptDate }}</span>
+              </div>
+              <div style="border-top:1px solid #f3f4f6;padding-top:14px">
+                <div style="font-size:12px;color:#71717a;margin-bottom:5px">Payment hash</div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#374151;background:#f3f4f6;padding:8px 10px;border-radius:5px;word-break:break-all;line-height:1.5">{{ receiptHash }}</div>
+              </div>
             </div>
           </div>
+
+          <!-- Related settlement -->
+          <div style="padding:20px 24px">
+            <div style="font-size:13px;font-weight:600;color:#141414;margin-bottom:12px">Settlement Events</div>
+            <sc-if value="{{ hasReceiptSettlement }}" hint-placeholder-val="{{ true }}">
+              <div style="border:1px solid #e4e4e7;border-radius:8px;overflow:hidden">
+                <sc-for list="{{ receiptSettlement }}" as="sl" hint-placeholder-count="2">
+                  <div style="padding:11px 16px;border-bottom:1px solid #f3f4f6;display:flex;align-items:center;gap:12px">
+                    <div style="width:7px;height:7px;border-radius:50%;background:{{ sl.dot }};flex-shrink:0"></div>
+                    <div style="flex:1;min-width:0">
+                      <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#141414">{{ sl.event }}</div>
+                      <div style="font-size:11.5px;color:#a1a1aa;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ sl.endpoint }}</div>
+                    </div>
+                    <span style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;color:{{ sl.codeColor }}">{{ sl.code }}</span>
+                    <span style="font-size:11.5px;color:#a1a1aa;white-space:nowrap;flex-shrink:0">{{ sl.time }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-if>
+            <sc-if value="{{ noReceiptSettlement }}" hint-placeholder-val="{{ false }}">
+              <div style="text-align:center;padding:20px;color:#a1a1aa;font-size:13px;border:1px solid #e4e4e7;border-radius:8px">No webhook deliveries for this invoice.</div>
+            </sc-if>
+          </div>
         </div>
-        <!-- Footer -->
-        <div style="padding:14px 24px 18px;display:flex;gap:8px;justify-content:flex-end;border-top:1px solid #f3f4f6">
-          <button onClick="{{ closeReceipt }}" style="padding:7px 14px;border:1px solid #e4e4e7;border-radius:6px;background:white;color:#374151;font-size:13px;cursor:pointer;font-family:inherit" style-hover="background:#f4f4f5">Close</button>
-          <button style="padding:7px 14px;background:#4f46e5;color:white;border:none;border-radius:6px;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit" style-hover="background:#4338ca">Download PDF</button>
+
+        <div style="padding:16px 24px;border-top:1px solid #e4e4e7;display:flex;gap:8px;justify-content:flex-end;flex-shrink:0">
+          <button onClick="{{ closeReceipt }}" style="padding:8px 16px;border:1px solid #e4e4e7;border-radius:6px;background:white;color:#374151;font-size:13px;cursor:pointer;font-family:inherit" style-hover="background:#f4f4f5">Close</button>
+          <button style="padding:8px 16px;background:#4f46e5;color:white;border:none;border-radius:6px;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit" style-hover="background:#4338ca">Download PDF</button>
         </div>
       </div>
     </div>
   </sc-if>
 
 </div>
+</sc-if>
 </x-dc>
 <script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:900}}">
 class Component extends DCLogic {
   state = {
-    screen: 'overview',
+    screen: 'login',
+    loginPass: '',
+    loginError: false,
+    showPw: false,
     txStatus: 'all',
     txAsset: 'all',
-    txTab: 'invoices',
     selWebhook: 'wh_01',
     showAddWebhook: false,
     receiptTx: null,
+    invSearch: '',
+    invDateFrom: '',
+    invDateTo: '',
+    invAmtMin: '',
+    invAmtMax: '',
+    logSearch: '',
+    logEndpoint: 'all',
+    logStatus: 'all',
+    logDateFrom: '',
+    logDateTo: '',
   };
 
   go(s) { this.setState({ screen: s }); }
+
+  doLogin() {
+    if (this.state.loginPass === 'admin') {
+      this.setState({ screen: 'overview', loginError: false });
+    } else {
+      this.setState({ loginError: true });
+    }
+  }
 
   ns(id) {
     const a = this.state.screen === id;
@@ -651,6 +798,20 @@ class Component extends DCLogic {
     const filteredTxs = RAW_TXS
       .filter(t => s.txStatus === 'all' || t.status === s.txStatus)
       .filter(t => s.txAsset  === 'all' || t.asset  === s.txAsset)
+      .filter(t => {
+        if (!s.invSearch) return true;
+        const q = s.invSearch.toLowerCase();
+        return t.id.toLowerCase().includes(q) || t.desc.toLowerCase().includes(q);
+      })
+      .filter(t => {
+        const min = s.invAmtMin !== '' ? parseFloat(s.invAmtMin) : null;
+        const max = s.invAmtMax !== '' ? parseFloat(s.invAmtMax) : null;
+        if (min === null && max === null) return true;
+        const amt = parseFloat(t.amount.replace(/,/g, ''));
+        if (min !== null && amt < min) return false;
+        if (max !== null && amt > max) return false;
+        return true;
+      })
       .map(t => ({
         ...t,
         badge: this.bx(t.status),
@@ -689,57 +850,83 @@ class Component extends DCLogic {
     const selWH = webhooks.find(w => w.id === s.selWebhook);
     const selDeliveries = selWH ? selWH.deliveries : [];
 
-    const settlementRows = [
-      { invoiceId: 'inv_8A7K9', event: 'payment.paid',    endpoint: 'api.myapp.com/…',     code: '200', codeColor: '#15803d', time: 'Jul 01, 14:23' },
-      { invoiceId: 'inv_3X2M1', event: 'payment.paid',    endpoint: 'api.myapp.com/…',     code: '200', codeColor: '#15803d', time: 'Jul 01, 11:05' },
-      { invoiceId: 'inv_9K4L2', event: 'invoice.expired', endpoint: 'api.myapp.com/…',     code: '500', codeColor: '#991b1b', time: 'Jun 30, 23:41' },
-      { invoiceId: 'inv_7P0Q3', event: 'payment.paid',    endpoint: 'staging.myapp.com/…', code: '200', codeColor: '#15803d', time: 'Jun 30, 18:17' },
-      { invoiceId: 'inv_2R5T6', event: 'invoice.expired', endpoint: 'api.myapp.com/…',     code: '200', codeColor: '#15803d', time: 'Jun 29, 10:33' },
-      { invoiceId: 'inv_5S8V7', event: 'invoice.failed',  endpoint: 'api.myapp.com/…',     code: '200', codeColor: '#15803d', time: 'Jun 28, 17:00' },
-      { invoiceId: 'inv_1U4W8', event: 'payment.paid',    endpoint: 'api.myapp.com/…',     code: '200', codeColor: '#15803d', time: 'Jun 27, 08:14' },
-      { invoiceId: 'inv_6Y3Z9', event: 'payment.paid',    endpoint: 'staging.myapp.com/…', code: '200', codeColor: '#15803d', time: 'Jun 26, 20:00' },
+    const ALL_SETTLEMENT = [
+      { invoiceId: 'inv_8A7K9', event: 'payment.paid',    endpoint: 'api.myapp.com/webhooks/…',     endpointKey: 'api',     code: '200', time: 'Jul 01, 14:23' },
+      { invoiceId: 'inv_3X2M1', event: 'payment.paid',    endpoint: 'api.myapp.com/webhooks/…',     endpointKey: 'api',     code: '200', time: 'Jul 01, 11:05' },
+      { invoiceId: 'inv_9K4L2', event: 'invoice.expired', endpoint: 'api.myapp.com/webhooks/…',     endpointKey: 'api',     code: '500', time: 'Jun 30, 23:41' },
+      { invoiceId: 'inv_7P0Q3', event: 'payment.paid',    endpoint: 'staging.myapp.com/hooks',      endpointKey: 'staging', code: '200', time: 'Jun 30, 18:17' },
+      { invoiceId: 'inv_2R5T6', event: 'invoice.expired', endpoint: 'api.myapp.com/webhooks/…',     endpointKey: 'api',     code: '200', time: 'Jun 29, 10:33' },
+      { invoiceId: 'inv_5S8V7', event: 'invoice.failed',  endpoint: 'api.myapp.com/webhooks/…',     endpointKey: 'api',     code: '200', time: 'Jun 28, 17:00' },
+      { invoiceId: 'inv_1U4W8', event: 'payment.paid',    endpoint: 'api.myapp.com/webhooks/…',     endpointKey: 'api',     code: '200', time: 'Jun 27, 08:14' },
+      { invoiceId: 'inv_6Y3Z9', event: 'payment.paid',    endpoint: 'staging.myapp.com/hooks',      endpointKey: 'staging', code: '200', time: 'Jun 26, 20:00' },
     ];
 
-    const fs = (a) => ({ bg: a ? '#4f46e5' : 'white', color: a ? 'white' : '#52525b' });
-    const fa = (a) => ({ bg: a ? '#141414' : 'white', color: a ? 'white' : '#52525b' });
+    const codeColor = (code) => code.startsWith('2') ? '#15803d' : '#991b1b';
+    const codeDot   = (code) => code.startsWith('2') ? '#16a34a' : '#dc2626';
+
+    const filteredLogs = ALL_SETTLEMENT
+      .filter(r => !s.logSearch || r.invoiceId.toLowerCase().includes(s.logSearch.toLowerCase()))
+      .filter(r => s.logEndpoint === 'all' || r.endpointKey === s.logEndpoint)
+      .filter(r => s.logStatus === 'all' || (s.logStatus === '2xx' ? r.code.startsWith('2') : !r.code.startsWith('2')))
+      .map(r => ({ ...r, codeColor: codeColor(r.code), dot: codeDot(r.code) }));
 
     const rt = s.receiptTx;
-    const tabActive   = (t) => s.txTab === t;
-    const tabBorder   = (t) => tabActive(t) ? '#4f46e5' : 'transparent';
-    const tabColor    = (t) => tabActive(t) ? '#4f46e5' : '#71717a';
+    const receiptSettlement = rt
+      ? ALL_SETTLEMENT.filter(r => r.invoiceId === rt.id).map(r => ({ ...r, codeColor: codeColor(r.code), dot: codeDot(r.code) }))
+      : [];
 
     return {
-      isOverview:     s.screen === 'overview',
-      isWebhooks:     s.screen === 'webhooks',
-      isTransactions: s.screen === 'transactions',
-      isQuickStart:   s.screen === 'quickstart',
+      isLogin:     s.screen === 'login',
+      isDashboard: s.screen !== 'login',
 
-      pageTitle: { overview: 'Overview', webhooks: 'Webhooks', transactions: 'Transactions', quickstart: 'Quick Start' }[s.screen] || 'Overview',
-      ctaLabel:  { overview: 'View Report', webhooks: 'Add Endpoint', transactions: 'Export CSV', quickstart: 'View Docs' }[s.screen] || 'New',
-      headerCtaAction: s.screen === 'webhooks' ? () => this.setState(st => ({ showAddWebhook: !st.showAddWebhook })) : () => {},
+      loginPass:        s.loginPass,
+      setLoginPass:     (e) => this.setState({ loginPass: e.target.value, loginError: false }),
+      loginKeyDown:     (e) => { if (e.key === 'Enter') this.doLogin(); },
+      submitLogin:      () => this.doLogin(),
+      hasLoginError:    s.loginError,
+      loginInputBorder: s.loginError ? '#fca5a5' : '#e4e4e7',
+      showPw:           s.showPw,
+      hidePw:           !s.showPw,
+      pwInputType:      s.showPw ? 'text' : 'password',
+      togglePwShow:     () => this.setState(st => ({ showPw: !st.showPw })),
 
-      noOBg: n('overview').bg,     noOC: n('overview').color,     noOW: n('overview').weight,
-      nWBg:  n('webhooks').bg,     nWC:  n('webhooks').color,     nWW:  n('webhooks').weight,
-      nTBg:  n('transactions').bg, nTC:  n('transactions').color, nTW:  n('transactions').weight,
-      nQBg:  n('quickstart').bg,   nQC:  n('quickstart').color,   nQW:  n('quickstart').weight,
+      isOverview:   s.screen === 'overview',
+      isInvoices:   s.screen === 'invoices',
+      isSettlement: s.screen === 'settlement',
+      isWebhooks:   s.screen === 'webhooks',
+      isQuickStart: s.screen === 'quickstart',
 
-      goOverview:     () => this.go('overview'),
-      goWebhooks:     () => this.go('webhooks'),
-      goTransactions: () => this.go('transactions'),
-      goQuickStart:   () => this.go('quickstart'),
+      pageTitle: { overview: 'Overview', invoices: 'Invoices', settlement: 'Settlement Log', webhooks: 'Webhooks', quickstart: 'Quick Start' }[s.screen] || 'Overview',
+      showHeaderCta: s.screen !== 'overview' && s.screen !== 'login',
+      ctaLabel: { invoices: 'Export CSV', settlement: 'Export CSV', webhooks: 'Add Endpoint', quickstart: 'View Docs' }[s.screen] || '',
+      headerCtaAction: s.screen === 'webhooks'
+        ? () => this.setState(st => ({ showAddWebhook: !st.showAddWebhook }))
+        : () => {},
+
+      noOBg: n('overview').bg,   noOC: n('overview').color,   noOW: n('overview').weight,
+      nIBg:  n('invoices').bg,   nIC:  n('invoices').color,   nIW:  n('invoices').weight,
+      nSBg:  n('settlement').bg, nSC:  n('settlement').color, nSW:  n('settlement').weight,
+      nWBg:  n('webhooks').bg,   nWC:  n('webhooks').color,   nWW:  n('webhooks').weight,
+      nQBg:  n('quickstart').bg, nQC:  n('quickstart').color, nQW:  n('quickstart').weight,
+
+      goOverview:   () => this.go('overview'),
+      goInvoices:   () => this.go('invoices'),
+      goSettlement: () => this.go('settlement'),
+      goWebhooks:   () => this.go('webhooks'),
+      goQuickStart: () => this.go('quickstart'),
 
       inboundPct:  '72%',
       outboundPct: '30%',
 
       statsCards: [
-        { label: 'Total Volume (30d)',    value: '12,450 CKB', sub: '+ 142 RUSD',      delta: '↑ 12.4%', dColor: '#16a34a' },
-        { label: 'Active Channels',       value: '24',          sub: '3 pending close', delta: '↑ 3',     dColor: '#16a34a' },
-        { label: 'Success Rate',          value: '98.2%',       sub: '486 / 495 txns',  delta: '↑ 0.4%', dColor: '#16a34a' },
-        { label: 'Invoices Created (24h)', value: '24',         sub: '~1 / hour',       delta: '↓ 4.1%', dColor: '#dc2626' },
+        { label: 'Total Volume (30d)',     value: '12,450 CKB', sub: '+ 142 RUSD',     delta: '↑ 12.4%', dColor: '#16a34a' },
+        { label: 'Active Channels',        value: '24',          sub: '3 pending close', delta: '↑ 3',     dColor: '#16a34a' },
+        { label: 'Success Rate',           value: '98.2%',       sub: '486 / 495 paid',  delta: '↑ 0.4%',  dColor: '#16a34a' },
+        { label: 'Invoices Created (24h)', value: '24',          sub: '~1 / hour',       delta: '↓ 4.1%',  dColor: '#dc2626' },
       ],
       recentTxns: RAW_TXS.slice(0, 5).map(t => ({ ...t, badge: this.bx(t.status) })),
 
-      webhooks, selDeliveries, settlementRows,
+      webhooks, selDeliveries,
       selURL:        selWH ? selWH.url : '',
       hasDeliveries: !!(selWH && selWH.deliveries.length > 0),
       noDeliveries:  !!(selWH && selWH.deliveries.length === 0),
@@ -748,45 +935,48 @@ class Component extends DCLogic {
 
       filteredTxs,
       filteredCount: filteredTxs.length,
+      txStatus: s.txStatus,
+      txAsset:  s.txAsset,
+      setTxStatusDrop: (e) => this.setState({ txStatus: e.target.value }),
+      setTxAssetDrop:  (e) => this.setState({ txAsset:  e.target.value }),
+      invSearch:   s.invSearch,
+      invDateFrom: s.invDateFrom,
+      invDateTo:   s.invDateTo,
+      invAmtMin:   s.invAmtMin,
+      invAmtMax:   s.invAmtMax,
+      setInvSearch:   (e) => this.setState({ invSearch:   e.target.value }),
+      setInvDateFrom: (e) => this.setState({ invDateFrom: e.target.value }),
+      setInvDateTo:   (e) => this.setState({ invDateTo:   e.target.value }),
+      setInvAmtMin:   (e) => this.setState({ invAmtMin:   e.target.value }),
+      setInvAmtMax:   (e) => this.setState({ invAmtMax:   e.target.value }),
 
-      isTabInvoices:    s.txTab === 'invoices',
-      isTabSettlement:  s.txTab === 'settlement',
-      tabInvBorder:     tabBorder('invoices'),
-      tabSetBorder:     tabBorder('settlement'),
-      tabInvColor:      tabColor('invoices'),
-      tabSetColor:      tabColor('settlement'),
-      setTabInvoices:   () => this.setState({ txTab: 'invoices' }),
-      setTabSettlement: () => this.setState({ txTab: 'settlement' }),
+      filteredLogs,
+      logCount:    filteredLogs.length,
+      logSearch:   s.logSearch,
+      logEndpoint: s.logEndpoint,
+      logStatus:   s.logStatus,
+      logDateFrom: s.logDateFrom,
+      logDateTo:   s.logDateTo,
+      setLogSearch:    (e) => this.setState({ logSearch:   e.target.value }),
+      setLogEndpoint:  (e) => this.setState({ logEndpoint: e.target.value }),
+      setLogStatus:    (e) => this.setState({ logStatus:   e.target.value }),
+      setLogDateFrom:  (e) => this.setState({ logDateFrom: e.target.value }),
+      setLogDateTo:    (e) => this.setState({ logDateTo:   e.target.value }),
 
-      fsAllBg: fs(s.txStatus==='all'    ).bg, fsAllC: fs(s.txStatus==='all'    ).color,
-      fsPdBg:  fs(s.txStatus==='paid'   ).bg, fsPdC:  fs(s.txStatus==='paid'   ).color,
-      fsPnBg:  fs(s.txStatus==='pending').bg, fsPnC:  fs(s.txStatus==='pending').color,
-      fsExBg:  fs(s.txStatus==='expired').bg, fsExC:  fs(s.txStatus==='expired').color,
-      fsFaBg:  fs(s.txStatus==='failed' ).bg, fsFaC:  fs(s.txStatus==='failed' ).color,
-      faAllBg:  fa(s.txAsset==='all' ).bg,  faAllC:  fa(s.txAsset==='all' ).color,
-      faCkbBg:  fa(s.txAsset==='CKB' ).bg,  faCkbC:  fa(s.txAsset==='CKB' ).color,
-      faRusdBg: fa(s.txAsset==='RUSD').bg,  faRusdC: fa(s.txAsset==='RUSD').color,
+      showReceipt:          !!rt,
+      receiptId:            rt ? rt.id   : '',
+      receiptDesc:          rt ? rt.desc : '',
+      receiptAmount:        rt ? rt.amount : '',
+      receiptAsset:         rt ? rt.asset  : '',
+      receiptDate:          rt ? rt.date   : '',
+      receiptHash:          rt ? this.fakeHash(rt.id) : '',
+      closeReceipt:         () => this.setState({ receiptTx: null }),
+      stopProp:             (e) => e.stopPropagation(),
+      receiptSettlement,
+      hasReceiptSettlement: receiptSettlement.length > 0,
+      noReceiptSettlement:  receiptSettlement.length === 0,
 
-      setStatusAll:  () => this.setState({ txStatus: 'all'     }),
-      setStatusPaid: () => this.setState({ txStatus: 'paid'    }),
-      setStatusPend: () => this.setState({ txStatus: 'pending' }),
-      setStatusExp:  () => this.setState({ txStatus: 'expired' }),
-      setStatusFail: () => this.setState({ txStatus: 'failed'  }),
-      setAssetAll:   () => this.setState({ txAsset: 'all'  }),
-      setAssetCKB:   () => this.setState({ txAsset: 'CKB'  }),
-      setAssetRUSD:  () => this.setState({ txAsset: 'RUSD' }),
-
-      showReceipt:  !!rt,
-      receiptId:    rt ? rt.id : '',
-      receiptDesc:  rt ? rt.desc : '',
-      receiptAmount: rt ? rt.amount : '',
-      receiptAsset: rt ? rt.asset : '',
-      receiptDate:  rt ? rt.date : '',
-      receiptHash:  rt ? this.fakeHash(rt.id) : '',
-      closeReceipt: () => this.setState({ receiptTx: null }),
-      stopProp:     (e) => e.stopPropagation(),
-
-      codeDeploy: "# .env\nADMIN_PASSWORD=your-secure-password\nFIBERGATE_INTERNAL_SECRET=your-secret-key\nDATABASE_URL=postgres://user:pass@db:5432/fibergate\nFIBER_NODE_URL=http://fiber-node:8114\n\ndocker compose up -d",
+      codeDeploy:  "# .env\nADMIN_PASSWORD=your-secure-password\nFIBERGATE_INTERNAL_SECRET=your-secret-key\nDATABASE_URL=postgres://user:pass@db:5432/fibergate\nFIBER_NODE_URL=http://fiber-node:8114\n\ndocker compose up -d",
       codeInstall: 'npm install @fibergate/sdk',
       codeInvoice: "import { FiberGate } from '@fibergate/sdk';\n\nconst gateway = new FiberGate({\n  baseUrl: process.env.FIBERGATE_BASE_URL,\n  internalSecret: process.env.FIBERGATE_INTERNAL_SECRET,\n});\n\nconst invoice = await gateway.invoices.create({\n  amount: 1000,\n  asset: 'CKB',\n  description: 'My first payment',\n});\n\n// invoice.payment_request  →  share with payer",
       codeWebhook: "app.post('/webhooks/fibergate', (req, res) => {\n  const event = gateway.webhooks.verify(req.body, req);\n  if (event.type === 'payment.paid') {\n    fulfillOrder(event.data.invoice_id);\n  }\n  res.json({ received: true });\n});\n\n// Test on CKB testnet:\n// FIBER_NODE_URL=http://testnet.fiber.nervos.org:8114",
