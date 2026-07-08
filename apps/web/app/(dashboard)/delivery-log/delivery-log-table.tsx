@@ -113,20 +113,20 @@ export function DeliveryLogTable({
       title: "Invoice ID",
       dataIndex: "invoiceId",
       key: "invoiceId",
-      render: (invoiceId: string | null) => <span className="font-mono text-[12px] text-[#71717a]">{shortId(invoiceId)}</span>,
+      render: (invoiceId: string | null) => <span className="font-mono text-[12px] text-text-muted">{shortId(invoiceId)}</span>,
     },
     {
       title: "Event",
       dataIndex: "eventType",
       key: "eventType",
-      render: (eventType: string) => <span className="font-mono text-[12px] text-[#141414]">{eventType}</span>,
+      render: (eventType: string) => <span className="font-mono text-[12px] text-text-primary">{eventType}</span>,
     },
     {
       title: "Endpoint",
       dataIndex: "endpointUrl",
       key: "endpointUrl",
       render: (endpointUrl: string | null) => (
-        <span className="block max-w-[200px] truncate text-[12px] text-[#71717a]">{endpointUrl ?? "—"}</span>
+        <span className="block max-w-50 truncate text-[12px] text-text-muted">{endpointUrl ?? "—"}</span>
       ),
     },
     {
@@ -142,7 +142,7 @@ export function DeliveryLogTable({
       title: "Delivered",
       key: "delivered",
       render: (_: unknown, row: WebhookDeliveryListItem) => (
-        <span className="text-[12px] text-[#71717a]">{formatDateTime(row.deliveredAt ?? row.createdAt)}</span>
+        <span className="text-[12px] text-text-muted">{formatDateTime(row.deliveredAt ?? row.createdAt)}</span>
       ),
     },
     {
@@ -165,53 +165,53 @@ export function DeliveryLogTable({
 
   return (
     <div className="animate-[fade-in_0.2s_ease-out_forwards]">
-      <div className="mb-4 text-[12.5px] text-[#71717a]">Webhook delivery log for all payment events</div>
+      <div className="mb-4 text-[12.5px] text-text-muted">Webhook delivery log for all payment events</div>
 
       <div className="mb-3.5 flex flex-wrap items-center gap-2">
         <Input
           placeholder="Search invoice ID…"
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
-          className="w-[196px]! rounded-[6px]!"
+          className="w-49! rounded-md!"
           allowClear
         />
         <Select
           value={filters.endpoint || "all"}
           onChange={(value) => updateFilters({ endpoint: value === "all" ? "" : value })}
           options={[{ label: "All Endpoints", value: "all" }, ...endpointOptions]}
-          className="w-[200px]! [&_.ant-select-selector]:rounded-[6px]!"
+          className="w-50! [&_.ant-select-selector]:rounded-md!"
         />
         <Select
           value={filters.status}
           onChange={(value) => updateFilters({ status: value })}
           options={STATUS_OPTIONS}
-          className="w-[164px]! [&_.ant-select-selector]:rounded-[6px]!"
+          className="w-41! [&_.ant-select-selector]:rounded-md!"
         />
         <input
           type="date"
           value={filters.from}
           onChange={(e) => updateFilters({ from: e.target.value })}
-          className="rounded-[6px] border border-[#e4e4e7] px-2.5 py-1.5 text-[12.5px] text-[#374151]"
+          className="rounded-md border border-border px-2.5 py-1.5 text-[12.5px] text-text-strong"
         />
-        <span className="text-[12px] text-[#a1a1aa]">–</span>
+        <span className="text-[12px] text-text-subtle">–</span>
         <input
           type="date"
           value={filters.to}
           onChange={(e) => updateFilters({ to: e.target.value })}
-          className="rounded-[6px] border border-[#e4e4e7] px-2.5 py-1.5 text-[12.5px] text-[#374151]"
+          className="rounded-md border border-border px-2.5 py-1.5 text-[12.5px] text-text-strong"
         />
         {hasActiveFilters ? (
-          <Button onClick={clearFilters} className="h-auto! rounded-[6px]! px-2.5! py-1.5! text-[12.5px]!">
+          <Button onClick={clearFilters} className="h-auto! rounded-md! px-2.5! py-1.5! text-[12.5px]!">
             Clear filters
           </Button>
         ) : null}
-        <div className="ml-auto text-[12.5px] text-[#71717a]">{rows.length} events</div>
+        <div className="ml-auto text-[12.5px] text-text-muted">{rows.length} events</div>
       </div>
 
       {error ? (
-        <Alert type="error" showIcon message={error} className="rounded-[6px]!" />
+        <Alert type="error" showIcon message={error} className="rounded-md!" />
       ) : (
-        <div className="overflow-hidden rounded-[8px] border border-[#e4e4e7]">
+        <div className="overflow-hidden rounded-lg border border-border">
           <Table
             dataSource={rows}
             columns={columns}

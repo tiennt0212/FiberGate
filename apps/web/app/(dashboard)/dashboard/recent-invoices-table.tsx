@@ -21,7 +21,7 @@ const RECENT_COLUMNS: ColumnsType<InvoiceView> = [
     title: "Invoice ID",
     dataIndex: "id",
     key: "id",
-    render: (id: string) => <span className="font-mono text-[12px] text-[#71717a]">{shortId(id)}</span>,
+    render: (id: string) => <span className="font-mono text-[12px] text-text-muted">{shortId(id)}</span>,
   },
   {
     title: "Description",
@@ -34,8 +34,8 @@ const RECENT_COLUMNS: ColumnsType<InvoiceView> = [
     key: "amount",
     align: "right",
     render: (_: unknown, row: InvoiceView) => (
-      <span className="font-mono text-[13px] font-medium text-[#141414]">
-        {formatCkb(row.amountCkb)} <span className="font-sans text-[11px] font-normal text-[#a1a1aa]">{row.asset}</span>
+      <span className="font-mono text-[13px] font-medium text-text-primary">
+        {formatCkb(row.amountCkb)} <span className="font-sans text-[11px] font-normal text-text-subtle">{row.asset}</span>
       </span>
     ),
   },
@@ -49,7 +49,7 @@ const RECENT_COLUMNS: ColumnsType<InvoiceView> = [
     title: "Date",
     dataIndex: "createdAt",
     key: "createdAt",
-    render: (createdAt: string | null) => <span className="text-[12px] text-[#71717a]">{formatDateTime(createdAt)}</span>,
+    render: (createdAt: string | null) => <span className="text-[12px] text-text-muted">{formatDateTime(createdAt)}</span>,
   },
 ];
 

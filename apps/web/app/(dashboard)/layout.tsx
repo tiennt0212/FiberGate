@@ -27,9 +27,9 @@ export default async function DashboardLayout({ children }: { children: ReactNod
 
   return (
     <HeaderActionProvider>
-      <div className="flex min-h-screen bg-[#f7f7f8] text-[14px] text-[#141414]">
+      <div className="flex min-h-screen bg-bg text-[14px] text-text-primary">
         <Sidebar step4Done={step4Done} step5Done={step5Done} />
-        <div className="ml-[240px] flex min-h-screen flex-1 flex-col">
+        <div className="ml-60 flex min-h-screen flex-1 flex-col">
           <Header />
           <main className="relative flex-1 px-7 pb-14 pt-7">{children}</main>
         </div>

@@ -64,7 +64,7 @@ export function ReceiptDrawer({
       onClose={onClose}
       width={480}
       title="Payment Receipt"
-      styles={{ header: { padding: "20px 24px 16px", borderBottom: "1px solid #f3f4f6" }, body: { padding: 0 } }}
+      styles={{ header: { padding: "20px 24px 16px", borderBottom: "1px solid var(--color-border-subtle)"}, body: { padding: 0 } }}
     >
       {loading || !receipt ? (
         <div className="flex justify-center py-16">
@@ -72,59 +72,59 @@ export function ReceiptDrawer({
         </div>
       ) : (
         <>
-          <div className="border-b border-[#f3f4f6] p-6">
+          <div className="border-b border-border-subtle p-6">
             <div className="flex flex-col gap-3.5">
               <div className="flex items-baseline justify-between">
-                <span className="text-[12.5px] text-[#71717a]">Description</span>
-                <span className="text-[13.5px] font-medium text-[#141414]">{receipt.description ?? "—"}</span>
+                <span className="text-[12.5px] text-text-muted">Description</span>
+                <span className="text-[13.5px] font-medium text-text-primary">{receipt.description ?? "—"}</span>
               </div>
               <div className="flex items-baseline justify-between">
-                <span className="text-[12.5px] text-[#71717a]">Amount</span>
-                <span className="font-mono text-[13.5px] font-bold text-[#141414]">
-                  {formatCkb(receipt.amountCkb)} <span className="font-sans text-[11.5px] font-normal text-[#71717a]">{receipt.asset}</span>
+                <span className="text-[12.5px] text-text-muted">Amount</span>
+                <span className="font-mono text-[13.5px] font-bold text-text-primary">
+                  {formatCkb(receipt.amountCkb)} <span className="font-sans text-[11.5px] font-normal text-text-muted">{receipt.asset}</span>
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-[12.5px] text-[#71717a]">Status</span>
+                <span className="text-[12.5px] text-text-muted">Status</span>
                 <StatusTag status={receipt.status} />
               </div>
               <div className="flex items-baseline justify-between">
-                <span className="text-[12.5px] text-[#71717a]">Paid at</span>
-                <span className="text-[12.5px] text-[#141414]">{formatDateTime(receipt.paidAt)}</span>
+                <span className="text-[12.5px] text-text-muted">Paid at</span>
+                <span className="text-[12.5px] text-text-primary">{formatDateTime(receipt.paidAt)}</span>
               </div>
-              <div className="border-t border-[#f3f4f6] pt-3.5">
-                <div className="mb-1.5 text-[12px] text-[#71717a]">Payment hash</div>
-                <div className="break-all rounded-[5px] bg-[#f3f4f6] px-2.5 py-2 font-mono text-[11px] leading-relaxed text-[#374151]">
+              <div className="border-t border-border-subtle pt-3.5">
+                <div className="mb-1.5 text-[12px] text-text-muted">Payment hash</div>
+                <div className="break-all rounded-[5px] bg-border-subtle px-2.5 py-2 font-mono text-[11px] leading-relaxed text-text-strong">
                   {receipt.paymentHash}
                 </div>
               </div>
             </div>
           </div>
           <div className="p-5">
-            <div className="mb-3 text-[13px] font-semibold text-[#141414]">Delivery Events</div>
+            <div className="mb-3 text-[13px] font-semibold text-text-primary">Delivery Events</div>
             {receipt.deliveries.length > 0 ? (
-              <div className="overflow-hidden rounded-[8px] border border-[#e4e4e7]">
+              <div className="overflow-hidden rounded-lg border border-border">
                 {receipt.deliveries.map((delivery) => (
-                  <div key={delivery.id} className="flex items-center gap-3 border-b border-[#f3f4f6] px-4 py-2.5 last:border-b-0">
+                  <div key={delivery.id} className="flex items-center gap-3 border-b border-border-subtle px-4 py-2.5 last:border-b-0">
                     <div
-                      className="h-1.75 w-1.75 flex-shrink-0 rounded-full"
+                      className="h-1.75 w-1.75 shrink-0 rounded-full"
                       style={{ backgroundColor: deliveryStatusColor(delivery.status).dot }}
                     />
                     <div className="min-w-0 flex-1">
-                      <div className="font-mono text-[12px] text-[#141414]">{delivery.eventType}</div>
-                      <div className="mt-0.5 truncate text-[11.5px] text-[#a1a1aa]">{delivery.endpointUrl ?? "—"}</div>
+                      <div className="font-mono text-[12px] text-text-primary">{delivery.eventType}</div>
+                      <div className="mt-0.5 truncate text-[11.5px] text-text-subtle">{delivery.endpointUrl ?? "—"}</div>
                     </div>
                     <span className="font-mono text-[12px] font-semibold" style={{ color: deliveryStatusColor(delivery.status).text }}>
                       {deliveryHttpText(delivery)}
                     </span>
-                    <span className="flex-shrink-0 whitespace-nowrap text-[11.5px] text-[#a1a1aa]">
+                    <span className="shrink-0 whitespace-nowrap text-[11.5px] text-text-subtle">
                       {formatDateTime(delivery.deliveredAt ?? delivery.createdAt)}
                     </span>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="rounded-[8px] border border-[#e4e4e7] px-5 py-5 text-center text-[13px] text-[#a1a1aa]">
+              <div className="rounded-lg border border-border px-5 py-5 text-center text-[13px] text-text-subtle">
                 No webhook deliveries for this invoice.
               </div>
             )}

@@ -74,17 +74,17 @@ export function AddEndpointDrawer({
       }}
       width={480}
       title="Add Webhook Endpoint"
-      styles={{ header: { padding: "20px 24px 16px", borderBottom: "1px solid #f3f4f6" }, body: { padding: "24px" } }}
+      styles={{ header: { padding: "20px 24px 16px", borderBottom: "1px solid var(--color-border-subtle)"}, body: { padding: "24px" } }}
       footer={
         <div className="flex justify-end gap-2">
-          <Button onClick={onClose} className="h-auto! rounded-[6px]! px-4! py-2!">
+          <Button onClick={onClose} className="h-auto! rounded-md! px-4! py-2!">
             Cancel
           </Button>
           <Button
             type="primary"
             loading={submitting}
             onClick={handleSubmit}
-            className="h-auto! rounded-[6px]! bg-[#4f46e5]! px-4! py-2! hover:bg-[#4338ca]!"
+            className="h-auto! rounded-md! bg-accent! px-4! py-2! hover:bg-accent-hover!"
           >
             Add Endpoint
           </Button>
@@ -93,29 +93,29 @@ export function AddEndpointDrawer({
     >
       <div className="flex flex-col gap-4.5">
         <div>
-          <label className="mb-1.5 block text-[12px] font-medium text-[#374151]">Endpoint URL</label>
+          <label className="mb-1.5 block text-[12px] font-medium text-text-strong">Endpoint URL</label>
           <input
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             placeholder="https://yourdomain.com/webhooks/fibergate"
-            className="w-full rounded-[6px] border border-[#e4e4e7] px-2.5 py-2 font-mono text-[13px] text-[#141414] outline-none"
+            className="w-full rounded-md border border-border px-2.5 py-2 font-mono text-[13px] text-text-primary outline-none"
           />
-          {error ? <div className="mt-1.5 text-[12px] text-[#dc2626]">{error}</div> : <div className="mt-1.5 text-[12px] text-[#a1a1aa]">Must be a publicly reachable HTTPS URL.</div>}
+          {error ? <div className="mt-1.5 text-[12px] text-danger">{error}</div> : <div className="mt-1.5 text-[12px] text-text-subtle">Must be a publicly reachable HTTPS URL.</div>}
         </div>
         <div>
-          <label className="mb-2 block text-[12px] font-medium text-[#374151]">Events to listen for</label>
+          <label className="mb-2 block text-[12px] font-medium text-text-strong">Events to listen for</label>
           <div className="flex flex-col gap-1.5">
             {EVENT_OPTIONS.map((option) => (
-              <label key={option.value} className="flex cursor-pointer items-start gap-2.5 rounded-[6px] border border-[#e4e4e7] px-3 py-2.5">
+              <label key={option.value} className="flex cursor-pointer items-start gap-2.5 rounded-md border border-border px-3 py-2.5">
                 <input
                   type="checkbox"
                   checked={events.includes(option.value)}
                   onChange={() => toggleEvent(option.value)}
-                  className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 accent-[#4f46e5]"
+                  className="mt-0.5 h-3.5 w-3.5 shrink-0 accent-accent"
                 />
                 <div>
-                  <div className="text-[13px] font-medium text-[#141414]">{option.title}</div>
-                  <div className="mt-0.5 text-[12px] text-[#71717a]">{option.description}</div>
+                  <div className="text-[13px] font-medium text-text-primary">{option.title}</div>
+                  <div className="mt-0.5 text-[12px] text-text-muted">{option.description}</div>
                 </div>
               </label>
             ))}

@@ -94,7 +94,7 @@ export function InvoicesTable({
       title: "Invoice ID",
       dataIndex: "id",
       key: "id",
-      render: (id: string) => <span className="font-mono text-[12px] text-[#71717a]">{shortId(id)}</span>,
+      render: (id: string) => <span className="font-mono text-[12px] text-text-muted">{shortId(id)}</span>,
     },
     {
       title: "Description",
@@ -111,8 +111,8 @@ export function InvoicesTable({
       key: "amount",
       align: "right",
       render: (_: unknown, row: InvoiceView) => (
-        <span className="font-mono text-[13px] font-medium text-[#141414]">
-          {formatCkb(row.amountCkb)} <span className="font-sans text-[11px] font-normal text-[#a1a1aa]">{row.asset}</span>
+        <span className="font-mono text-[13px] font-medium text-text-primary">
+          {formatCkb(row.amountCkb)} <span className="font-sans text-[11px] font-normal text-text-subtle">{row.asset}</span>
         </span>
       ),
     },
@@ -126,7 +126,7 @@ export function InvoicesTable({
       title: "Date",
       dataIndex: "createdAt",
       key: "createdAt",
-      render: (createdAt: string | null) => <span className="text-[12px] text-[#71717a]">{formatDateTime(createdAt)}</span>,
+      render: (createdAt: string | null) => <span className="text-[12px] text-text-muted">{formatDateTime(createdAt)}</span>,
     },
     {
       title: "",
@@ -156,73 +156,73 @@ export function InvoicesTable({
 
   return (
     <div className="animate-[fade-in_0.2s_ease-out_forwards]">
-      <div className="mb-4 text-[12.5px] text-[#71717a]">All payment invoices</div>
+      <div className="mb-4 text-[12.5px] text-text-muted">All payment invoices</div>
 
       <div className="mb-3.5 flex flex-wrap items-center gap-2">
         <Input
           placeholder="Search ID or description…"
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
-          className="w-[216px]! rounded-[6px]!"
+          className="w-54! rounded-md!"
           allowClear
         />
         <Select
           value={filters.status}
           onChange={(value) => updateFilters({ status: value })}
           options={STATUS_OPTIONS}
-          className="w-[132px]! [&_.ant-select-selector]:rounded-[6px]!"
+          className="w-33! [&_.ant-select-selector]:rounded-md!"
         />
         <Select
           value={filters.asset}
           onChange={(value) => updateFilters({ asset: value })}
           options={ASSET_OPTIONS}
-          className="w-[120px]! [&_.ant-select-selector]:rounded-[6px]!"
+          className="w-30! [&_.ant-select-selector]:rounded-md!"
         />
         <input
           type="date"
           value={filters.from}
           onChange={(e) => updateFilters({ from: e.target.value })}
-          className="rounded-[6px] border border-[#e4e4e7] px-2.5 py-1.5 text-[12.5px] text-[#374151]"
+          className="rounded-md border border-border px-2.5 py-1.5 text-[12.5px] text-text-strong"
         />
-        <span className="text-[12px] text-[#a1a1aa]">–</span>
+        <span className="text-[12px] text-text-subtle">–</span>
         <input
           type="date"
           value={filters.to}
           onChange={(e) => updateFilters({ to: e.target.value })}
-          className="rounded-[6px] border border-[#e4e4e7] px-2.5 py-1.5 text-[12.5px] text-[#374151]"
+          className="rounded-md border border-border px-2.5 py-1.5 text-[12.5px] text-text-strong"
         />
-        <div className="flex items-center gap-1 rounded-[6px] border border-[#e4e4e7] bg-white px-2.5 py-1.5">
+        <div className="flex items-center gap-1 rounded-md border border-border bg-white px-2.5 py-1.5">
           <input
             type="number"
             placeholder="Min"
             value={filters.min}
             onChange={(e) => updateFilters({ min: e.target.value })}
-            className="w-[52px] border-none text-[12.5px] text-[#374151] outline-none"
+            className="w-13 border-none text-[12.5px] text-text-strong outline-none"
           />
-          <span className="flex-shrink-0 text-[12px] text-[#d4d4d8]">–</span>
+          <span className="shrink-0 text-[12px] text-[#d4d4d8]">–</span>
           <input
             type="number"
             placeholder="Max"
             value={filters.max}
             onChange={(e) => updateFilters({ max: e.target.value })}
-            className="w-[52px] border-none text-[12.5px] text-[#374151] outline-none"
+            className="w-13 border-none text-[12.5px] text-text-strong outline-none"
           />
         </div>
         {hasActiveFilters ? (
           <Button
             onClick={clearFilters}
-            className="h-auto! rounded-[6px]! px-2.5! py-1.5! text-[12.5px]!"
+            className="h-auto! rounded-md! px-2.5! py-1.5! text-[12.5px]!"
           >
             Clear filters
           </Button>
         ) : null}
-        <div className="ml-auto text-[12.5px] text-[#71717a]">{rows.length} invoices</div>
+        <div className="ml-auto text-[12.5px] text-text-muted">{rows.length} invoices</div>
       </div>
 
       {error ? (
-        <Alert type="error" showIcon message={error} className="rounded-[6px]!" />
+        <Alert type="error" showIcon message={error} className="rounded-md!" />
       ) : (
-        <div className="overflow-hidden rounded-[8px] border border-[#e4e4e7]">
+        <div className="overflow-hidden rounded-lg border border-border">
           <Table
             dataSource={rows}
             columns={columns}

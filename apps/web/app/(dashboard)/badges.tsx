@@ -8,14 +8,14 @@ import { Tag } from "antd";
 // don't hand-roll a <span>).
 
 const STATUS_CLASSNAMES: Record<string, string> = {
-  paid: "bg-[#dcfce7]! text-[#15803d]!",
-  pending: "bg-[#fef9c3]! text-[#854d0e]!",
-  expired: "bg-[#f3f4f6]! text-[#374151]!",
-  failed: "bg-[#fee2e2]! text-[#991b1b]!",
-  active: "bg-[#dcfce7]! text-[#15803d]!",
-  disabled: "bg-[#f3f4f6]! text-[#71717a]!",
-  success: "bg-[#dcfce7]! text-[#15803d]!",
-  retrying: "bg-[#fef9c3]! text-[#854d0e]!",
+  paid: "bg-status-success-bg! text-status-success-text!",
+  pending: "bg-status-warning-bg! text-status-warning-text!",
+  expired: "bg-border-subtle! text-text-strong!",
+  failed: "bg-status-danger-bg! text-status-danger-text!",
+  active: "bg-status-success-bg! text-status-success-text!",
+  disabled: "bg-border-subtle! text-text-muted!",
+  success: "bg-status-success-bg! text-status-success-text!",
+  retrying: "bg-status-warning-bg! text-status-warning-text!",
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -30,7 +30,7 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 export function StatusTag({ status }: { status: string }) {
-  const className = STATUS_CLASSNAMES[status] ?? "bg-[#f3f4f6]! text-[#374151]!";
+  const className = STATUS_CLASSNAMES[status] ?? "bg-border-subtle! text-text-strong!";
   const label = STATUS_LABELS[status] ?? status;
   return (
     <Tag className={`rounded-full! border-0! px-2! py-0! text-[11.5px]! font-medium! ${className}`}>{label}</Tag>
@@ -39,7 +39,7 @@ export function StatusTag({ status }: { status: string }) {
 
 export function AssetTag({ asset }: { asset: string }) {
   return (
-    <Tag className="rounded! border-0! bg-[#f3f4f6]! px-2! py-0! font-mono text-[11.5px]! font-semibold! text-[#374151]!">
+    <Tag className="rounded! border-0! bg-border-subtle! px-2! py-0! font-mono text-[11.5px]! font-semibold! text-text-strong!">
       {asset}
     </Tag>
   );
@@ -62,12 +62,15 @@ export interface DeliveryStatusColor {
 }
 
 const DELIVERY_STATUS_COLORS: Record<string, DeliveryStatusColor> = {
-  success: { text: "#15803d", dot: "#16a34a" },
-  pending: { text: "#b45309", dot: "#f59e0b" },
-  failed: { text: "#991b1b", dot: "#dc2626" },
+  success: { text: "var(--color-status-success-text)", dot: "var(--color-success)" },
+  pending: { text: "var(--color-delivery-pending-text)", dot: "var(--color-warning)" },
+  failed: { text: "var(--color-status-danger-text)", dot: "var(--color-danger)" },
 };
 
-const DEFAULT_DELIVERY_STATUS_COLOR: DeliveryStatusColor = { text: "#71717a", dot: "#a1a1aa" };
+const DEFAULT_DELIVERY_STATUS_COLOR: DeliveryStatusColor = {
+  text: "var(--color-text-muted)",
+  dot: "var(--color-text-subtle)",
+};
 
 export function deliveryStatusColor(status: string): DeliveryStatusColor {
   return DELIVERY_STATUS_COLORS[status] ?? DEFAULT_DELIVERY_STATUS_COLOR;

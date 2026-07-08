@@ -43,33 +43,33 @@ interface StepCardProps {
 }
 
 function StepCard({ index, title, description, code, status, action }: StepCardProps) {
-  const dotBg = status === "upcoming" ? "bg-[#e4e4e7]" : "bg-[#4f46e5]";
-  const dotColor = status === "upcoming" ? "text-[#a1a1aa]" : "text-white";
+  const dotBg = status === "upcoming" ? "bg-border" : "bg-accent";
+  const dotColor = status === "upcoming" ? "text-text-subtle" : "text-white";
   const containerClass =
     status === "current"
-      ? "border-[#c7d2fe] shadow-[0_0_0_3px_rgba(79,70,229,0.08)]"
-      : "border-[#e4e4e7]";
+      ? "border-accent-border shadow-[0_0_0_3px_var(--color-accent-ring)]"
+      : "border-border";
   const opacity = status === "upcoming" ? "opacity-70" : "";
 
   return (
-    <div className={`overflow-hidden rounded-[8px] border bg-white ${containerClass} ${opacity}`}>
+    <div className={`overflow-hidden rounded-lg border bg-white ${containerClass} ${opacity}`}>
       <div className="flex items-center gap-3.5 px-5 py-4">
-        <div className={`flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[13px] font-bold ${dotBg} ${dotColor}`}>
+        <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[13px] font-bold ${dotBg} ${dotColor}`}>
           {status === "done" ? "✓" : index}
         </div>
         <div className="flex-1">
-          <div className="text-[14px] font-semibold text-[#141414]">{title}</div>
-          <div className="mt-0.5 text-[12.5px] text-[#71717a]">{description}</div>
+          <div className="text-[14px] font-semibold text-text-primary">{title}</div>
+          <div className="mt-0.5 text-[12.5px] text-text-muted">{description}</div>
         </div>
         {status === "done" ? (
-          <span className="rounded-full bg-[#dcfce7] px-2.5 py-0.75 text-[12px] font-medium text-[#15803d]">Done</span>
+          <span className="rounded-full bg-status-success-bg px-2.5 py-0.75 text-[12px] font-medium text-status-success-text">Done</span>
         ) : status === "current" ? (
-          <span className="rounded-full bg-[#eef2ff] px-2.5 py-0.75 text-[12px] font-medium text-[#4f46e5]">Current</span>
+          <span className="rounded-full bg-accent-light px-2.5 py-0.75 text-[12px] font-medium text-accent">Current</span>
         ) : null}
       </div>
       {code ? (
-        <div className="px-5 pb-4 pl-[62px]">
-          <pre className="m-0 overflow-x-auto rounded-[6px] bg-[#0f172a] px-4 py-3 font-mono text-[12px] leading-relaxed text-[#e2e8f0]">{code}</pre>
+        <div className="px-5 pb-4 pl-15.5">
+          <pre className="m-0 overflow-x-auto rounded-md bg-code-bg px-4 py-3 font-mono text-[12px] leading-relaxed text-[#e2e8f0]">{code}</pre>
           {action}
         </div>
       ) : null}
@@ -82,20 +82,20 @@ export function QuickStartSteps({ step4Done, step5Done }: { step4Done: boolean; 
   const progressPct = Math.round((completedSteps / totalSteps) * 100);
 
   return (
-    <div className="max-w-[800px] animate-[fade-in_0.2s_ease-out_forwards]">
+    <div className="max-w-200 animate-[fade-in_0.2s_ease-out_forwards]">
       <div className="mb-5.5">
-        <div className="text-[15px] font-semibold text-[#141414]">Quick Start</div>
-        <div className="mt-0.5 text-[12.5px] text-[#71717a]">Self-host FiberGate and accept your first payment</div>
+        <div className="text-[15px] font-semibold text-text-primary">Quick Start</div>
+        <div className="mt-0.5 text-[12.5px] text-text-muted">Self-host FiberGate and accept your first payment</div>
       </div>
 
-      <div className="mb-5 flex items-center gap-3.5 rounded-[8px] border border-[#e4e4e7] bg-white px-5 py-4">
-        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[#f3f4f6]">
+      <div className="mb-5 flex items-center gap-3.5 rounded-lg border border-border bg-white px-5 py-4">
+        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-border-subtle">
           <div
-            className="h-full rounded-full bg-gradient-to-r from-[#4f46e5] to-[#7c3aed] transition-[width]"
+            className="h-full rounded-full bg-gradient-to-r from-accent to-purple transition-[width]"
             style={{ width: `${progressPct}%` }}
           />
         </div>
-        <span className="whitespace-nowrap text-[13px] font-semibold text-[#141414]">
+        <span className="whitespace-nowrap text-[13px] font-semibold text-text-primary">
           {completedSteps}/{totalSteps} complete
         </span>
       </div>
@@ -131,7 +131,7 @@ export function QuickStartSteps({ step4Done, step5Done }: { step4Done: boolean; 
               <div className="mt-3 flex gap-2">
                 <button
                   onClick={markStep3Done}
-                  className="cursor-pointer rounded-[6px] border-0 bg-[#4f46e5] px-3.5 py-1.5 text-[13px] font-medium text-white hover:bg-[#4338ca]"
+                  className="cursor-pointer rounded-md border-0 bg-accent px-3.5 py-1.5 text-[13px] font-medium text-white hover:bg-accent-hover"
                 >
                   Mark as done
                 </button>
@@ -139,7 +139,7 @@ export function QuickStartSteps({ step4Done, step5Done }: { step4Done: boolean; 
                   href="https://www.npmjs.com/package/@fibergate/sdk"
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center rounded-[6px] border border-[#e4e4e7] px-3.5 py-1.5 text-[13px] text-[#374151] no-underline! hover:bg-[#f4f4f5]"
+                  className="inline-flex items-center rounded-md border border-border px-3.5 py-1.5 text-[13px] text-text-strong no-underline! hover:bg-surface-hover"
                 >
                   View SDK docs
                 </a>

@@ -113,31 +113,31 @@ export function WebhooksPanel({ initialEndpoints, error }: { initialEndpoints: E
 
   return (
     <div className="animate-[fade-in_0.2s_ease-out_forwards]">
-      <div className="mb-5.5 text-[12.5px] text-[#71717a]">Real-time event notifications sent to your endpoints</div>
+      <div className="mb-5.5 text-[12.5px] text-text-muted">Real-time event notifications sent to your endpoints</div>
 
-      {error ? <Alert type="error" showIcon message={error} className="mb-4 rounded-[6px]!" /> : null}
+      {error ? <Alert type="error" showIcon message={error} className="mb-4 rounded-md!" /> : null}
 
       <div className="grid grid-cols-2 gap-3.5">
-        <div className="self-start overflow-hidden rounded-[8px] border border-[#e4e4e7] bg-white">
-          <div className="border-b border-[#f3f4f6] px-4.5 py-3.5 text-[13px] font-semibold text-[#141414]">Endpoints</div>
+        <div className="self-start overflow-hidden rounded-lg border border-border bg-white">
+          <div className="border-b border-border-subtle px-4.5 py-3.5 text-[13px] font-semibold text-text-primary">Endpoints</div>
           {endpoints.length === 0 ? (
-            <div className="px-4.5 py-10 text-center text-[13px] text-[#a1a1aa]">No endpoints yet. Add one to start receiving events.</div>
+            <div className="px-4.5 py-10 text-center text-[13px] text-text-subtle">No endpoints yet. Add one to start receiving events.</div>
           ) : (
             endpoints.map((endpoint) => (
               <div
                 key={endpoint.id}
                 onClick={() => handleSelect(endpoint.id)}
-                className={`cursor-pointer border-b border-[#f3f4f6] border-l-2 px-4.5 py-3.5 last:border-b-0 hover:bg-[#f9f9fb] ${
-                  selectedId === endpoint.id ? "border-l-[#c7d2fe] bg-[#f0f0ff]" : "border-l-transparent"
+                className={`cursor-pointer border-b border-border-subtle border-l-2 px-4.5 py-3.5 last:border-b-0 hover:bg-table-header-bg ${
+                  selectedId === endpoint.id ? "border-l-accent-border bg-[#f0f0ff]" : "border-l-transparent"
                 }`}
               >
                 <div className="mb-1.5 flex items-start justify-between gap-2.5">
-                  <code className="flex-1 break-all font-mono text-[12px] leading-snug text-[#141414]">{endpoint.url}</code>
+                  <code className="flex-1 break-all font-mono text-[12px] leading-snug text-text-primary">{endpoint.url}</code>
                   <StatusTag status={endpoint.isActive ? "active" : "disabled"} />
                 </div>
-                <div className="mb-2 text-[11.5px] text-[#71717a]">{endpoint.events.join(", ")}</div>
+                <div className="mb-2 text-[11.5px] text-text-muted">{endpoint.events.join(", ")}</div>
                 <div className="flex items-center justify-between">
-                  <span className="text-[11.5px] text-[#a1a1aa]">{endpoint.createdAt ? `Created ${formatDateTime(endpoint.createdAt)}` : ""}</span>
+                  <span className="text-[11.5px] text-text-subtle">{endpoint.createdAt ? `Created ${formatDateTime(endpoint.createdAt)}` : ""}</span>
                   <Button
                     size="small"
                     loading={busyKeys.has(`toggle:${endpoint.id}`)}
@@ -145,7 +145,7 @@ export function WebhooksPanel({ initialEndpoints, error }: { initialEndpoints: E
                       e.stopPropagation();
                       handleToggle(endpoint);
                     }}
-                    className="h-auto! rounded-[4px]! px-2! py-0.5! text-[11px]!"
+                    className="h-auto! rounded-sm! px-2! py-0.5! text-[11px]!"
                   >
                     {endpoint.isActive ? "Disable" : "Enable"}
                   </Button>
@@ -156,45 +156,45 @@ export function WebhooksPanel({ initialEndpoints, error }: { initialEndpoints: E
         </div>
 
         <div className="flex flex-col gap-3.5">
-          <div className="overflow-hidden rounded-[8px] border border-[#e4e4e7] bg-white">
-            <div className="flex items-center justify-between border-b border-[#f3f4f6] px-4.5 py-3.5">
-              <span className="text-[13px] font-semibold text-[#141414]">Delivery History</span>
-              <span className="max-w-[200px] truncate font-mono text-[12px] text-[#71717a]">{selectedEndpoint?.url ?? ""}</span>
+          <div className="overflow-hidden rounded-lg border border-border bg-white">
+            <div className="flex items-center justify-between border-b border-border-subtle px-4.5 py-3.5">
+              <span className="text-[13px] font-semibold text-text-primary">Delivery History</span>
+              <span className="max-w-50 truncate font-mono text-[12px] text-text-muted">{selectedEndpoint?.url ?? ""}</span>
             </div>
             {deliveries.length > 0 ? (
               deliveries.map((delivery) => (
-                <div key={delivery.id} className="flex items-center gap-3 border-b border-[#f3f4f6] px-4.5 py-2.75 last:border-b-0">
+                <div key={delivery.id} className="flex items-center gap-3 border-b border-border-subtle px-4.5 py-2.75 last:border-b-0">
                   <div
-                    className="h-1.75 w-1.75 flex-shrink-0 rounded-full"
+                    className="h-1.75 w-1.75 shrink-0 rounded-full"
                     style={{ backgroundColor: deliveryStatusColor(delivery.status).dot }}
                   />
                   <div className="min-w-0 flex-1">
-                    <div className="font-mono text-[12px] text-[#141414]">{delivery.eventType}</div>
-                    <div className="mt-0.5 text-[11.5px] text-[#a1a1aa]">{formatDateTime(delivery.deliveredAt ?? delivery.createdAt)}</div>
+                    <div className="font-mono text-[12px] text-text-primary">{delivery.eventType}</div>
+                    <div className="mt-0.5 text-[11.5px] text-text-subtle">{formatDateTime(delivery.deliveredAt ?? delivery.createdAt)}</div>
                   </div>
-                  <span className="font-mono text-[12px] font-semibold text-[#71717a]">
+                  <span className="font-mono text-[12px] font-semibold text-text-muted">
                     {deliveryHttpText(delivery)}
                   </span>
                 </div>
               ))
             ) : (
-              <div className="px-4.5 py-8 text-center text-[13px] text-[#a1a1aa]">No deliveries yet for this endpoint.</div>
+              <div className="px-4.5 py-8 text-center text-[13px] text-text-subtle">No deliveries yet for this endpoint.</div>
             )}
           </div>
 
-          <div className="rounded-[8px] border border-[#e4e4e7] bg-white px-4.5 py-4">
-            <div className="mb-2.5 text-[13px] font-semibold text-[#141414]">Signing Secret</div>
-            <div className="mb-2.5 text-[12px] leading-relaxed text-[#71717a]">Use this secret to verify webhook payloads with HMAC-SHA256 (BR-WHK-004).</div>
+          <div className="rounded-lg border border-border bg-white px-4.5 py-4">
+            <div className="mb-2.5 text-[13px] font-semibold text-text-primary">Signing Secret</div>
+            <div className="mb-2.5 text-[12px] leading-relaxed text-text-muted">Use this secret to verify webhook payloads with HMAC-SHA256 (BR-WHK-004).</div>
             {revealedSecret && revealedSecret.id === selectedId ? (
               <>
                 <Alert
                   type="warning"
                   showIcon
                   message="Copy this now — it will not be shown again"
-                  className="mb-2 rounded-[6px]!"
+                  className="mb-2 rounded-md!"
                 />
                 <div className="flex items-center gap-2">
-                  <div className="flex-1 overflow-hidden text-ellipsis whitespace-nowrap rounded-[5px] bg-[#f3f4f6] px-2.5 py-2 font-mono text-[12px] text-[#374151]">
+                  <div className="flex-1 overflow-hidden text-ellipsis whitespace-nowrap rounded-[5px] bg-border-subtle px-2.5 py-2 font-mono text-[12px] text-text-strong">
                     {revealedSecret.secret}
                   </div>
                   <Button
@@ -212,7 +212,7 @@ export function WebhooksPanel({ initialEndpoints, error }: { initialEndpoints: E
               </>
             ) : (
               <div className="flex items-center gap-2">
-                <div className="flex-1 overflow-hidden text-ellipsis whitespace-nowrap rounded-[5px] bg-[#f3f4f6] px-2.5 py-2 font-mono text-[12px] text-[#374151]">
+                <div className="flex-1 overflow-hidden text-ellipsis whitespace-nowrap rounded-[5px] bg-border-subtle px-2.5 py-2 font-mono text-[12px] text-text-strong">
                   {SECRET_MASK}
                 </div>
                 <Button

@@ -20,15 +20,15 @@ export function Header() {
   const title = (pathname && PAGE_TITLES[pathname]) ?? "";
 
   return (
-    <header className="sticky top-0 z-20 flex h-[52px] items-center justify-between border-b border-[#e4e4e7] bg-white px-7">
-      <span className="text-[15px] font-semibold text-[#141414]">{title}</span>
+    <header className="sticky top-0 z-20 flex h-13 items-center justify-between border-b border-border bg-white px-7">
+      <span className="text-[15px] font-semibold text-text-primary">{title}</span>
       <div className="flex items-center gap-2">
         {pathname === ROUTE.QUICK_START ? (
           <a
             href="https://www.fiber.world/docs"
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center gap-1.5 rounded-[6px] bg-[#4f46e5] px-3.5 py-1.5 text-[13px] font-medium text-white no-underline! hover:bg-[#4338ca]"
+            className="inline-flex items-center gap-1.5 rounded-md bg-accent px-3.5 py-1.5 text-[13px] font-medium text-white no-underline! hover:bg-accent-hover"
           >
             View Docs
           </a>
@@ -37,7 +37,7 @@ export function Header() {
             type="primary"
             loading={action.loading}
             onClick={action.onClick}
-            className="h-auto! rounded-[6px]! bg-[#4f46e5]! px-3.5! py-1.5! text-[13px]! font-medium! hover:bg-[#4338ca]!"
+            className="h-auto! rounded-md! bg-accent! px-3.5! py-1.5! text-[13px]! font-medium! hover:bg-accent-hover!"
           >
             {action.label}
           </Button>
