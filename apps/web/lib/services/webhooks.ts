@@ -275,7 +275,7 @@ export async function listWebhookDeliveries(
     }
   }
 
-  const rows = await db
+  let selectQuery = db
     .select({
       id: webhookDeliveries.id,
       invoiceId: webhookDeliveries.invoiceId,
@@ -290,7 +290,15 @@ export async function listWebhookDeliveries(
     })
     .from(webhookDeliveries)
     .leftJoin(webhookEndpoints, eq(webhookDeliveries.endpointId, webhookEndpoints.id))
-    .leftJoin(invoices, eq(webhookDeliveries.invoiceId, invoices.id))
+    .$dynamic();
+
+  // invoices is only referenced by the `search` condition above — join it
+  // conditionally so every other call (the common case) skips it entirely.
+  if (query.search) {
+    selectQuery = selectQuery.leftJoin(invoices, eq(webhookDeliveries.invoiceId, invoices.id));
+  }
+
+  const rows = await selectQuery
     .where(conditions.length > 0 ? and(...conditions) : undefined)
     .orderBy(desc(webhookDeliveries.createdAt), desc(webhookDeliveries.id))
     // Same "fetch one extra row" hasMore trick as listInvoices().
