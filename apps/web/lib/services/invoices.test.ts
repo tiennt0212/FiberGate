@@ -20,7 +20,7 @@ vi.mock("@/lib/fiber/client", () => ({
 
 const { db } = await import("@/lib/db");
 const { createInvoice: createFiberInvoice } = await import("@/lib/fiber/client");
-const { createInvoice, getInvoiceById, listInvoices } = await import("./invoices");
+const { createInvoice, getInvoiceById, listInvoices, hasPaidInvoice, getInvoiceStats } = await import("./invoices");
 
 function mockSelectResult(rows: InvoiceRow[]) {
   const chain = createQueryChain(rows);
@@ -152,6 +152,68 @@ describe("listInvoices", () => {
     await expect(listInvoices({ ...BASE_QUERY, cursor: "not-base64-json" })).rejects.toBeInstanceOf(
       ApiValidationError,
     );
+  });
+
+  it("applies the dashboard-only search/date-range/amount-range filters as extra WHERE conditions", async () => {
+    const chain = mockSelectResult([]);
+
+    await listInvoices({
+      ...BASE_QUERY,
+      search: "order",
+      createdFrom: new Date("2026-06-01T00:00:00Z"),
+      createdTo: new Date("2026-07-01T00:00:00Z"),
+      amountMinShannon: 100_000_000n,
+      amountMaxShannon: 500_000_000n,
+    });
+
+    expect(chain.where).toHaveBeenCalled();
+  });
+});
+
+describe("hasPaidInvoice", () => {
+  it("returns true when at least one paid invoice exists", async () => {
+    mockSelectResult([buildInvoiceRow({ status: "paid" })]);
+
+    await expect(hasPaidInvoice()).resolves.toBe(true);
+  });
+
+  it("returns false when no paid invoice exists", async () => {
+    mockSelectResult([]);
+
+    await expect(hasPaidInvoice()).resolves.toBe(false);
+  });
+});
+
+describe("getInvoiceStats", () => {
+  it("aggregates counts and per-asset paid volume, ignoring expired/failed rows", async () => {
+    mockSelectResult([
+      { status: "paid", asset: "CKB", amountShannon: 100_000_000n },
+      { status: "paid", asset: "CKB", amountShannon: 200_000_000n },
+      { status: "paid", asset: "RUSD", amountShannon: 50_000_000n },
+      { status: "pending", asset: "CKB", amountShannon: 10_000_000n },
+      { status: "expired", asset: "CKB", amountShannon: 5_000_000n },
+      { status: "failed", asset: "CKB", amountShannon: 5_000_000n },
+    ] as unknown as InvoiceRow[]);
+
+    const stats = await getInvoiceStats();
+
+    expect(stats).toEqual({
+      totalCount: 6,
+      paidCount: 3,
+      pendingCount: 1,
+      paidVolumeByAsset: { CKB: 300_000_000n, RUSD: 50_000_000n },
+    });
+  });
+
+  it("returns zeroed stats when there are no invoices in the window", async () => {
+    mockSelectResult([]);
+
+    await expect(getInvoiceStats()).resolves.toEqual({
+      totalCount: 0,
+      paidCount: 0,
+      pendingCount: 0,
+      paidVolumeByAsset: {},
+    });
   });
 });
 

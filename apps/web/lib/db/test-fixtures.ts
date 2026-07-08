@@ -37,6 +37,13 @@ export type QueryChain<T = InvoiceRow> = Promise<T[]> & {
   values: (...args: unknown[]) => QueryChain<T>;
   set: (...args: unknown[]) => QueryChain<T>;
   returning: (...args: unknown[]) => QueryChain<T>;
+  // Joined queries (e.g. listWebhookDeliveries()'s webhook_endpoints/invoices
+  // join) chain .leftJoin() one or more times before .where()/.orderBy().
+  leftJoin: (...args: unknown[]) => QueryChain<T>;
+  // listWebhookDeliveries() calls .$dynamic() to allow a conditional
+  // .leftJoin() afterward (Drizzle's real $dynamic() only flips a type-level
+  // flag; the runtime object is unchanged) — a no-op passthrough here too.
+  $dynamic: (...args: unknown[]) => QueryChain<T>;
 };
 
 export function createQueryChain<T = InvoiceRow>(rows: T[]): QueryChain<T> {
@@ -48,5 +55,7 @@ export function createQueryChain<T = InvoiceRow>(rows: T[]): QueryChain<T> {
   chain.values = vi.fn(() => chain);
   chain.set = vi.fn(() => chain);
   chain.returning = vi.fn(() => chain);
+  chain.leftJoin = vi.fn(() => chain);
+  chain.$dynamic = vi.fn(() => chain);
   return chain;
 }

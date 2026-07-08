@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { ApiValidationError } from "@/lib/api/validation";
 import { createQueryChain } from "@/lib/db/test-fixtures";
 import { buildWebhookDeliveryRow } from "@/lib/webhooks/test-fixtures";
 
@@ -31,6 +32,8 @@ const {
   updateWebhookEndpoint,
   deactivateWebhookEndpoint,
   resendDelivery,
+  regenerateWebhookSecret,
+  listWebhookDeliveries,
 } = await import("./webhooks");
 
 afterEach(() => {
@@ -183,5 +186,92 @@ describe("resendDelivery", () => {
     await expect(resendDelivery("delivery-original")).rejects.toThrow(
       "Webhook delivery resend insert returned no row",
     );
+  });
+});
+
+describe("regenerateWebhookSecret", () => {
+  it("generates a fresh >=32-byte random secret, encrypts it, and updates the row", async () => {
+    vi.mocked(encryptWebhookSecret).mockReturnValue("new-encrypted-value");
+    const chain = createQueryChain([
+      { id: "ep-1", url: "https://x.example", secret: "new-encrypted-value", events: ["payment.paid"], isActive: true },
+    ]);
+    vi.mocked(db.update).mockReturnValue(chain as unknown as ReturnType<typeof db.update>);
+
+    const result = await regenerateWebhookSecret("ep-1");
+
+    expect(result.secret).toMatch(/^[0-9a-f]{64,}$/);
+    expect(encryptWebhookSecret).toHaveBeenCalledWith(result.secret);
+    expect(chain.set).toHaveBeenCalledWith({ secret: "new-encrypted-value" });
+    expect(result.endpoint.id).toBe("ep-1");
+  });
+
+  it("throws if no endpoint row matches the id", async () => {
+    vi.mocked(encryptWebhookSecret).mockReturnValue("new-encrypted-value");
+    vi.mocked(db.update).mockReturnValue(createQueryChain([]) as unknown as ReturnType<typeof db.update>);
+
+    await expect(regenerateWebhookSecret("missing")).rejects.toThrow(/no webhook_endpoints row/);
+  });
+});
+
+describe("listWebhookDeliveries", () => {
+  it("returns rows ordered by created_at desc via the joined query", async () => {
+    const chain = createQueryChain([
+      { id: "d1", invoiceId: "inv-1", eventType: "payment.paid", endpointId: "ep-1", endpointUrl: "https://x.example", httpStatus: 200, status: "success", attemptCount: 1, deliveredAt: new Date(), createdAt: new Date() },
+    ]);
+    vi.mocked(db.select).mockReturnValue(chain as unknown as ReturnType<typeof db.select>);
+
+    const result = await listWebhookDeliveries({ limit: 20 });
+
+    expect(chain.leftJoin).toHaveBeenCalled();
+    expect(chain.orderBy).toHaveBeenCalled();
+    expect(result.rows).toHaveLength(1);
+    expect(result.nextCursor).toBeNull();
+  });
+
+  it("caps the query at limit + 1 and reports hasMore via a non-null cursor", async () => {
+    const rows = Array.from({ length: 3 }, (_, i) => ({
+      id: `d${i}`,
+      invoiceId: "inv-1",
+      eventType: "payment.paid",
+      endpointId: "ep-1",
+      endpointUrl: "https://x.example",
+      httpStatus: 200,
+      status: "success",
+      attemptCount: 1,
+      deliveredAt: new Date(),
+      createdAt: new Date(2026, 6, 1, 12, i),
+    }));
+    const chain = createQueryChain(rows);
+    vi.mocked(db.select).mockReturnValue(chain as unknown as ReturnType<typeof db.select>);
+
+    const result = await listWebhookDeliveries({ limit: 2 });
+
+    expect(chain.limit).toHaveBeenCalledWith(3);
+    expect(result.rows).toHaveLength(2);
+    expect(result.nextCursor).not.toBeNull();
+  });
+
+  it("throws ApiValidationError for a malformed cursor, without querying the DB", async () => {
+    vi.mocked(db.select).mockReturnValue(createQueryChain([]) as unknown as ReturnType<typeof db.select>);
+
+    await expect(listWebhookDeliveries({ limit: 20, cursor: "not-base64-json" })).rejects.toBeInstanceOf(
+      ApiValidationError,
+    );
+  });
+
+  it("applies endpointId/status/search/date-range filters as extra WHERE conditions", async () => {
+    const chain = createQueryChain([]);
+    vi.mocked(db.select).mockReturnValue(chain as unknown as ReturnType<typeof db.select>);
+
+    await listWebhookDeliveries({
+      limit: 20,
+      endpointId: "ep-1",
+      status: "failed",
+      search: "abc123",
+      createdFrom: new Date("2026-06-01T00:00:00Z"),
+      createdTo: new Date("2026-07-01T00:00:00Z"),
+    });
+
+    expect(chain.where).toHaveBeenCalled();
   });
 });

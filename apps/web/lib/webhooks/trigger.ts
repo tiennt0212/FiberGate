@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import type { InvoiceRow } from "@/lib/db/schema";
 import { webhookDeliveries, webhookEndpoints } from "@/lib/db/schema";
 
+import { WebhookEvent } from "./events";
 import { scheduleAttempt } from "./retry-scheduler";
 
 // Real dispatch entrypoint for issue #8 ("Webhook delivery system: HMAC
@@ -20,16 +21,13 @@ import { scheduleAttempt } from "./retry-scheduler";
 // awaited here, so a slow/unresponsive merchant endpoint cannot extend
 // invoice-poller.ts's per-invoice cost.
 
-// Event vocabulary matches .context/data-dictionary/database-schema.md's
-// webhook_endpoints.events doc comment ("payment.paid", "invoice.expired",
-// "invoice.failed") and .context/api/rest-api-spec.md's "Webhook Payload"
-// section — not "payment.expired"/"payment.failed".
-export const WebhookEvent = {
-  PaymentPaid: "payment.paid",
-  InvoiceExpired: "invoice.expired",
-  InvoiceFailed: "invoice.failed",
-} as const;
-export type WebhookEvent = (typeof WebhookEvent)[keyof typeof WebhookEvent];
+// Re-exported from ./events (issue #10) so every existing import site
+// (lib/poller/invoice-poller.ts, lib/services/webhooks.ts, this file's own
+// test) keeps working unchanged — only the definition moved, to a module
+// client components can import without pulling in @/lib/db/node:crypto.
+// A single `import { WebhookEvent }` above already merges both the const
+// value and its same-named type, so re-exporting it here carries both.
+export { WebhookEvent };
 
 interface WebhookPayload {
   event: WebhookEvent;

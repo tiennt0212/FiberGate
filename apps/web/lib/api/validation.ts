@@ -1,5 +1,7 @@
 import { invoiceStatusEnum } from "../db/schema";
 
+import { ckbToShannon } from "./format";
+
 // Manual validation for POST /invoices and GET /invoices query params
 // (BR-INV-001/002/003/004). No validation library is installed in
 // apps/web/package.json and CLAUDE.md forbids adding a dependency without
@@ -130,8 +132,7 @@ export function validateCreateInvoiceInput(body: unknown): CreateInvoiceInput {
     throw new ApiValidationError("VALIDATION_ERROR", "metadata must be a JSON object");
   }
 
-  // BR-INV-004: shannon = round(amount_ckb * 1e8), stored as bigint.
-  const amountShannon = BigInt(Math.round(amount * SHANNON_PER_CKB));
+  const amountShannon = ckbToShannon(amount);
 
   return {
     amountCkb: amount,

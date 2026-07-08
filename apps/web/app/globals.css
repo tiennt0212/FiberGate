@@ -3,6 +3,116 @@
 @import "tailwindcss/theme.css" layer(theme);
 @import "tailwindcss/utilities.css" layer(utilities);
 
-/* Design tokens thật sẽ được teammate điền theo .context/design/DESIGN.md khi làm UI. */
+/* DESIGN.md "Font Stack" — fonts self-hosted via next/font/google in
+   app/layout.tsx (--font-dm-sans/--font-jetbrains-mono CSS vars set there).
+   Preflight is off (see comment above), so nothing applies a default
+   font-family to <body> automatically — the explicit rule below is required,
+   not just the utility class generation `@theme inline` gives us. */
 @theme inline {
+  --font-sans: var(--font-dm-sans), system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), 'Fira Code', monospace;
+
+  /* .context/design/DESIGN.md "Color Tokens" — Tailwind v4 auto-generates
+     bg-*, text-*, border-* utilities from any --color-* var here. Only values
+     DESIGN.md actually names as a token (top table) or documents as a
+     reused component-pattern value (hover states, table header) are
+     tokenized — genuinely one-off decorative hexes (used exactly once,
+     not named anywhere in DESIGN.md) are left as arbitrary values rather
+     than inventing a token nobody else will reuse. */
+
+  /* Surface & Layout */
+  --color-bg: #f7f7f8;
+  --color-border: #e4e4e7;
+  --color-border-subtle: #f3f4f6;
+  --color-border-focus: #f0f0f2;
+  --color-border-hover: #c9c7e5; /* Card hover: border-color, DESIGN.md's Card pattern */
+  --color-surface-hover: #f4f4f5; /* Secondary Button hover / row hover bg, DESIGN.md's Secondary Button pattern */
+  --color-table-header-bg: #f9f9fb; /* DESIGN.md's Table pattern */
+
+  /* Text */
+  --color-text-primary: #141414;
+  --color-text-secondary: #52525b;
+  --color-text-muted: #71717a;
+  --color-text-subtle: #a1a1aa;
+  --color-text-xsubtle: #9898a8;
+  --color-text-strong: #374151; /* Secondary Button / Asset Tag text, DESIGN.md component patterns (not in the top Text table) */
+
+  /* Accent — Indigo */
+  --color-accent: #4f46e5;
+  --color-accent-hover: #4338ca;
+  --color-accent-light: #eef2ff;
+  --color-accent-border: #c7d2fe; /* Quick Start "current step" card border */
+  --color-accent-ring: rgba(79, 70, 229, 0.08); /* Quick Start "current step" focus ring */
+
+  /* Status badges (bg/text pairs) — expired/disabled reuse border-subtle + text-strong/text-muted, no separate token */
+  --color-status-success-bg: #dcfce7; /* paid, active */
+  --color-status-success-text: #15803d;
+  --color-status-warning-bg: #fef9c3; /* pending */
+  --color-status-warning-text: #854d0e;
+  --color-status-danger-bg: #fee2e2; /* failed */
+  --color-status-danger-text: #991b1b;
+  --color-status-online-bg: #f0fdf4; /* Node Status Indicator */
+  --color-status-online-border: #bbf7d0;
+  --color-delivery-pending-text: #b45309; /* webhook_deliveries "pending" text — deliberately a distinct amber
+    from status-warning-text (#854d0e), chosen for AA contrast in deliveryStatusColor(); not the same status
+    role as the invoice "pending" badge despite the similar hue, see badges.tsx's DELIVERY_STATUS_COLORS comment */
+
+  /* Semantic */
+  --color-success: #16a34a;
+  --color-warning: #f59e0b;
+  --color-danger: #dc2626;
+  --color-purple: #7c3aed;
+
+  /* Code block */
+  --color-code-bg: #0f172a;
+}
+
+body {
+  font-family: var(--font-sans);
+  margin: 0;
+}
+
+/* .context/design/DESIGN.md "Animations" — shared across dashboard pages
+   (Node Status pulse dot, screen fade-in on route change). */
+@keyframes pulse-dot {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* COMPONENTS.dc.html code04 — shared Antd <Table> override so every
+   dashboard table (Invoices, Delivery Log, Webhooks delivery history)
+   matches DESIGN.md's header/row tokens without repeating them per page. */
+.fibergate-table .ant-table-thead > tr > th {
+  background: var(--color-table-header-bg) !important;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--color-text-xsubtle) !important;
+}
+
+.fibergate-table .ant-table-tbody > tr > td {
+  font-size: 13px;
+  color: var(--color-text-primary);
+  border-bottom: 1px solid var(--color-border-subtle) !important;
+}
+
+.fibergate-table .ant-table-tbody > tr:hover > td {
+  background: var(--color-table-header-bg) !important;
 }
