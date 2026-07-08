@@ -64,7 +64,7 @@ export function InvoicesTable({
   });
 
   useEffect(() => {
-    const csvFilters: InvoiceCsvFilters = { ...filters };
+    const csvFilters: InvoiceCsvFilters = { ...filters, search: filters.q };
     setAction({
       label: "Export CSV",
       loading: exporting,
