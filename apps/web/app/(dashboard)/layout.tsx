@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { HeaderActionProvider } from "./header-action-context";
 import { Header } from "./header";
 import { Sidebar } from "./sidebar";
-import { getQuickStartStatus } from "./quick-start/status";
+import { loadQuickStartStatus } from "./quick-start/status";
 
 // Forces every route under (dashboard)/** to render per-request rather than
 // be statically prerendered at build time. Without this, `next build`
@@ -23,19 +23,7 @@ export const dynamic = "force-dynamic";
 // /api/v1/* routes. AntdRegistry is already wired once in the root
 // app/layout.tsx — not duplicated here.
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
-  let step4Done = false;
-  let step5Done = false;
-  try {
-    const status = await getQuickStartStatus();
-    step4Done = status.step4Done;
-    step5Done = status.step5Done;
-  } catch (error) {
-    // A transient Fiber/DB hiccup here shouldn't take down the entire
-    // dashboard shell over a cosmetic sidebar badge — each page's own data
-    // fetch (getNodeStatus(), listInvoices(), ...) surfaces its own error
-    // state independently.
-    console.error("Failed to compute Quick Start status for the sidebar badge:", error);
-  }
+  const { step4Done, step5Done } = await loadQuickStartStatus("Quick Start sidebar badge");
 
   return (
     <HeaderActionProvider>

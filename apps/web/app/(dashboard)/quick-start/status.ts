@@ -33,3 +33,19 @@ export const getQuickStartStatus = cache(async (): Promise<QuickStartStatus> => 
   const step5Done = step4Done && endpoints.some((endpoint) => endpoint.isActive);
   return { step4Done, step5Done };
 });
+
+const DEFAULT_STATUS: QuickStartStatus = { step4Done: false, step5Done: false };
+
+// getQuickStartStatus(), defaulting to both steps incomplete and logging on
+// failure instead of throwing — a transient Fiber/DB hiccup here shouldn't
+// take down the caller (the sidebar badge or the Quick Start page itself)
+// over this cosmetic-at-worst signal. `logContext` keeps each call site's
+// log line distinguishable in the server console.
+export async function loadQuickStartStatus(logContext: string): Promise<QuickStartStatus> {
+  try {
+    return await getQuickStartStatus();
+  } catch (error) {
+    console.error(`${logContext}: getQuickStartStatus failed:`, error);
+    return DEFAULT_STATUS;
+  }
+}
