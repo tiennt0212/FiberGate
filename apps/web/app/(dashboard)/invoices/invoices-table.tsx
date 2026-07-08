@@ -11,6 +11,7 @@ import { downloadCsv } from "../search-params";
 import { formatDateTime, shortId } from "../format-date";
 import { useHeaderActionContext } from "../header-action-context";
 import type { InvoiceView } from "../invoice-view";
+import { TablePagination } from "../table-pagination";
 import { useTableFilters } from "../use-table-filters";
 
 import { exportInvoicesCsv, type InvoiceCsvFilters } from "./actions";
@@ -217,17 +218,7 @@ export function InvoicesTable({
             className="fibergate-table"
             locale={{ emptyText: "No invoices match these filters." }}
           />
-          {page > 0 || hasNextPage ? (
-            <div className="flex items-center justify-between border-t border-[#f3f4f6] px-5 py-3">
-              <Button disabled={page === 0} onClick={() => goToPage(page - 1)} className="h-auto! rounded-[6px]! px-3! py-1!  text-[12.5px]!">
-                ← Prev
-              </Button>
-              <span className="text-[12.5px] text-[#71717a]">Page {page + 1}</span>
-              <Button disabled={!hasNextPage} onClick={() => goToPage(page + 1)} className="h-auto! rounded-[6px]! px-3! py-1!  text-[12.5px]!">
-                Next →
-              </Button>
-            </div>
-          ) : null}
+          <TablePagination page={page} hasNextPage={hasNextPage} onPageChange={goToPage} />
         </div>
       )}
 
