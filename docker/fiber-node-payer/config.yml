@@ -1,0 +1,78 @@
+# Local-testing-only payer node config — NOT part of the merchant-facing
+# bundle (docker-compose.yml). Same base as docker/fiber-node/config.yml
+# (exact `config/testnet/config.yml` from nervosnetwork/fiber at tag
+# `v0.9.0-rc6`), only `rpc.listening_addr` differs (this container's own
+# static IP, 172.28.0.11, vs fiber-node's 172.28.0.10) — see
+# docker-compose.payer.yml. Purpose: a second Fiber node, in the same
+# `fibergate-net` docker network as fiber-node, used to pay demo invoices
+# directly over plain TCP (no WSS/TLS needed — both containers share an
+# internal network). See README.md "Pay a demo invoice with a second local
+# node (fiber-node-payer)".
+
+fiber:
+  listening_addr: "/ip4/0.0.0.0/tcp/8228"
+  bootnode_addrs:
+    - "/ip4/54.179.226.154/tcp/8228/p2p/Qmes1EBD4yNo9Ywkfe6eRw9tG1nVNGLDmMud1xJMsoYFKy"
+    - "/ip4/16.163.7.105/tcp/8228/p2p/QmdyQWjPtbK4NWWsvy8s69NGJaQULwgeQDT5ZpNDrTNaeV"
+  announce_listening_addr: true
+  announced_addrs:
+  chain: testnet
+
+  scripts:
+    - name: FundingLock
+      script:
+        code_hash: 0x6c67887fe201ee0c7853f1682c0b77c0e6214044c156c7558269390a8afa6d7c
+        hash_type: type
+        args: 0x
+      cell_deps:
+        - type_id:
+            code_hash: 0x00000000000000000000000000000000000000000000000000545950455f4944
+            hash_type: type
+            args: 0x3cb7c0304fe53f75bb5727e2484d0beae4bd99d979813c6fc97c3cca569f10f6
+        - cell_dep:
+            out_point:
+              tx_hash: 0x12c569a258dd9c5bd99f632bb8314b1263b90921ba31496467580d6b79dd14a7 # ckb_auth
+              index: 0x0
+            dep_type: code
+    - name: CommitmentLock
+      script:
+        code_hash: 0x740dee83f87c6f309824d8fd3fbdd3c8380ee6fc9acc90b1a748438afcdf81d8
+        hash_type: type
+        args: 0x
+      cell_deps:
+        - type_id:
+            code_hash: 0x00000000000000000000000000000000000000000000000000545950455f4944
+            hash_type: type
+            args: 0xf7e458887495cf70dd30d1543cad47dc1dfe9d874177bf19291e4db478d5751b
+        - cell_dep:
+            out_point:
+              tx_hash: 0x12c569a258dd9c5bd99f632bb8314b1263b90921ba31496467580d6b79dd14a7 #ckb_auth
+              index: 0x0
+            dep_type: code
+
+rpc:
+  # This container's own static IP (docker-compose.payer.yml's ipv4_address)
+  # — same reasoning as fiber-node's config.yml: fnn refuses to bind the
+  # 0.0.0.0 wildcard without rpc.biscuit_public_key, a fixed private IP
+  # satisfies that check without needing biscuit auth.
+  listening_addr: "172.28.0.11:8227"
+
+ckb:
+  rpc_url: "https://testnet.ckbapp.dev/"
+  udt_whitelist:
+    - name: RUSD
+      script:
+        code_hash: 0x1142755a044bf2ee358cba9f2da187ce928c91cd4dc8692ded0337efa677d21a
+        hash_type: type
+        args: 0x878fcc6f1f08d48e87bb1c3b3d5083f23f8a39c5d5c764f253b55b998526439b
+      cell_deps:
+        - type_id:
+            code_hash: 0x00000000000000000000000000000000000000000000000000545950455f4944
+            hash_type: type
+            args: 0x97d30b723c0b2c66e9cb8d4d0df4ab5d7222cbb00d4a9a2055ce2e5d7f0d8b0f
+      auto_accept_amount: 1000000000
+
+services:
+  - fiber
+  - rpc
+  - ckb

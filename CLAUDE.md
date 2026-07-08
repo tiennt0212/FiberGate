@@ -28,6 +28,13 @@ apps/web/          — Next.js 14 App Router (fibergate-core: dashboard + API ro
   lib/db/          — Drizzle client + schema + helpers
   lib/fiber/       — Fiber JSON-RPC client (wraps FNN node calls)
   lib/services/    — Business logic route.ts delegates to (xem "Service layer pattern" bên dưới)
+apps/demo-storefront/ — Reference merchant app (issue #12) — app hoàn toàn tách biệt
+  khỏi apps/web, KHÔNG import code chung, chỉ gọi @fibergate/sdk qua HTTP
+  (FIBERGATE_BASE_URL/FIBERGATE_INTERNAL_SECRET) giống một merchant thứ ba thật —
+  demo QR checkout + nhận webhook thật (POST /api/webhook, verify bằng SDK's
+  verifyWebhookSignature) đẩy update qua Server-Sent Events. Có Dockerfile +
+  docker-compose.demo.yml riêng ngay trong thư mục này (không nằm ở docker/ gốc —
+  tự chứa hoàn toàn). Xem README.md "Demo storefront".
 packages/sdk/      — npm package @fibergate/sdk (TypeScript, tsup)
 docker-compose.yml — Fiber node + PostgreSQL + fibergate-core, merchant tự deploy
 docker/            — docker/fibergate-core/Dockerfile, config fiber-node
@@ -143,8 +150,9 @@ Khi cần thông tin về CKB protocol hoặc Fiber Network, tra cứu theo th�
 ### SDK/tooling — official vs community (theo `fiber-hackathon-docs/resources.md`)
 
 - **Official, dùng cho core (Phase 1/2):** `@ckb-ccc/fiber` (SDK cho `lib/fiber/client.ts`), `fnn-cli` + `ckb-cli` (setup/bootstrap channel lúc dev, không phải runtime dependency của app).
-- **Community, chỉ dùng làm reference cho Phase 3 (L402, optional stretch):** `@fiber-pay/sdk` — xem demo tham chiếu [`fiber-l402`](https://github.com/RetricSu/fiber-l402) (Express + Astro + React, dùng chính thư viện này để build L402 paywall middleware). `@fiber-pay/react` không liên quan (chỉ dành cho payer-facing browser wallet UI, FiberGate không có phần này).
-- **Fiber WSS Config Manual** (`nervosnetwork/fiber/blob/develop/docs/fiber-node-wss.md`) — hướng dẫn expose P2P của node qua `wss://` (Nginx+TLS) cho browser/WASM client. **Không áp dụng** cho FiberGate: `fibergate-core` gọi JSON-RPC tới `fiber-node` qua docker internal network (plain HTTP), không cần TLS/WSS. Chỉ liên quan nếu sau này làm payer-facing browser wallet trực tiếp — ngoài scope hiện tại.
+- **Community, chỉ dùng làm reference cho Phase 3 (L402, optional stretch) — riêng cho `apps/web`:** `@fiber-pay/sdk` — xem demo tham chiếu [`fiber-l402`](https://github.com/RetricSu/fiber-l402) (Express + Astro + React, dùng chính thư viện này để build L402 paywall middleware).
+  > **Cập nhật 2026-07-08 (issue #12)**: dòng "`@fiber-pay/react` không liên quan... FiberGate không có phần này" ở trên chỉ đúng cho `apps/web`/`fibergate-core` — vẫn giữ nguyên, KHÔNG dùng `@fiber-pay/react` trong `apps/web`. Nhưng `apps/demo-storefront` (app hoàn toàn tách biệt, xem monorepo layout phía trên) giờ **có dùng** `@fiber-pay/react` + `@nervosnetwork/fiber-js` thật — 1 nút "Pay with browser wallet" thử nghiệm (human yêu cầu trực tiếp), chạy 1 Fiber node WASM ngay trong browser để test thanh toán nhanh hơn không cần node/wallet riêng. Xem `apps/demo-storefront/app/BrowserWalletPay.tsx`, README.md "Demo storefront", và `decisions-log.md` 2026-07-08.
+- **Fiber WSS Config Manual** (`nervosnetwork/fiber/blob/develop/docs/fiber-node-wss.md`) — hướng dẫn expose P2P của node qua `wss://` (Nginx+TLS) cho browser/WASM client. **Không áp dụng** cho `fibergate-core`: gọi JSON-RPC tới `fiber-node` qua docker internal network (plain HTTP), không cần TLS/WSS. **Giờ đã liên quan** tới `apps/demo-storefront`'s browser wallet (ngay trên) — nhưng `fiber-node` hiện chưa expose WSS gì cả, nên nút "Pay with browser wallet" hiện chỉ route được nếu tìm được đường qua 1 public testnet node hỗ trợ WSS (chưa verify live).
 
 ## Nguyên tắc làm việc với AI Agent
 

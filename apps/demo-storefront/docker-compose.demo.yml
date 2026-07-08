@@ -1,0 +1,70 @@
+# Overlay for FiberGate's own public demo instance — NOT part of the
+# merchant-facing bundle. A plain `docker compose up -d` (root
+# docker-compose.yml alone) is completely unaffected by this file; it only
+# takes effect when passed explicitly, from the repo root:
+#
+#   docker compose -f docker-compose.yml -f apps/demo-storefront/docker-compose.demo.yml up -d
+#
+# Adds one service, demo-storefront (this directory) — a genuinely separate
+# reference merchant app that talks to fibergate-core only over the network
+# (FIBERGATE_BASE_URL + FIBERGATE_INTERNAL_SECRET), the same way any
+# third-party integrator would. See README.md "Demo storefront" for the full
+# local-testing walkthrough, including how to register this app's webhook
+# endpoint (there's no dashboard UI for that yet).
+#
+# Secrets (FIBERGATE_INTERNAL_SECRET, DEMO_WEBHOOK_SECRET) come from
+# apps/demo-storefront/.env.local via env_file below — the SAME file used for
+# `pnpm --filter demo-storefront dev` (Next.js auto-loads .env.local) — not
+# from the root .env. Keeps this app's config in exactly one place regardless
+# of how it's run, and avoids duplicating these secrets into the root
+# .env/.env.example just to satisfy the Docker Compose path (a duplication
+# that used to exist here — see decisions-log.md 2026-07-08). Only
+# FIBERGATE_BASE_URL is overridden below, since that value is topology-
+# dependent (docker DNS name here vs localhost in .env.local) — the
+# `environment:` block always wins over `env_file:` for the same key.
+
+services:
+  demo-storefront:
+    build:
+      # This file lives in apps/demo-storefront/, but the build context must
+      # still be the repo root (pnpm workspace) — see Dockerfile's own header
+      # comment for why. Empirically verified (`docker compose ... config`):
+      # when this file is merged via `-f docker-compose.yml -f
+      # apps/demo-storefront/docker-compose.demo.yml`, relative paths here
+      # resolve against the PROJECT directory (the first -f file's directory,
+      # i.e. the repo root) — not against this file's own directory — so `.`
+      # is correct, `../..` would escape two levels too far.
+      context: .
+      dockerfile: apps/demo-storefront/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      fibergate-core:
+        condition: service_started
+    # Same project-directory-relative resolution as build.context above —
+    # empirically verified `apps/demo-storefront/.env.local`, NOT a bare
+    # `.env.local`, is required here even though this compose file itself
+    # lives in apps/demo-storefront/. Must exist before `docker compose -f
+    # docker-compose.yml -f apps/demo-storefront/docker-compose.demo.yml up
+    # -d` — same file `pnpm --filter demo-storefront dev` reads locally.
+    env_file:
+      - apps/demo-storefront/.env.local
+    environment:
+      # Docker DNS name — fibergate-core already publishes 3000:3000 and
+      # both services share the fibergate-net network defined in
+      # docker-compose.yml (merged in when both files are passed together).
+      # Overrides .env.local's http://localhost:3000 (correct for `pnpm
+      # --filter demo-storefront dev`, wrong once containerized).
+      FIBERGATE_BASE_URL: http://fibergate-core:3000
+    ports:
+      - "3001:3001"
+    networks:
+      - fibergate-net
+
+networks:
+  # `docker compose -f docker-compose.yml -f apps/demo-storefront/docker-compose.demo.yml`
+  # is one merged project, not two — this just declares that demo-storefront
+  # also attaches to the same top-level `fibergate-net` key docker-compose.yml
+  # defines (driver/ipam/etc. come from there; redeclaring them here would
+  # conflict rather than merge). Deliberately no `external: true` / `name:`
+  # override, which would assume a specific Compose project name.
+  fibergate-net: {}

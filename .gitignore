@@ -35,3 +35,9 @@ supabase/.temp/
 # generated store/identity files. Only the pre-seeded config.yml is committed.
 docker/fiber-node/*
 !docker/fiber-node/config.yml
+
+# Same pattern for fiber-node-payer's runtime data (local-testing-only, see
+# docker-compose.yml's fiber-node-payer service) — includes its own separate
+# CKB testnet key (ckb/key), never fiber-node's.
+docker/fiber-node-payer/*
+!docker/fiber-node-payer/config.yml
