@@ -37,3 +37,11 @@ export function shannonToCkb(shannon: bigint): number {
 export function formatCkb(amount: number): string {
   return new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 }).format(amount);
 }
+
+// BR-INV-004: shannon = round(amount_ckb * 1e8), stored as bigint. Shared by
+// lib/api/validation.ts's POST /invoices body parsing and the dashboard's
+// Invoices filter bar (app/(dashboard)/invoices/filters.ts), which both need
+// the exact same CKB -> shannon rounding rule.
+export function ckbToShannon(amountCkb: number): bigint {
+  return BigInt(Math.round(amountCkb * 10 ** SHANNON_DECIMALS));
+}

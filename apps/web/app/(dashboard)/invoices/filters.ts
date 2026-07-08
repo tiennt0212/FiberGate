@@ -1,4 +1,5 @@
-import { INVOICE_ASSETS, INVOICE_STATUSES, SHANNON_PER_CKB, type InvoiceAssetValue, type InvoiceStatusValue } from "@/lib/api/validation";
+import { ckbToShannon } from "@/lib/api/format";
+import { INVOICE_ASSETS, INVOICE_STATUSES, type InvoiceAssetValue, type InvoiceStatusValue } from "@/lib/api/validation";
 
 // Shared between invoices/page.tsx (table filter) and invoices/actions.ts
 // (CSV export) — both need to parse the same filter-bar query params the
@@ -21,5 +22,5 @@ export function parseAmountShannon(value: string | undefined): bigint | undefine
     return undefined;
   }
   const parsed = Number(value);
-  return Number.isFinite(parsed) ? BigInt(Math.round(parsed * SHANNON_PER_CKB)) : undefined;
+  return Number.isFinite(parsed) ? ckbToShannon(parsed) : undefined;
 }
