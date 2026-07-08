@@ -82,9 +82,3 @@ export function deliveryHttpText(delivery: { httpStatus: number | null; status: 
   if (delivery.httpStatus !== null) return String(delivery.httpStatus);
   return delivery.status === "pending" ? "Retrying…" : fallback;
 }
-
-// Shared Segmented override classes, previously duplicated verbatim between
-// invoices-table.tsx and delivery-log-table.tsx.
-export const SEGMENTED_CLASS =
-  "border! border-[#e4e4e7]! bg-white! rounded-[6px]! text-[12.5px]! " +
-  "[&_.ant-segmented-item-selected]:bg-[#4f46e5]! [&_.ant-segmented-item-selected]:text-white!";

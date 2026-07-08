@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Alert, Button, Input, Segmented, Table, message } from "antd";
+import { Alert, Button, Input, Select, Table, message } from "antd";
 import type { ColumnsType } from "antd/es/table";
 
 import { formatCkb } from "@/lib/api/format";
 
-import { AssetTag, SEGMENTED_CLASS, StatusTag } from "../badges";
+import { AssetTag, StatusTag } from "../badges";
 import { downloadCsv } from "../search-params";
 import { formatDateTime, shortId } from "../format-date";
 import { useHeaderActionContext } from "../header-action-context";
@@ -29,8 +29,11 @@ export interface InvoicesFilters {
 
 const FILTER_DEFAULTS: InvoicesFilters = { status: "all", asset: "all", q: "", from: "", to: "", min: "", max: "" };
 
+// Labels match FiberGate.dc.html's <select> options exactly (COMPONENTS.dc.html's
+// <Segmented> recommendation for this filter is stale — the mockup moved to native
+// <select> dropdowns after that catalog was last synced).
 const STATUS_OPTIONS = [
-  { label: "All", value: "all" },
+  { label: "All Status", value: "all" },
   { label: "Paid", value: "paid" },
   { label: "Pending", value: "pending" },
   { label: "Expired", value: "expired" },
@@ -38,7 +41,7 @@ const STATUS_OPTIONS = [
 ];
 
 const ASSET_OPTIONS = [
-  { label: "All assets", value: "all" },
+  { label: "All Assets", value: "all" },
   { label: "CKB", value: "CKB" },
   { label: "RUSD", value: "RUSD" },
 ];
@@ -163,8 +166,18 @@ export function InvoicesTable({
           className="w-[216px]! rounded-[6px]!"
           allowClear
         />
-        <Segmented options={STATUS_OPTIONS} value={filters.status} onChange={(value) => updateFilters({ status: String(value) })} className={SEGMENTED_CLASS} />
-        <Segmented options={ASSET_OPTIONS} value={filters.asset} onChange={(value) => updateFilters({ asset: String(value) })} className={SEGMENTED_CLASS} />
+        <Select
+          value={filters.status}
+          onChange={(value) => updateFilters({ status: value })}
+          options={STATUS_OPTIONS}
+          className="w-[132px]! [&_.ant-select-selector]:rounded-[6px]!"
+        />
+        <Select
+          value={filters.asset}
+          onChange={(value) => updateFilters({ asset: value })}
+          options={ASSET_OPTIONS}
+          className="w-[120px]! [&_.ant-select-selector]:rounded-[6px]!"
+        />
         <input
           type="date"
           value={filters.from}

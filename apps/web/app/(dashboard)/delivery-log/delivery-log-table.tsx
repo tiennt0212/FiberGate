@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Alert, Button, Input, Segmented, Select, Table, message } from "antd";
+import { Alert, Button, Input, Select, Table, message } from "antd";
 import type { ColumnsType } from "antd/es/table";
 
 import type { WebhookDeliveryListItem } from "@/lib/services/webhooks";
 
-import { deliveryHttpText, deliveryStatusColor, SEGMENTED_CLASS } from "../badges";
+import { deliveryHttpText, deliveryStatusColor } from "../badges";
 import { downloadCsv } from "../search-params";
 import { formatDateTime, shortId } from "../format-date";
 import { TablePagination } from "../table-pagination";
@@ -27,11 +27,16 @@ export interface DeliveryLogFilters {
 
 const FILTER_DEFAULTS: DeliveryLogFilters = { endpoint: "", status: "all", q: "", from: "", to: "" };
 
+// Labels match FiberGate.dc.html's <select> options exactly (COMPONENTS.dc.html's
+// <Segmented> recommendation for this filter is stale — the mockup moved to native
+// <select> dropdowns after that catalog was last synced). Values stay the same
+// as webhook_deliveries.status (pending/success/failed, see deliver.ts) — only
+// the label wording changes to match the mockup's HTTP-code framing.
 const STATUS_OPTIONS = [
-  { label: "All", value: "all" },
-  { label: "Delivered", value: "success" },
-  { label: "Retrying", value: "pending" },
-  { label: "Failed", value: "failed" },
+  { label: "All HTTP", value: "all" },
+  { label: "2xx Success", value: "success" },
+  { label: "Timeout / Retrying", value: "pending" },
+  { label: "4xx / 5xx Error", value: "failed" },
 ];
 
 export function DeliveryLogTable({
@@ -176,7 +181,12 @@ export function DeliveryLogTable({
           options={[{ label: "All Endpoints", value: "all" }, ...endpointOptions]}
           className="w-[200px]! [&_.ant-select-selector]:rounded-[6px]!"
         />
-        <Segmented options={STATUS_OPTIONS} value={filters.status} onChange={(value) => updateFilters({ status: String(value) })} className={SEGMENTED_CLASS} />
+        <Select
+          value={filters.status}
+          onChange={(value) => updateFilters({ status: value })}
+          options={STATUS_OPTIONS}
+          className="w-[164px]! [&_.ant-select-selector]:rounded-[6px]!"
+        />
         <input
           type="date"
           value={filters.from}
