@@ -51,6 +51,17 @@ export async function middleware(request: NextRequest) {
 // deliberately inlined here rather than imported from lib/auth/routes.ts,
 // even though it duplicates the "which paths are under (dashboard)" fact —
 // see lib/auth/routes.ts's PROTECTED_PATH_MATCHERS-adjacent comment history.
+//
+// Issue #10: (dashboard)/transactions/ was renamed to (dashboard)/invoices/,
+// and 2 new routes were added (delivery-log, quick-start) — all 5 real
+// dashboard routes must be listed here (BR-SEC-004). Forgetting one silently
+// ships that page unprotected.
 export const config = {
-  matcher: ["/dashboard/:path*", "/webhooks/:path*", "/transactions/:path*"],
+  matcher: [
+    "/dashboard/:path*",
+    "/invoices/:path*",
+    "/delivery-log/:path*",
+    "/webhooks/:path*",
+    "/quick-start/:path*",
+  ],
 };

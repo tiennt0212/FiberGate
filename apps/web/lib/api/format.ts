@@ -32,3 +32,8 @@ function shannonToCkbString(shannon: bigint): string {
 export function shannonToCkb(shannon: bigint): number {
   return Number(shannonToCkbString(shannon));
 }
+
+/** Locale-formatted CKB amount for display, e.g. `1,234.56`. */
+export function formatCkb(amount: number): string {
+  return new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 }).format(amount);
+}

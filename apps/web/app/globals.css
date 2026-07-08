@@ -3,6 +3,62 @@
 @import "tailwindcss/theme.css" layer(theme);
 @import "tailwindcss/utilities.css" layer(utilities);
 
-/* Design tokens thật sẽ được teammate điền theo .context/design/DESIGN.md khi làm UI. */
+/* DESIGN.md "Font Stack" — fonts self-hosted via next/font/google in
+   app/layout.tsx (--font-dm-sans/--font-jetbrains-mono CSS vars set there).
+   Preflight is off (see comment above), so nothing applies a default
+   font-family to <body> automatically — the explicit rule below is required,
+   not just the utility class generation `@theme inline` gives us. */
 @theme inline {
+  --font-sans: var(--font-dm-sans), system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), 'Fira Code', monospace;
+}
+
+body {
+  font-family: var(--font-sans);
+  margin: 0;
+}
+
+/* .context/design/DESIGN.md "Animations" — shared across dashboard pages
+   (Node Status pulse dot, screen fade-in on route change). */
+@keyframes pulse-dot {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* COMPONENTS.dc.html code04 — shared Antd <Table> override so every
+   dashboard table (Invoices, Delivery Log, Webhooks delivery history)
+   matches DESIGN.md's header/row tokens without repeating them per page. */
+.fibergate-table .ant-table-thead > tr > th {
+  background: #f9f9fb !important;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #9898a8 !important;
+}
+
+.fibergate-table .ant-table-tbody > tr > td {
+  font-size: 13px;
+  color: #141414;
+  border-bottom: 1px solid #f3f4f6 !important;
+}
+
+.fibergate-table .ant-table-tbody > tr:hover > td {
+  background: #f9f9fb !important;
 }

@@ -1,0 +1,227 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Alert, Button, Input, Segmented, Select, Table, message } from "antd";
+import type { ColumnsType } from "antd/es/table";
+
+import type { WebhookDeliveryListItem } from "@/lib/services/webhooks";
+
+import { deliveryHttpText, deliveryStatusColor, SEGMENTED_CLASS } from "../badges";
+import { downloadCsv } from "../search-params";
+import { formatDateTime, shortId } from "../format-date";
+import { useBusyKeys } from "../use-busy-keys";
+import { useHeaderActionContext } from "../header-action-context";
+import { useTableFilters } from "../use-table-filters";
+
+import { exportDeliveryLogCsv, retryDelivery, type DeliveryLogCsvFilters } from "./actions";
+
+export interface DeliveryLogFilters {
+  endpoint: string;
+  status: string;
+  q: string;
+  from: string;
+  to: string;
+}
+
+const FILTER_DEFAULTS: DeliveryLogFilters = { endpoint: "", status: "all", q: "", from: "", to: "" };
+
+const STATUS_OPTIONS = [
+  { label: "All", value: "all" },
+  { label: "Delivered", value: "success" },
+  { label: "Retrying", value: "pending" },
+  { label: "Failed", value: "failed" },
+];
+
+export function DeliveryLogTable({
+  rows,
+  page,
+  hasNextPage,
+  endpointOptions,
+  filters,
+  error,
+}: {
+  rows: WebhookDeliveryListItem[];
+  page: number;
+  hasNextPage: boolean;
+  endpointOptions: { label: string; value: string }[];
+  filters: DeliveryLogFilters;
+  error: string | null;
+}) {
+  const router = useRouter();
+  const { setAction } = useHeaderActionContext();
+  const [exporting, setExporting] = useState(false);
+  // Keyed per delivery id so retrying multiple rows concurrently doesn't let
+  // one row's finished request clear another still-in-flight row's loading
+  // indicator. Shared with webhooks-panel.tsx's toggle/regenerate tracking
+  // via useBusyKeys() (also gains its re-entrancy guard against a
+  // double-click firing a second concurrent retry for the same row).
+  const retryingIds = useBusyKeys();
+
+  const { searchInput, setSearchInput, updateFilters, goToPage, clearFilters, hasActiveFilters } = useTableFilters({
+    filters,
+    defaults: FILTER_DEFAULTS,
+    searchKey: "q",
+  });
+
+  useEffect(() => {
+    const csvFilters: DeliveryLogCsvFilters = { endpointId: filters.endpoint, status: filters.status, search: filters.q, from: filters.from, to: filters.to };
+    setAction({
+      label: "Export CSV",
+      loading: exporting,
+      onClick: () => {
+        setExporting(true);
+        exportDeliveryLogCsv(csvFilters)
+          .then((csv) => downloadCsv(csv, "delivery-log.csv"))
+          .catch((exportError: unknown) => {
+            console.error("Delivery Log: exportDeliveryLogCsv failed:", exportError);
+            void message.error("Could not export the delivery log.");
+          })
+          .finally(() => setExporting(false));
+      },
+    });
+    return () => setAction(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters.endpoint, filters.status, filters.q, filters.from, filters.to, exporting]);
+
+  function handleRetry(deliveryId: string): void {
+    if (!retryingIds.start(deliveryId)) return;
+    retryDelivery(deliveryId)
+      .then((result) => {
+        if (result.ok) {
+          void message.success("Delivery re-queued for retry");
+          router.refresh();
+        } else {
+          void message.error(result.error ?? "Could not retry this delivery.");
+        }
+      })
+      .catch((retryError: unknown) => {
+        console.error("Delivery Log: retryDelivery failed:", retryError);
+        void message.error("Could not retry this delivery.");
+      })
+      .finally(() => retryingIds.settle(deliveryId));
+  }
+
+  const columns: ColumnsType<WebhookDeliveryListItem> = [
+    {
+      title: "Invoice ID",
+      dataIndex: "invoiceId",
+      key: "invoiceId",
+      render: (invoiceId: string | null) => <span className="font-mono text-[12px] text-[#71717a]">{shortId(invoiceId)}</span>,
+    },
+    {
+      title: "Event",
+      dataIndex: "eventType",
+      key: "eventType",
+      render: (eventType: string) => <span className="font-mono text-[12px] text-[#141414]">{eventType}</span>,
+    },
+    {
+      title: "Endpoint",
+      dataIndex: "endpointUrl",
+      key: "endpointUrl",
+      render: (endpointUrl: string | null) => (
+        <span className="block max-w-[200px] truncate text-[12px] text-[#71717a]">{endpointUrl ?? "—"}</span>
+      ),
+    },
+    {
+      title: "HTTP",
+      key: "http",
+      render: (_: unknown, row: WebhookDeliveryListItem) => (
+        <span className="font-mono text-[12px] font-semibold" style={{ color: deliveryStatusColor(row.status).text }}>
+          {deliveryHttpText(row, "Timeout")}
+        </span>
+      ),
+    },
+    {
+      title: "Delivered",
+      key: "delivered",
+      render: (_: unknown, row: WebhookDeliveryListItem) => (
+        <span className="text-[12px] text-[#71717a]">{formatDateTime(row.deliveredAt ?? row.createdAt)}</span>
+      ),
+    },
+    {
+      title: "",
+      key: "actions",
+      align: "right",
+      render: (_: unknown, row: WebhookDeliveryListItem) =>
+        row.status === "failed" ? (
+          <Button
+            size="small"
+            loading={retryingIds.has(row.id)}
+            onClick={() => handleRetry(row.id)}
+            className="h-auto! rounded-[5px]! px-2.5! py-1! text-[11px]!"
+          >
+            Retry
+          </Button>
+        ) : null,
+    },
+  ];
+
+  return (
+    <div className="animate-[fade-in_0.2s_ease-out_forwards]">
+      <div className="mb-4 text-[12.5px] text-[#71717a]">Webhook delivery log for all payment events</div>
+
+      <div className="mb-3.5 flex flex-wrap items-center gap-2">
+        <Input
+          placeholder="Search invoice ID…"
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+          className="w-[196px]! rounded-[6px]!"
+          allowClear
+        />
+        <Select
+          value={filters.endpoint || "all"}
+          onChange={(value) => updateFilters({ endpoint: value === "all" ? "" : value })}
+          options={[{ label: "All Endpoints", value: "all" }, ...endpointOptions]}
+          className="w-[200px]! [&_.ant-select-selector]:rounded-[6px]!"
+        />
+        <Segmented options={STATUS_OPTIONS} value={filters.status} onChange={(value) => updateFilters({ status: String(value) })} className={SEGMENTED_CLASS} />
+        <input
+          type="date"
+          value={filters.from}
+          onChange={(e) => updateFilters({ from: e.target.value })}
+          className="rounded-[6px] border border-[#e4e4e7] px-2.5 py-1.5 text-[12.5px] text-[#374151]"
+        />
+        <span className="text-[12px] text-[#a1a1aa]">–</span>
+        <input
+          type="date"
+          value={filters.to}
+          onChange={(e) => updateFilters({ to: e.target.value })}
+          className="rounded-[6px] border border-[#e4e4e7] px-2.5 py-1.5 text-[12.5px] text-[#374151]"
+        />
+        {hasActiveFilters ? (
+          <Button onClick={clearFilters} className="h-auto! rounded-[6px]! px-2.5! py-1.5! text-[12.5px]!">
+            Clear filters
+          </Button>
+        ) : null}
+        <div className="ml-auto text-[12.5px] text-[#71717a]">{rows.length} events</div>
+      </div>
+
+      {error ? (
+        <Alert type="error" showIcon message={error} className="rounded-[6px]!" />
+      ) : (
+        <div className="overflow-hidden rounded-[8px] border border-[#e4e4e7]">
+          <Table
+            dataSource={rows}
+            columns={columns}
+            pagination={false}
+            rowKey="id"
+            className="fibergate-table"
+            locale={{ emptyText: "No delivery events match these filters." }}
+          />
+          {page > 0 || hasNextPage ? (
+            <div className="flex items-center justify-between border-t border-[#f3f4f6] px-5 py-3">
+              <Button disabled={page === 0} onClick={() => goToPage(page - 1)} className="h-auto! rounded-[6px]! px-3! py-1! text-[12.5px]!">
+                ← Prev
+              </Button>
+              <span className="text-[12.5px] text-[#71717a]">Page {page + 1}</span>
+              <Button disabled={!hasNextPage} onClick={() => goToPage(page + 1)} className="h-auto! rounded-[6px]! px-3! py-1! text-[12.5px]!">
+                Next →
+              </Button>
+            </div>
+          ) : null}
+        </div>
+      )}
+    </div>
+  );
+}

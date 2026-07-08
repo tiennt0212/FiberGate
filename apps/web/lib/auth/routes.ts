@@ -13,5 +13,11 @@
 
 export const ROUTE = {
   LOGIN: "/login",
-  DASHBOARD: "/dashboard",
+  DASHBOARD: "/dashboard", // Overview
+  INVOICES: "/invoices",
+  DELIVERY_LOG: "/delivery-log",
+  WEBHOOKS: "/webhooks",
+  QUICK_START: "/quick-start",
 } as const;
+
+export type DashboardRoute = Exclude<(typeof ROUTE)[keyof typeof ROUTE], typeof ROUTE.LOGIN>;
