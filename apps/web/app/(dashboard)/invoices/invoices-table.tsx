@@ -6,7 +6,7 @@ import type { ColumnsType } from "antd/es/table";
 
 import { formatCkb } from "@/lib/api/format";
 
-import { AssetTag, StatusTag } from "../badges";
+import { StatusTag } from "../badges";
 import { downloadCsv } from "../search-params";
 import { formatDateTime, shortId } from "../format-date";
 import { useHeaderActionContext } from "../header-action-context";
@@ -103,18 +103,18 @@ export function InvoicesTable({
       render: (description: string | null) => description ?? "—",
     },
     {
+      // Amount + asset unit combined into one column — matches Overview's
+      // Recent Invoices pattern (recent-invoices-table.tsx). Deviates from
+      // FiberGate.dc.html's Invoices page (which keeps Amount/Asset as 2
+      // separate columns, Asset as a badge) — intentional, per human review.
       title: "Amount",
       key: "amount",
       align: "right",
       render: (_: unknown, row: InvoiceView) => (
-        <span className="font-mono text-[13px] font-medium text-[#141414]">{formatCkb(row.amountCkb)}</span>
+        <span className="font-mono text-[13px] font-medium text-[#141414]">
+          {formatCkb(row.amountCkb)} <span className="font-sans text-[11px] font-normal text-[#a1a1aa]">{row.asset}</span>
+        </span>
       ),
-    },
-    {
-      title: "Asset",
-      dataIndex: "asset",
-      key: "asset",
-      render: (asset: string) => <AssetTag asset={asset} />,
     },
     {
       title: "Status",
