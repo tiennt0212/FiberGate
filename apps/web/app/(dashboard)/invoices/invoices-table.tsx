@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { Alert, Button, Input, Segmented, Table, message } from "antd";
 import type { ColumnsType } from "antd/es/table";
 
+import { formatCkb } from "@/lib/api/format";
+
 import { AssetTag, SEGMENTED_CLASS, StatusTag } from "../badges";
 import { downloadCsv } from "../search-params";
 import { formatDateTime, shortId } from "../format-date";
@@ -101,7 +103,7 @@ export function InvoicesTable({
       key: "amount",
       align: "right",
       render: (_: unknown, row: InvoiceView) => (
-        <span className="font-mono text-[13px] font-medium text-[#141414]">{row.amountCkb}</span>
+        <span className="font-mono text-[13px] font-medium text-[#141414]">{formatCkb(row.amountCkb)}</span>
       ),
     },
     {

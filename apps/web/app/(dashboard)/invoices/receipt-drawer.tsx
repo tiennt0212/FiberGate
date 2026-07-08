@@ -3,7 +3,9 @@
 import { useEffect, useState } from "react";
 import { Drawer, Spin, message } from "antd";
 
-import { deliveryHttpText, StatusTag } from "../badges";
+import { formatCkb } from "@/lib/api/format";
+
+import { deliveryHttpText, deliveryStatusColor, StatusTag } from "../badges";
 import { formatDateTime } from "../format-date";
 
 import { getInvoiceReceipt, type InvoiceReceipt } from "./actions";
@@ -79,7 +81,7 @@ export function ReceiptDrawer({
               <div className="flex items-baseline justify-between">
                 <span className="text-[12.5px] text-[#71717a]">Amount</span>
                 <span className="font-mono text-[13.5px] font-bold text-[#141414]">
-                  {receipt.amountCkb} <span className="font-sans text-[11.5px] font-normal text-[#71717a]">{receipt.asset}</span>
+                  {formatCkb(receipt.amountCkb)} <span className="font-sans text-[11.5px] font-normal text-[#71717a]">{receipt.asset}</span>
                 </span>
               </div>
               <div className="flex items-center justify-between">
@@ -104,11 +106,15 @@ export function ReceiptDrawer({
               <div className="overflow-hidden rounded-[8px] border border-[#e4e4e7]">
                 {receipt.deliveries.map((delivery) => (
                   <div key={delivery.id} className="flex items-center gap-3 border-b border-[#f3f4f6] px-4 py-2.5 last:border-b-0">
+                    <div
+                      className="h-1.75 w-1.75 flex-shrink-0 rounded-full"
+                      style={{ backgroundColor: deliveryStatusColor(delivery.status).dot }}
+                    />
                     <div className="min-w-0 flex-1">
                       <div className="font-mono text-[12px] text-[#141414]">{delivery.eventType}</div>
                       <div className="mt-0.5 truncate text-[11.5px] text-[#a1a1aa]">{delivery.endpointUrl ?? "—"}</div>
                     </div>
-                    <span className="font-mono text-[12px] font-semibold text-[#71717a]">
+                    <span className="font-mono text-[12px] font-semibold" style={{ color: deliveryStatusColor(delivery.status).text }}>
                       {deliveryHttpText(delivery)}
                     </span>
                     <span className="flex-shrink-0 whitespace-nowrap text-[11.5px] text-[#a1a1aa]">
