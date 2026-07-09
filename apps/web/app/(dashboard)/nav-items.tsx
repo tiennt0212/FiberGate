@@ -49,6 +49,14 @@ function WebhooksIcon() {
   );
 }
 
+function ActivityIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M1.5 8h3l1.5-4.5L9 12.5l1.5-4.5h3" />
+    </svg>
+  );
+}
+
 function QuickStartIcon() {
   return (
     <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -71,6 +79,7 @@ export const MAIN_NAV_ITEMS: DashboardNavItem[] = [
   { key: "invoices", route: ROUTE.INVOICES, label: "Invoices", icon: <InvoicesIcon /> },
   { key: "delivery-log", route: ROUTE.DELIVERY_LOG, label: "Delivery Log", icon: <DeliveryLogIcon /> },
   { key: "webhooks", route: ROUTE.WEBHOOKS, label: "Webhooks", icon: <WebhooksIcon /> },
+  { key: "activity", route: ROUTE.ACTIVITY, label: "Activity", icon: <ActivityIcon /> },
 ];
 
 export const SETUP_NAV_ITEMS: DashboardNavItem[] = [
@@ -85,5 +94,6 @@ export const PAGE_TITLES: Record<string, string> = {
   [ROUTE.INVOICES]: "Invoices",
   [ROUTE.DELIVERY_LOG]: "Delivery Log",
   [ROUTE.WEBHOOKS]: "Webhooks",
+  [ROUTE.ACTIVITY]: "Activity",
   [ROUTE.QUICK_START]: "Quick Start",
 };

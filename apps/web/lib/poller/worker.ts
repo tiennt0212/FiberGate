@@ -1,3 +1,5 @@
+import { logActivity } from "@/lib/activity-log";
+
 import { runPollCycle } from "./invoice-poller";
 
 // Thin setInterval wrapper around runPollCycle() (BR-POL-001: every 10s).
@@ -31,7 +33,7 @@ export function startInvoicePoller(): void {
     // process (e.g. DB unreachable during the bulk expire step).
     runPollCycle()
       .catch((error: unknown) => {
-        console.error("[poller] Poll cycle failed:", error);
+        logActivity("error", "poller", `Poll cycle failed: ${String(error)}`, error);
       })
       .finally(() => {
         isRunning = false;

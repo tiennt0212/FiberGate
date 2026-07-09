@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { logActivity } from "@/lib/activity-log";
 import { requireBearerToken } from "@/lib/api/auth";
 import { err, internalError, ok } from "@/lib/api/response";
 import { getOptionalEnv } from "@/lib/env";
@@ -34,7 +35,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     await runPollCycle();
   } catch (error) {
-    console.error("Manual poll cycle failed:", error);
+    logActivity("error", "poller", `Manual poll cycle failed: ${String(error)}`, error);
     return internalError();
   }
 

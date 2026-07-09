@@ -17,6 +17,7 @@ export const ROUTE = {
   INVOICES: "/invoices",
   DELIVERY_LOG: "/delivery-log",
   WEBHOOKS: "/webhooks",
+  ACTIVITY: "/activity",
   QUICK_START: "/quick-start",
 } as const;
 
