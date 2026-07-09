@@ -16,6 +16,21 @@ export function formatDateTime(input: Date | string | null | undefined): string 
   return `${month} ${day}, ${hours}:${minutes}`;
 }
 
+/** "14:23:05" fixed-format timestamp with seconds, not locale-dependent — used by the Activity feed. */
+export function formatTimeWithSeconds(input: Date | string | null | undefined): string {
+  if (!input) {
+    return "—";
+  }
+  const date = typeof input === "string" ? new Date(input) : input;
+  if (Number.isNaN(date.getTime())) {
+    return "—";
+  }
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  const seconds = String(date.getSeconds()).padStart(2, "0");
+  return `${hours}:${minutes}:${seconds}`;
+}
+
 /** Short id display for the full-length UUIDs invoices.id/webhook_deliveries.id actually are. */
 export function shortId(id: string | null | undefined): string {
   if (!id) {

@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 
 import type { ActivityLogEntry } from "@/lib/activity-log";
 
+import { formatTimeWithSeconds } from "../format-date";
+
 import { fetchRecentActivity } from "./actions";
 
 const POLL_INTERVAL_MS = 3000;
@@ -17,10 +19,6 @@ const LEVEL_CLASS: Record<ActivityLogEntry["level"], string> = {
   info: "text-[#e2e8f0]",
   error: "text-danger",
 };
-
-function formatTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString(undefined, { hour12: false });
-}
 
 export function ActivityFeed({ initialEntries }: { initialEntries: ActivityLogEntry[] }) {
   const [entries, setEntries] = useState(initialEntries);
@@ -66,7 +64,7 @@ export function ActivityFeed({ initialEntries }: { initialEntries: ActivityLogEn
           ) : (
             entries.map((entry) => (
               <div key={entry.id} className={LEVEL_CLASS[entry.level]}>
-                <span className="text-[#64748b]">{formatTime(entry.timestamp)}</span>{" "}
+                <span className="text-[#64748b]">{formatTimeWithSeconds(entry.timestamp)}</span>{" "}
                 <span className="text-[#64748b]">[{entry.source}]</span> {entry.message}
               </div>
             ))
