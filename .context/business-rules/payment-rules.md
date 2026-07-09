@@ -1,8 +1,8 @@
 ---
 type: business_rules
 module: payment-processing
-version: 1.3
-last_updated: 2026-07-05
+version: 1.4
+last_updated: 2026-07-09
 tags: [invoice, webhook, polling, limits]
 ---
 
@@ -21,6 +21,23 @@ tags: [invoice, webhook, polling, limits]
 > support được tách ra issue riêng — xem **issue #27** (milestone Phase 1 — Core, phụ
 > thuộc #5). Rule này ("CKB hoặc RUSD") vẫn đúng về mặt business intent lâu dài, chỉ chưa
 > đủ ở tầng implementation hiện tại.
+>
+> **Cập nhật 2026-07-09 (issue #27)**: "RUSD" nay đã implement đầy đủ. Đọc kỹ hơn
+> `@ckb-ccc/fiber`'s source (`src/types/invoice.ts`) mới thấy: UDT invoice **không phải
+> code path riêng** — cùng RPC `new_invoice`/method `sdk.newInvoice()` như CKB, chỉ thêm 1
+> field tùy chọn `udtTypeScript` (`currency` vẫn luôn là `Fibt`, field này chỉ encode
+> network, không encode asset). `lib/fiber/client.ts`'s `resolveUdtTypeScript()` lấy type
+> script của RUSD từ chính node (RPC `node_info`'s `udtCfgInfos`, phản chiếu
+> `docker/fiber-node/config.yml`'s `ckb.udt_whitelist` — đã pre-config sẵn RUSD thật trên
+> testnet), cache in-memory theo process lifetime (whitelist là static config, chỉ đổi khi
+> node restart với config.yml mới — restart đó cũng restart `fibergate-core` theo
+> docker-compose dependency, nên cache không bao giờ stale trong thực tế). Node không có
+> RUSD trong whitelist → throw `UdtNotConfiguredError` (phân biệt với
+> `UnsupportedAssetError` — lỗi cấu hình node, không phải asset FiberGate không hỗ trợ).
+> Không đổi database schema hay `lib/api/validation.ts` trong issue này — `amount_shannon`/
+> `SHANNON_PER_CKB`/BR-INV-001's "0.1–1000 CKB" vẫn áp dụng nguyên cho RUSD dù tên/giới hạn
+> mang ngôn ngữ CKB thuần túy (biết trước, chấp nhận cho hackathon prototype). Việc tổng
+> quát hoá amount/schema cho đúng nghĩa multi-asset được tách sang issue theo dõi riêng.
 
 **BR-INV-003:** Thời gian expire mặc định: 3600 giây (1 giờ). Tối đa 86400 giây (24 giờ).
 

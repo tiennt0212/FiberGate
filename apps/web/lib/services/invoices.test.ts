@@ -65,7 +65,7 @@ describe("createInvoice", () => {
   });
 
   it("propagates UnsupportedAssetError from the Fiber client without touching the DB", async () => {
-    vi.mocked(createFiberInvoice).mockRejectedValue(new UnsupportedAssetError("RUSD"));
+    vi.mocked(createFiberInvoice).mockRejectedValue(new UnsupportedAssetError("CKB"));
 
     await expect(createInvoice(CREATE_INPUT)).rejects.toBeInstanceOf(UnsupportedAssetError);
     expect(db.insert).not.toHaveBeenCalled();

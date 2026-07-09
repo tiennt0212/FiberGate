@@ -4,9 +4,10 @@ import type { CkbInvoiceStatus } from "@ckb-ccc/fiber";
 // @ckb-ccc/fiber's own SDK types so no other file needs to import the SDK
 // directly — that import stays confined to client.ts.
 
-// Only "CKB" is implemented by createInvoice() today; anything else (e.g.
-// "RUSD"/any UDT) throws UnsupportedAssetError. Full UDT/RUSD support is
-// tracked in issue #27.
+// "CKB" and "RUSD" are implemented by createInvoice(); anything else throws
+// UnsupportedAssetError. RUSD's UDT type script is resolved at runtime from
+// the node's own udt_whitelist (see resolveUdtTypeScript() in client.ts),
+// not hardcoded here — see decisions-log.md 2026-07-09 (issue #27).
 export type FiberAsset = string;
 
 export interface NewInvoiceInput {
@@ -67,13 +68,24 @@ export class FiberRpcTimeoutError extends Error {
   }
 }
 
-// Thrown by createInvoice() for any asset that isn't native CKB. Full
-// UDT/RUSD support is tracked in issue #27.
+// Thrown by createInvoice() for any asset other than "CKB"/"RUSD"
+// (BR-INV-002) — the only two FiberGate implements.
 export class UnsupportedAssetError extends Error {
   constructor(public readonly asset: string) {
-    super(
-      `Unsupported asset: ${asset} (UDT invoices not yet supported, see issue #27)`,
-    );
+    super(`Unsupported asset: ${asset} (FiberGate only supports CKB and RUSD)`);
     this.name = "UnsupportedAssetError";
+  }
+}
+
+// Thrown when asset is "RUSD" (a FiberGate-supported asset) but this
+// particular node's ckb.udt_whitelist (docker/fiber-node/config.yml) doesn't
+// have it configured — distinct from UnsupportedAssetError so ops can tell
+// "FiberGate can't do this" apart from "this node needs its config fixed".
+export class UdtNotConfiguredError extends Error {
+  constructor(public readonly asset: string) {
+    super(
+      `Asset "${asset}" is not in this Fiber node's udt_whitelist (check docker/fiber-node/config.yml's ckb.udt_whitelist)`,
+    );
+    this.name = "UdtNotConfiguredError";
   }
 }

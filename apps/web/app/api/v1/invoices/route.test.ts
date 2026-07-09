@@ -2,7 +2,11 @@ import { NextRequest } from "next/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { buildInvoiceRow } from "@/lib/db/test-fixtures";
-import { FiberRpcTimeoutError, UnsupportedAssetError } from "@/lib/fiber/types";
+import {
+  FiberRpcTimeoutError,
+  UdtNotConfiguredError,
+  UnsupportedAssetError,
+} from "@/lib/fiber/types";
 
 // Mock at the @/lib/services/invoices boundary — this route delegates all
 // DB/Fiber work there now; lib/services/invoices.test.ts covers that layer's
@@ -102,13 +106,26 @@ describe("POST /invoices", () => {
   });
 
   it("returns 400 UNSUPPORTED_ASSET when the service rejects the asset", async () => {
-    vi.mocked(createInvoice).mockRejectedValue(new UnsupportedAssetError("RUSD"));
+    // CKB/RUSD are the only values validateCreateInvoiceInput lets through
+    // (BR-INV-002); this exercises route.ts's defensive UnsupportedAssetError
+    // mapping regardless of which of those two the mock rejects.
+    vi.mocked(createInvoice).mockRejectedValue(new UnsupportedAssetError("CKB"));
 
-    const response = await POST(postRequest({ amount: 1, asset: "RUSD" }));
+    const response = await POST(postRequest({ amount: 1, asset: "CKB" }));
 
     expect(response.status).toBe(400);
     const body = (await response.json()) as { error: { code: string } };
     expect(body.error.code).toBe("UNSUPPORTED_ASSET");
+  });
+
+  it("returns 503 ASSET_NOT_CONFIGURED when the node hasn't whitelisted the UDT", async () => {
+    vi.mocked(createInvoice).mockRejectedValue(new UdtNotConfiguredError("RUSD"));
+
+    const response = await POST(postRequest({ amount: 1, asset: "RUSD" }));
+
+    expect(response.status).toBe(503);
+    const body = (await response.json()) as { error: { code: string } };
+    expect(body.error.code).toBe("ASSET_NOT_CONFIGURED");
   });
 
   it("returns 503 NODE_UNAVAILABLE when the Fiber node times out", async () => {
