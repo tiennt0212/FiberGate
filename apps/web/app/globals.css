@@ -53,6 +53,19 @@
   --color-status-danger-text: #991b1b;
   --color-status-online-bg: #f0fdf4; /* Node Status Indicator */
   --color-status-online-border: #bbf7d0;
+  /* Node Status Indicator degraded/offline variants (issue #40) — hexes match
+     .context/design/FiberGate.dc.html's NODE_CFG exactly, also now documented
+     in DESIGN.md's "Node Status Indicator" pattern. */
+  --color-status-degraded-bg: #fffbeb;
+  --color-status-degraded-border: #fde68a;
+  --color-status-degraded-dot: #f59e0b;
+  --color-status-degraded-text: #b45309;
+  --color-status-degraded-desc: #f59e0b;
+  --color-status-offline-bg: #fef2f2;
+  --color-status-offline-border: #fecaca;
+  --color-status-offline-dot: #ef4444;
+  --color-status-offline-text: #991b1b;
+  --color-status-offline-desc: #ef4444;
   --color-delivery-pending-text: #b45309; /* webhook_deliveries "pending" text — deliberately a distinct amber
     from status-warning-text (#854d0e), chosen for AA contrast in deliveryStatusColor(); not the same status
     role as the invoice "pending" badge despite the similar hue, see badges.tsx's DELIVERY_STATUS_COLORS comment */

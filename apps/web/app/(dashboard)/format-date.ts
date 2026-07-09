@@ -41,3 +41,20 @@ export function shortId(id: string | null | undefined): string {
   }
   return id.slice(0, 8);
 }
+
+/** "4m 12s" / "1h 6m" style duration — Overview's Invoice Funnel "Avg. Time to Payment" card. */
+export function formatDuration(totalSeconds: number | null | undefined): string {
+  if (totalSeconds === null || totalSeconds === undefined || Number.isNaN(totalSeconds)) {
+    return "—";
+  }
+  const seconds = Math.round(totalSeconds);
+  if (seconds < 60) {
+    return `${seconds}s`;
+  }
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) {
+    return `${minutes}m ${seconds % 60}s`;
+  }
+  const hours = Math.floor(minutes / 60);
+  return `${hours}h ${minutes % 60}m`;
+}

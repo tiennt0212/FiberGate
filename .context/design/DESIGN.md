@@ -254,12 +254,17 @@ body: font-size 12.5px, color #a16207
 ```
 
 ### Node Status Indicator
+3 trạng thái (issue #40 — status thật, không còn hardcode "online"):
 ```
-background: #f0fdf4
-border: 1px solid #bbf7d0
-border-radius: 6px
-dot: 8px, background #16a34a, animation pulse-dot 2s
+online:   background #f0fdf4, border 1px solid #bbf7d0, dot #16a34a (pulse-dot 2s), label #15803d "Online", desc #4ade80 "All systems operational"
+degraded: background #fffbeb, border 1px solid #fde68a, dot #f59e0b (pulse-dot 1s), label #b45309 "Degraded", desc #f59e0b "Some channels unavailable"
+offline:  background #fef2f2, border 1px solid #fecaca, dot #ef4444 (no animation), label #991b1b "Offline",  desc #ef4444 "Node unreachable"
 ```
+border-radius: 6px · dot: 8px
+
+`degraded` = RPC thành công nhưng `active_channels < total_channels` (có channel bị disable).
+`offline` = Fiber RPC call thất bại/timeout — không phải 1 giá trị `status` trả về từ service,
+mà là nhánh lỗi riêng (xem `lib/services/node.ts`/`overview/page.tsx`'s `loadNodeStatus()`).
 
 ---
 

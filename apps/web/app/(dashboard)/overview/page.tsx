@@ -4,11 +4,11 @@ import { Alert, Progress } from "antd";
 import { formatCkb, shannonToCkb } from "@/lib/api/format";
 import { ROUTE } from "@/lib/auth/routes";
 import { FiberRpcTimeoutError } from "@/lib/fiber/types";
-import { getInvoiceStats, listInvoices } from "@/lib/services/invoices";
+import { getInvoiceFunnelStats, getInvoiceStats, listInvoices, type InvoiceFunnelStats } from "@/lib/services/invoices";
 import { getNodeStatusDetail, type NodeStatusDetail } from "@/lib/services/node";
 import type { InvoiceRow } from "@/lib/db/schema";
 
-import { shortId } from "../format-date";
+import { formatDuration, shortId } from "../format-date";
 import { toInvoiceView } from "../invoice-view";
 import { StatCard } from "../stat-card";
 
@@ -41,6 +41,15 @@ async function loadStats() {
   }
 }
 
+async function loadFunnelStats(): Promise<{ funnel: InvoiceFunnelStats | null; error: string | null }> {
+  try {
+    return { funnel: await getInvoiceFunnelStats(), error: null };
+  } catch (error) {
+    console.error("Overview: getInvoiceFunnelStats failed:", error);
+    return { funnel: null, error: "Could not load invoice funnel stats." };
+  }
+}
+
 async function loadRecentInvoices() {
   try {
     const result = await listInvoices({ limit: 5 });
@@ -52,8 +61,12 @@ async function loadRecentInvoices() {
 }
 
 export default async function OverviewPage() {
-  const [{ status: nodeStatus, error: nodeError }, { stats, error: statsError }, { rows: recentInvoices, error: invoicesError }] =
-    await Promise.all([loadNodeStatus(), loadStats(), loadRecentInvoices()]);
+  const [
+    { status: nodeStatus, error: nodeError },
+    { stats, error: statsError },
+    { funnel, error: funnelError },
+    { rows: recentInvoices, error: invoicesError },
+  ] = await Promise.all([loadNodeStatus(), loadStats(), loadFunnelStats(), loadRecentInvoices()]);
 
   const totalLiquidity = nodeStatus ? nodeStatus.inbound_capacity_ckb + nodeStatus.outbound_capacity_ckb : 0;
   const inboundShare = totalLiquidity > 0 ? Math.round((nodeStatus!.inbound_capacity_ckb / totalLiquidity) * 100) : 0;
@@ -86,25 +99,64 @@ export default async function OverviewPage() {
 
       {statsError ? <Alert type="warning" showIcon message={statsError} className="mb-5 rounded-md!" /> : null}
 
+      <div className="mb-2.5 text-[11.5px] font-semibold uppercase tracking-wider text-text-xsubtle">Invoice Funnel (30d)</div>
+      <div className="mb-5 grid grid-cols-3 gap-3.5">
+        <StatCard label="Pending → Paid" value={funnel ? `${funnel.paidPct}%` : "—"} sub="Reached payment" size="md" />
+        <StatCard label="Pending → Expired" value={funnel ? `${funnel.expiredPct}%` : "—"} sub="Never paid in time" size="md" />
+        <StatCard label="Avg. Time to Payment" value={formatDuration(funnel?.avgTimeToPaymentSeconds)} sub="Created → paid" size="md" />
+      </div>
+
+      {funnelError ? <Alert type="warning" showIcon message={funnelError} className="mb-5 rounded-md!" /> : null}
+
       <div className="grid grid-cols-[272px_1fr] gap-3.5">
         <div className="self-start rounded-lg border border-border bg-white px-5 py-4.5">
           <div className="mb-3.5 text-[13px] font-semibold text-text-primary">Node Status</div>
 
           {nodeError ? (
-            <Alert type="error" showIcon message={nodeError} className="mb-3.5 rounded-md!" />
-          ) : (
             <>
-              <div className="mb-3.5 flex items-center gap-2.5 rounded-md border border-status-online-border bg-status-online-bg px-3 py-2.5">
-                <div className="h-2 w-2 shrink-0 rounded-full bg-success [animation:pulse-dot_2s_ease-in-out_infinite]" />
+              <div className="mb-3.5 flex items-center gap-2.5 rounded-md border border-status-offline-border bg-status-offline-bg px-3 py-2.5">
+                <div className="h-2 w-2 shrink-0 rounded-full bg-status-offline-dot" />
                 <div>
-                  <div className="text-[13px] font-semibold text-status-success-text">Online</div>
-                  <div className="text-[11.5px] text-[#4ade80]">All systems operational</div>
+                  <div className="text-[13px] font-semibold text-status-offline-text">Offline</div>
+                  <div className="text-[11.5px] text-status-offline-desc">Node unreachable</div>
                 </div>
               </div>
+              <div className="rounded-md border border-status-offline-border bg-status-offline-bg px-3 py-2.5 text-[12px] leading-relaxed text-status-offline-text">
+                <strong>Action required:</strong> {nodeError} Run <code className="rounded bg-status-danger-bg px-1.5 py-0.5 font-mono text-[11px]">docker compose restart fiber-node</code> and check logs.
+              </div>
+            </>
+          ) : (
+            <>
+              {nodeStatus?.status === "degraded" ? (
+                <div className="mb-3.5 flex items-center gap-2.5 rounded-md border border-status-degraded-border bg-status-degraded-bg px-3 py-2.5">
+                  <div className="h-2 w-2 shrink-0 rounded-full bg-status-degraded-dot [animation:pulse-dot_1s_ease-in-out_infinite]" />
+                  <div>
+                    <div className="text-[13px] font-semibold text-status-degraded-text">Degraded</div>
+                    <div className="text-[11.5px] text-status-degraded-desc">Some channels unavailable</div>
+                  </div>
+                </div>
+              ) : (
+                <div className="mb-3.5 flex items-center gap-2.5 rounded-md border border-status-online-border bg-status-online-bg px-3 py-2.5">
+                  <div className="h-2 w-2 shrink-0 rounded-full bg-success [animation:pulse-dot_2s_ease-in-out_infinite]" />
+                  <div>
+                    <div className="text-[13px] font-semibold text-status-success-text">Online</div>
+                    <div className="text-[11.5px] text-[#4ade80]">All systems operational</div>
+                  </div>
+                </div>
+              )}
+              {nodeStatus?.status === "degraded" ? (
+                <div className="mb-3.5 rounded-md border border-status-degraded-border bg-status-degraded-bg px-3 py-2.5 text-[12px] leading-relaxed text-status-degraded-text">
+                  <strong>Warning:</strong> Some payment channels are unavailable. Existing channels still process payments.
+                </div>
+              ) : null}
               <div className="mb-3.5 flex flex-col gap-2.5">
                 <div className="flex items-center justify-between">
                   <span className="text-[12.5px] text-text-muted">Node ID</span>
                   <span className="font-mono text-[12px] font-medium text-text-primary">{shortId(nodeStatus?.pubkey)}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-[12.5px] text-text-muted">Version</span>
+                  <span className="font-mono text-[12px] font-medium text-text-primary">{nodeStatus?.version ?? "—"}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-[12.5px] text-text-muted">Total channels</span>

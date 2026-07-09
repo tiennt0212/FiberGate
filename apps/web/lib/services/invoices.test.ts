@@ -20,7 +20,8 @@ vi.mock("@/lib/fiber/client", () => ({
 
 const { db } = await import("@/lib/db");
 const { createInvoice: createFiberInvoice } = await import("@/lib/fiber/client");
-const { createInvoice, getInvoiceById, listInvoices, hasPaidInvoice, getInvoiceStats } = await import("./invoices");
+const { createInvoice, getInvoiceById, listInvoices, hasPaidInvoice, getInvoiceStats, getInvoiceFunnelStats } =
+  await import("./invoices");
 
 function mockSelectResult(rows: InvoiceRow[]) {
   const chain = createQueryChain(rows);
@@ -214,6 +215,45 @@ describe("getInvoiceStats", () => {
       pendingCount: 0,
       paidVolumeByAsset: {},
     });
+  });
+});
+
+describe("getInvoiceFunnelStats", () => {
+  it("computes paid%/expired% and avg time-to-payment, ignoring pending/failed rows", async () => {
+    mockSelectResult([
+      { status: "paid", createdAt: new Date("2026-07-01T00:00:00Z"), paidAt: new Date("2026-07-01T00:01:00Z") },
+      { status: "paid", createdAt: new Date("2026-07-01T00:00:00Z"), paidAt: new Date("2026-07-01T00:03:00Z") },
+      { status: "expired", createdAt: new Date("2026-07-01T00:00:00Z"), paidAt: null },
+      { status: "pending", createdAt: new Date("2026-07-01T00:00:00Z"), paidAt: null },
+    ] as unknown as InvoiceRow[]);
+
+    const funnel = await getInvoiceFunnelStats();
+
+    expect(funnel).toEqual({
+      paidPct: 50,
+      expiredPct: 25,
+      avgTimeToPaymentSeconds: 120,
+    });
+  });
+
+  it("returns 0%/0%/null when there are no invoices in the window", async () => {
+    mockSelectResult([]);
+
+    await expect(getInvoiceFunnelStats()).resolves.toEqual({
+      paidPct: 0,
+      expiredPct: 0,
+      avgTimeToPaymentSeconds: null,
+    });
+  });
+
+  it("returns null avgTimeToPaymentSeconds when nothing has been paid yet", async () => {
+    mockSelectResult([
+      { status: "pending", createdAt: new Date("2026-07-01T00:00:00Z"), paidAt: null },
+    ] as unknown as InvoiceRow[]);
+
+    const funnel = await getInvoiceFunnelStats();
+
+    expect(funnel.avgTimeToPaymentSeconds).toBeNull();
   });
 });
 
