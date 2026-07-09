@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+
 // In-memory ring buffer + logging helper for background operations that were
 // previously silent on success (poller cycles, webhook delivery attempts) —
 // only errors were ever logged before. Each call writes to console (so
@@ -36,8 +38,6 @@ const TRIM_HEADROOM = 50;
 declare global {
   // eslint-disable-next-line no-var
   var __fibergateActivityLog: ActivityLogEntry[] | undefined;
-  // eslint-disable-next-line no-var
-  var __fibergateActivityLogNextId: number | undefined;
 }
 
 function getBuffer(): ActivityLogEntry[] {
@@ -45,14 +45,6 @@ function getBuffer(): ActivityLogEntry[] {
     globalThis.__fibergateActivityLog = [];
   }
   return globalThis.__fibergateActivityLog;
-}
-
-// Also on globalThis, not a plain module-level `let` — a counter reset to 0
-// on a separate module instance (see file header) would collide with ids
-// already produced by another instance sharing the same globalThis buffer.
-function nextEntryId(): number {
-  globalThis.__fibergateActivityLogNextId = (globalThis.__fibergateActivityLogNextId ?? 0) + 1;
-  return globalThis.__fibergateActivityLogNextId;
 }
 
 /**
@@ -65,7 +57,7 @@ function nextEntryId(): number {
  */
 export function logActivity(level: ActivityLevel, source: string, message: string, error?: unknown): void {
   const entry: ActivityLogEntry = {
-    id: `${Date.now()}-${nextEntryId()}`,
+    id: randomUUID(),
     timestamp: new Date().toISOString(),
     level,
     source,
