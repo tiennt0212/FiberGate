@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 
 import { SHANNON_PER_CKB } from "@/lib/api/validation";
+import { logActivity } from "@/lib/activity-log";
 import { db } from "@/lib/db";
 import type { InvoiceRow } from "@/lib/db/schema";
 import { webhookDeliveries, webhookEndpoints } from "@/lib/db/schema";
@@ -91,6 +92,12 @@ export async function triggerWebhook(invoice: InvoiceRow, eventType: WebhookEven
       })),
     )
     .returning();
+
+  logActivity(
+    "info",
+    "webhook",
+    `queued ${insertedRows.length} delivery/deliveries for invoice ${invoice.id} (event: ${eventType})`,
+  );
 
   for (const row of insertedRows) {
     scheduleAttempt(row.id, 0);

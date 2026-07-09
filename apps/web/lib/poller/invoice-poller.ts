@@ -1,5 +1,6 @@
 import { and, eq, gt, lt } from "drizzle-orm";
 
+import { logActivity } from "@/lib/activity-log";
 import { db } from "@/lib/db";
 import { invoices, type InvoiceRow } from "@/lib/db/schema";
 import { getInvoiceStatus } from "@/lib/fiber/client";
@@ -31,6 +32,10 @@ async function expireOverdueInvoices(now: Date): Promise<InvoiceRow[]> {
     .where(and(eq(invoices.status, "pending"), lt(invoices.expiresAt, now)))
     .returning();
 
+  for (const row of expiredRows) {
+    logActivity("info", "poller", `invoice ${row.id} expired (clock-based, past expires_at)`);
+  }
+
   // Independent deliveries to (potentially) different merchant endpoints —
   // no shared-resource reason to serialize them like the Fiber RPC batch
   // below. allSettled so one failing delivery doesn't skip logging the rest.
@@ -49,7 +54,7 @@ async function expireOverdueInvoices(now: Date): Promise<InvoiceRow[]> {
  * paid via the real Fiber node status before the clock-only bulk expire
  * could otherwise sweep it into 'expired' first.
  */
-async function pollPendingBatch(now: Date): Promise<void> {
+async function pollPendingBatch(now: Date): Promise<number> {
   const windowStart = new Date(now.getTime() - POLL_WINDOW_MS);
 
   const batch = await db
@@ -61,6 +66,8 @@ async function pollPendingBatch(now: Date): Promise<void> {
   for (const invoice of batch) {
     await pollOneInvoice(invoice, now);
   }
+
+  return batch.length;
 }
 
 async function pollOneInvoice(invoice: InvoiceRow, now: Date): Promise<void> {
@@ -72,10 +79,10 @@ async function pollOneInvoice(invoice: InvoiceRow, now: Date): Promise<void> {
     // BR-POL-004: skip + log, never touch status — one bad row (timeout or
     // any other failure) must not abort the rest of the batch.
     const reason = error instanceof FiberRpcTimeoutError ? "timed out" : "failed unexpectedly";
-    console.error(
-      `[poller] Fiber node ${reason} checking invoice ${invoice.id} ` +
-        `(payment_hash ${invoice.paymentHash}); skipping this cycle`,
-      error,
+    logActivity(
+      "error",
+      "poller",
+      `Fiber node ${reason} checking invoice ${invoice.id} (payment_hash ${invoice.paymentHash}); skipping this cycle: ${String(error)}`,
     );
     return;
   }
@@ -87,10 +94,10 @@ async function pollOneInvoice(invoice: InvoiceRow, now: Date): Promise<void> {
     // failure applying the status update (DB error, or a future webhook
     // delivery failure once issue #8 makes triggerWebhook() a real HTTP
     // call) must not abort the rest of pollPendingBatch()'s for-loop.
-    console.error(
-      `[poller] Failed to apply status update for invoice ${invoice.id} ` +
-        `(payment_hash ${invoice.paymentHash}); skipping this cycle`,
-      error,
+    logActivity(
+      "error",
+      "poller",
+      `Failed to apply status update for invoice ${invoice.id} (payment_hash ${invoice.paymentHash}); skipping this cycle: ${String(error)}`,
     );
   }
 }
@@ -129,6 +136,7 @@ async function applyNodeStatus(
     .returning();
 
   if (updated) {
+    logActivity("info", "poller", `invoice ${updated.id} pending → ${transition.status} (node status: ${nodeStatus})`);
     await triggerWebhook(updated, transition.event);
   }
 }
@@ -141,6 +149,12 @@ async function applyNodeStatus(
  * `now` is overridable for tests only.
  */
 export async function runPollCycle(now: Date = new Date()): Promise<void> {
-  await pollPendingBatch(now);
-  await expireOverdueInvoices(now);
+  const checked = await pollPendingBatch(now);
+  const expired = await expireOverdueInvoices(now);
+  // Only log a per-cycle summary line when something actually happened —
+  // otherwise a healthy idle deployment would push a "checked 0" line into
+  // the activity buffer every 10s (BR-POL-001), crowding out real events.
+  if (checked > 0 || expired.length > 0) {
+    logActivity("info", "poller", `poll cycle: checked ${checked} pending invoice(s), ${expired.length} clock-expired`);
+  }
 }

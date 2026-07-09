@@ -1,5 +1,6 @@
 import { eq } from "drizzle-orm";
 
+import { logActivity } from "@/lib/activity-log";
 import { db } from "@/lib/db";
 import { webhookDeliveries, webhookEndpoints, type WebhookDeliveryRow } from "@/lib/db/schema";
 
@@ -72,14 +73,12 @@ export async function attemptDelivery(deliveryId: string): Promise<void> {
     .limit(1);
   const delivery: WebhookDeliveryRow | undefined = deliveryRows[0];
   if (!delivery) {
-    console.error(`[webhooks] attemptDelivery: no webhook_deliveries row for id ${deliveryId}; skipping`);
+    logActivity("error", "webhook", `attemptDelivery: no webhook_deliveries row for id ${deliveryId}; skipping`);
     return;
   }
 
   if (!delivery.endpointId) {
-    console.error(
-      `[webhooks] attemptDelivery: delivery ${deliveryId} has no endpoint_id; marking failed`,
-    );
+    logActivity("error", "webhook", `attemptDelivery: delivery ${deliveryId} has no endpoint_id; marking failed`);
     await markDeliveryFailed(deliveryId);
     return;
   }
@@ -91,8 +90,10 @@ export async function attemptDelivery(deliveryId: string): Promise<void> {
     .limit(1);
   const endpoint = endpointRows[0];
   if (!endpoint) {
-    console.error(
-      `[webhooks] attemptDelivery: no webhook_endpoints row for id ${delivery.endpointId}; marking delivery ${deliveryId} failed`,
+    logActivity(
+      "error",
+      "webhook",
+      `attemptDelivery: no webhook_endpoints row for id ${delivery.endpointId}; marking delivery ${deliveryId} failed`,
     );
     await markDeliveryFailed(deliveryId);
     return;
@@ -109,7 +110,7 @@ export async function attemptDelivery(deliveryId: string): Promise<void> {
   try {
     decryptedSecret = decryptWebhookSecret(endpoint.secret);
   } catch (error) {
-    console.error(`[webhooks] Failed to decrypt secret for endpoint ${endpoint.id}:`, error);
+    logActivity("error", "webhook", `Failed to decrypt secret for endpoint ${endpoint.id}: ${String(error)}`);
     await markDeliveryFailed(deliveryId);
     return;
   }
@@ -178,6 +179,13 @@ export async function attemptDelivery(deliveryId: string): Promise<void> {
       ...(status === "success" ? { deliveredAt: now } : {}),
     })
     .where(eq(webhookDeliveries.id, deliveryId));
+
+  logActivity(
+    status === "failed" ? "error" : "info",
+    "webhook",
+    `delivery ${deliveryId} to ${endpoint.url} attempt ${attemptNumber}/${MAX_ATTEMPTS}: ` +
+      `${outcome} (http ${httpStatus ?? "n/a"}) -> ${status}${nextRetryAt ? `, retrying at ${nextRetryAt.toISOString()}` : ""}`,
+  );
 
   if (nextDelayMs !== null) {
     scheduleAttempt(deliveryId, nextDelayMs);
