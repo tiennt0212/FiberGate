@@ -1,13 +1,24 @@
 # FiberGate self-hosted bundle. Merchant deploy: `docker compose up -d`.
-# 3 services on one internal network (postgres, fiber-node, fibergate-core) —
-# a bare `docker compose up -d` only ever starts these 3, see below.
-# fibergate-core publishes a real host port; fiber-node and postgres publish
-# loopback-only (127.0.0.1), for local dev convenience (`pnpm dev`,
-# `pnpm --filter web db:migrate` running on the host) — neither is reachable
-# from outside the machine running this compose file.
+# 6 services on one internal network (postgres, fiber-node, fibergate-core,
+# nginx-certs-preflight, nginx, certbot) — a bare `docker compose up -d` only
+# ever starts these, see below.
+#
+# nginx is the ONLY service that publishes genuinely public host ports (80,
+# 443, 8228) — it TLS-terminates fibergate-core's dashboard/API (443) and
+# fiber-node's P2P port over WSS (8228, dual-mode: also passes through plain
+# TCP for regular Fiber peers). Requires DOMAIN + CERTBOT_EMAIL in .env, and
+# those ports actually reachable from the internet (DNS + firewall/router
+# port-forwarding) — see README.md "Public HTTPS deploy" for the full runbook,
+# including the one-time manual certbot command to get a real cert (nginx
+# boots with a temporary self-signed one until then, via
+# nginx-certs-preflight). fibergate-core, fiber-node, and postgres all publish
+# loopback-only (127.0.0.1) host ports instead, for local dev convenience
+# (`pnpm dev`, `pnpm --filter web db:migrate` running on the host) and direct
+# debugging — none of the three is reachable from outside the machine running
+# this compose file; nginx is the sole public entry point.
 # See README.md "Running the full stack" for setup steps (env file, CKB key).
 #
-# Also has fiber-node-payer(-preflight) — a LOCAL-TESTING-ONLY 4th service,
+# Also has fiber-node-payer(-preflight) — LOCAL-TESTING-ONLY extra services,
 # a second Fiber node used to pay demo invoices (see README.md "Pay a demo
 # invoice with a second local node"). Gated behind `profiles: [payer]` so it
 # never starts as part of a merchant's plain `docker compose up -d` — only
@@ -153,10 +164,100 @@ services:
       FIBER_NODE_RPC_AUTH_TOKEN: ${FIBER_NODE_RPC_AUTH_TOKEN}
       WEBHOOK_SECRET_ENCRYPTION_KEY: ${WEBHOOK_SECRET_ENCRYPTION_KEY}
       CRON_SECRET: ${CRON_SECRET}
+    # Loopback-only — nginx is the public entry point now (see top-of-file
+    # comment and the nginx service below). A plain "3000:3000" would let
+    # anyone bypass nginx and hit fibergate-core directly over plain HTTP,
+    # including spoofing an X-Forwarded-Proto header to force the dashboard's
+    # session cookie to look "secure" when the real connection isn't — see
+    # system-design.md's cookie/X-Forwarded-Proto note. Kept (not removed
+    # entirely) for direct debugging from the host itself.
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
     networks:
       - fibergate-net
+
+  # Generates a temporary self-signed cert if a real one doesn't exist yet at
+  # ${DOMAIN}'s Let's Encrypt path, so nginx can start on first boot before
+  # certbot has ever issued anything (see README.md "Public HTTPS deploy" for
+  # the one-time command that replaces it with a real cert). Same
+  # fail-fast-with-a-clear-message spirit as fiber-node-preflight above, just
+  # solving a bootstrap problem instead of a missing-file one.
+  nginx-certs-preflight:
+    image: alpine:3.20
+    volumes:
+      - certbot-conf:/etc/letsencrypt
+    networks:
+      - fibergate-net
+    command:
+      - sh
+      - -c
+      - |
+        CERT_DIR="/etc/letsencrypt/live/${DOMAIN}"
+        if [ ! -f "$$CERT_DIR/fullchain.pem" ]; then
+          apk add --no-cache openssl >/dev/null
+          mkdir -p "$$CERT_DIR"
+          openssl req -x509 -nodes -newkey rsa:2048 -days 1 \
+            -keyout "$$CERT_DIR/privkey.pem" \
+            -out "$$CERT_DIR/fullchain.pem" \
+            -subj "/CN=${DOMAIN}"
+          echo "nginx-certs-preflight: generated a temporary self-signed cert for ${DOMAIN} so nginx can start."
+          echo "Run the certbot command in README.md 'Public HTTPS deploy' to get a real one, then: docker compose exec nginx nginx -s reload"
+        else
+          echo "nginx-certs-preflight OK: cert already exists for ${DOMAIN}"
+        fi
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    depends_on:
+      nginx-certs-preflight:
+        condition: service_completed_successfully
+      fibergate-core:
+        condition: service_started
+      fiber-node:
+        condition: service_healthy
+    environment:
+      DOMAIN: ${DOMAIN}
+    volumes:
+      - ./docker/nginx/nginx.conf.template:/etc/nginx/nginx.conf.template:ro
+      - certbot-conf:/etc/letsencrypt:ro
+      - certbot-www:/var/www/certbot:ro
+    # '$$DOMAIN' (not '$DOMAIN'): must survive Compose's own interpolation
+    # pass and reach envsubst literally, restricting substitution to ONLY
+    # this var — see nginx.conf.template's own top comment for why (nginx has
+    # plenty of its own runtime $variables that envsubst would otherwise eat).
+    # The reload loop picks up certbot's renewals (nginx doesn't watch cert
+    # files itself); not a real process supervisor, just enough for this scale.
+    command:
+      - sh
+      - -c
+      - |
+        envsubst '$$DOMAIN' < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf
+        nginx -g 'daemon off;' &
+        NGINX_PID=$$!
+        while true; do
+          sleep 6h
+          nginx -s reload
+        done &
+        wait $$NGINX_PID
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8228:8228"
+    networks:
+      - fibergate-net
+
+  # Renews the Let's Encrypt cert on a loop (initial issuance is a one-time
+  # manual command — see README.md "Public HTTPS deploy" — certbot can't
+  # obtain a first cert until nginx is already serving the ACME challenge
+  # path on a real, publicly-reachable domain).
+  certbot:
+    image: certbot/certbot:latest
+    restart: unless-stopped
+    volumes:
+      - certbot-conf:/etc/letsencrypt
+      - certbot-www:/var/www/certbot
+    entrypoint: sh -c "trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot --quiet; sleep 12h & wait $$!; done"
 
   # ---- Below: local-testing-only, NOT part of the merchant-facing bundle.
   # Gated behind `profiles: [payer]` — never starts via a bare
@@ -229,3 +330,5 @@ networks:
 
 volumes:
   postgres-data:
+  certbot-conf:
+  certbot-www:
