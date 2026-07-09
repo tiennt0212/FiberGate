@@ -33,7 +33,7 @@ export function startInvoicePoller(): void {
     // process (e.g. DB unreachable during the bulk expire step).
     runPollCycle()
       .catch((error: unknown) => {
-        logActivity("error", "poller", `Poll cycle failed: ${String(error)}`);
+        logActivity("error", "poller", `Poll cycle failed: ${String(error)}`, error);
       })
       .finally(() => {
         isRunning = false;

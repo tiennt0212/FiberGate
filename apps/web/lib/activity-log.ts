@@ -58,9 +58,12 @@ function nextEntryId(): number {
 /**
  * Logs one activity entry — always to console (`[source] message`, same as
  * existing console.error call sites elsewhere in this app) and to the
- * in-memory buffer the Dashboard's Activity page polls.
+ * in-memory buffer the Dashboard's Activity page polls. `error`, if passed,
+ * is only forwarded to console.error as its second argument (so Node prints
+ * the full stack trace) — the buffer's `message` field stays a plain string,
+ * since it's serialized across the Server Action boundary to the client.
  */
-export function logActivity(level: ActivityLevel, source: string, message: string): void {
+export function logActivity(level: ActivityLevel, source: string, message: string, error?: unknown): void {
   const entry: ActivityLogEntry = {
     id: `${Date.now()}-${nextEntryId()}`,
     timestamp: new Date().toISOString(),
@@ -71,7 +74,11 @@ export function logActivity(level: ActivityLevel, source: string, message: strin
 
   const line = `[${source}] ${message}`;
   if (level === "error") {
-    console.error(line);
+    if (error !== undefined) {
+      console.error(line, error);
+    } else {
+      console.error(line);
+    }
   } else {
     console.log(line);
   }

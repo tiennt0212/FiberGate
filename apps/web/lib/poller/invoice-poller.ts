@@ -83,6 +83,7 @@ async function pollOneInvoice(invoice: InvoiceRow, now: Date): Promise<void> {
       "error",
       "poller",
       `Fiber node ${reason} checking invoice ${invoice.id} (payment_hash ${invoice.paymentHash}); skipping this cycle: ${String(error)}`,
+      error,
     );
     return;
   }
@@ -98,6 +99,7 @@ async function pollOneInvoice(invoice: InvoiceRow, now: Date): Promise<void> {
       "error",
       "poller",
       `Failed to apply status update for invoice ${invoice.id} (payment_hash ${invoice.paymentHash}); skipping this cycle: ${String(error)}`,
+      error,
     );
   }
 }

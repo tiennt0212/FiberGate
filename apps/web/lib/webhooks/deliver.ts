@@ -110,7 +110,7 @@ export async function attemptDelivery(deliveryId: string): Promise<void> {
   try {
     decryptedSecret = decryptWebhookSecret(endpoint.secret);
   } catch (error) {
-    logActivity("error", "webhook", `Failed to decrypt secret for endpoint ${endpoint.id}: ${String(error)}`);
+    logActivity("error", "webhook", `Failed to decrypt secret for endpoint ${endpoint.id}: ${String(error)}`, error);
     await markDeliveryFailed(deliveryId);
     return;
   }
