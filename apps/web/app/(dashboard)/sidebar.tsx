@@ -18,7 +18,7 @@ function navItemToMenuItem(item: DashboardNavItem, badge?: string): NonNullable<
     key: item.route,
     icon: item.icon,
     label: (
-      <Link href={item.route} className="text-inherit! no-underline! flex! w-full! items-center! justify-between!">
+      <Link href={item.route} className="text-inherit! no-underline! flex! w-full! items-center! justify-between! gap-2!">
         <span>{item.label}</span>
         {badge ? (
           <span className="ml-auto rounded-full! bg-[#ede9fe] px-1.75 py-0.5 text-[10.5px] font-semibold text-[#5b21b6]">
@@ -27,6 +27,7 @@ function navItemToMenuItem(item: DashboardNavItem, badge?: string): NonNullable<
         ) : null}
       </Link>
     ),
+    className: "flex! gap-4! items-center! p-2! m-0!"
   };
 }
 
