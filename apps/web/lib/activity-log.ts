@@ -31,6 +31,8 @@ const MAX_ENTRIES = 200;
 declare global {
   // eslint-disable-next-line no-var
   var __fibergateActivityLog: ActivityLogEntry[] | undefined;
+  // eslint-disable-next-line no-var
+  var __fibergateActivityLogNextId: number | undefined;
 }
 
 function getBuffer(): ActivityLogEntry[] {
@@ -40,7 +42,13 @@ function getBuffer(): ActivityLogEntry[] {
   return globalThis.__fibergateActivityLog;
 }
 
-let nextId = 0;
+// Also on globalThis, not a plain module-level `let` — a counter reset to 0
+// on a separate module instance (see file header) would collide with ids
+// already produced by another instance sharing the same globalThis buffer.
+function nextEntryId(): number {
+  globalThis.__fibergateActivityLogNextId = (globalThis.__fibergateActivityLogNextId ?? 0) + 1;
+  return globalThis.__fibergateActivityLogNextId;
+}
 
 /**
  * Logs one activity entry — always to console (`[source] message`, same as
@@ -49,7 +57,7 @@ let nextId = 0;
  */
 export function logActivity(level: ActivityLevel, source: string, message: string): void {
   const entry: ActivityLogEntry = {
-    id: `${Date.now()}-${(nextId += 1)}`,
+    id: `${Date.now()}-${nextEntryId()}`,
     timestamp: new Date().toISOString(),
     level,
     source,
