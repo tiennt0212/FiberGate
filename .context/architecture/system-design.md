@@ -54,6 +54,18 @@ tags: [nextjs, postgresql, docker-compose, fiber-node, monorepo, self-hosted]
 └────────────────────────────────────────────────────────────────┘
 ```
 
+**"Merchant's storefront app" cụ thể hoá (issue #12):** `apps/demo-storefront` là bản
+implement thật của box này — 1 workspace app hoàn toàn tách biệt khỏi `apps/web`
+(không import code chung, không chung process/container), gọi `POST /api/v1/invoices`
+qua `@fibergate/sdk` đúng như 1 merchant thứ ba thật sẽ làm, dùng `FIBERGATE_BASE_URL` +
+`FIBERGATE_INTERNAL_SECRET` để trỏ tới `fibergate-core`. Nhận webhook thật ở
+`POST /api/webhook` (verify bằng `@fibergate/sdk`'s `verifyWebhookSignature()`), đẩy
+update qua Server-Sent Events cho browser — không polling. Deploy tách biệt qua overlay
+`apps/demo-storefront/docker-compose.demo.yml` (Dockerfile + compose overlay nằm ngay
+trong thư mục app, tự chứa hoàn toàn — không thuộc bundle 3-container merchant-facing
+gốc ở `docker-compose.yml`/`docker/`). Xem README.md "Demo storefront" để biết cách
+chạy local.
+
 ## Data Flow — Tạo Invoice
 
 ```
@@ -246,6 +258,30 @@ CRON_SECRET=                     # optional
 Không có preflight/service nào tự động kiểm tra các biến này — để trống thì
 `docker compose up -d` sẽ fail rõ ràng ở `postgres`/`fibergate-core` (lỗi credential
 rỗng), đủ để merchant biết cần điền gì mà không cần thêm 1 service chỉ để validate.
+
+> **Cập nhật 2026-07-08 (issue #12, demo storefront)**: `apps/demo-storefront` là 1
+> app hoàn toàn riêng (xem "Merchant's storefront app cụ thể hoá" ở mục kiến trúc
+> phía trên) nên có `.env.example` độc lập của chính nó (`FIBERGATE_BASE_URL`,
+> `FIBERGATE_INTERNAL_SECRET`, `DEMO_WEBHOOK_SECRET`) — **root `.env`/`.env.example`
+> không có biến demo-storefront nào cả**, kể cả khi deploy qua Docker Compose:
+> `apps/demo-storefront/docker-compose.demo.yml`'s service `demo-storefront` dùng
+> `env_file: [apps/demo-storefront/.env.local]` để đọc thẳng secrets từ file đó
+> (cùng file `pnpm --filter demo-storefront dev` dùng), chỉ override đúng 1 biến
+> `FIBERGATE_BASE_URL` (topology-dependent: docker DNS name khi chạy container,
+> khác giá trị `localhost` trong `.env.local`) qua `environment:` block (luôn
+> thắng `env_file:` cho cùng 1 key). Bản đầu tiên (đã sửa) có thêm
+> `DEMO_WEBHOOK_SECRET` vào root `.env.example` để Docker Compose interpolate —
+> human phát hiện đây là duplicate thật với `apps/demo-storefront/.env.example`,
+> sửa lại bằng `env_file:` để chỉ còn đúng 1 nơi lưu secret này. Xem
+> `decisions-log.md` 2026-07-08 để biết chi tiết + 1 gotcha đáng nhớ phát hiện lúc
+> sửa: `env_file:` trong 1 override compose file resolve path tương đối theo
+> **project directory** (thư mục file `-f` đầu tiên), không phải theo thư mục
+> chứa chính file override đó — cùng hành vi đã ghi nhận cho `build.context`.
+>
+> Cũng đã cân nhắc và **bỏ** 1 script seed tự động (`apps/web/lib/services/webhooks.ts`'s
+> `createWebhookEndpoint()` gọi trực tiếp từ 1 `.mjs` script) từng làm trong cùng
+> phiên — human chốt không cần, sẽ tự đăng ký webhook endpoint qua Dashboard (khi
+> trang đó được xây) thay vì có riêng 1 cơ chế seed cho demo.
 
 > **Cập nhật 2026-07-05 (issue #9, phát hiện lúc code review trước khi tạo PR)**:
 > `docker-compose.yml`'s `fibergate-core.environment` phải liệt kê tường minh **từng**

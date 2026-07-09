@@ -1,9 +1,24 @@
 # FiberGate self-hosted bundle. Merchant deploy: `docker compose up -d`.
-# 3 services on one internal network. fibergate-core publishes a real host port;
-# fiber-node and postgres publish loopback-only (127.0.0.1), for local dev
-# convenience (`pnpm dev`, `pnpm --filter web db:migrate` running on the host)
-# — neither is reachable from outside the machine running this compose file.
+# 3 services on one internal network (postgres, fiber-node, fibergate-core) —
+# a bare `docker compose up -d` only ever starts these 3, see below.
+# fibergate-core publishes a real host port; fiber-node and postgres publish
+# loopback-only (127.0.0.1), for local dev convenience (`pnpm dev`,
+# `pnpm --filter web db:migrate` running on the host) — neither is reachable
+# from outside the machine running this compose file.
 # See README.md "Running the full stack" for setup steps (env file, CKB key).
+#
+# Also has fiber-node-payer(-preflight) — a LOCAL-TESTING-ONLY 4th service,
+# a second Fiber node used to pay demo invoices (see README.md "Pay a demo
+# invoice with a second local node"). Gated behind `profiles: [payer]` so it
+# never starts as part of a merchant's plain `docker compose up -d` — only
+# via `pnpm docker:payer` / `docker compose up -d fiber-node-payer`.
+#
+# This file currently doubles as the only real deploy path (built from
+# source via fibergate-core's `build:` block below). Plan for the eventual
+# public/merchant release: publish a pre-built fibergate-core image and ship
+# a separate, minimal compose file that references it directly (no monorepo
+# clone needed) — see decisions-log.md 2026-07-08 ("dev vs. release compose
+# split"). Not built yet; this file is what merchants use for now.
 
 services:
   postgres:
@@ -142,6 +157,68 @@ services:
       - "3000:3000"
     networks:
       - fibergate-net
+
+  # ---- Below: local-testing-only, NOT part of the merchant-facing bundle.
+  # Gated behind `profiles: [payer]` — never starts via a bare
+  # `docker compose up -d`, only `docker compose up -d fiber-node-payer`
+  # (or `pnpm docker:payer`). See README.md "Pay a demo invoice with a
+  # second local node (fiber-node-payer)". ----
+
+  fiber-node-payer-preflight:
+    profiles: [payer]
+    image: alpine:3.20
+    volumes:
+      - ./docker/fiber-node-payer:/fiber:ro
+    networks:
+      - fibergate-net
+    command:
+      - sh
+      - -c
+      - |
+        if [ ! -f /fiber/ckb/key ]; then
+          echo "============================================================"
+          echo "fiber-node-payer setup incomplete: missing CKB testnet key."
+          echo ""
+          echo "This is a SEPARATE key from fiber-node's own key — see"
+          echo "README.md 'Pay a demo invoice with a second local node'"
+          echo "for how to generate one and fund it via the testnet faucet."
+          echo "============================================================"
+          exit 1
+        fi
+        echo "fiber-node-payer-preflight OK: CKB key found at docker/fiber-node-payer/ckb/key"
+
+  fiber-node-payer:
+    profiles: [payer]
+    # Same exact tag as fiber-node above — avoid any wire-protocol drift
+    # between the two nodes talking to each other.
+    image: nervos/fiber:0.9.0-rc6
+    restart: unless-stopped
+    depends_on:
+      fiber-node-payer-preflight:
+        condition: service_completed_successfully
+    environment:
+      # Password for the CKB key at docker/fiber-node-payer/ckb/key — your
+      # own choice, independent of fiber-node's own FIBER_SECRET_KEY_PASSWORD.
+      FIBER_SECRET_KEY_PASSWORD: ${FIBER_PAYER_SECRET_KEY_PASSWORD}
+      RUST_LOG: info
+    volumes:
+      - ./docker/fiber-node-payer:/fiber
+    networks:
+      # Own static IP, distinct from fiber-node's 172.28.0.10 — same reason
+      # (config.yml's rpc.listening_addr must be a fixed non-wildcard
+      # address; fnn refuses to bind 0.0.0.0 without biscuit auth).
+      fibergate-net:
+        ipv4_address: 172.28.0.11
+    # Own host port, distinct from fiber-node's 8227 — loopback-only, same
+    # reasoning as fiber-node's own RPC port mapping.
+    ports:
+      - "127.0.0.1:8237:8227"
+    healthcheck:
+      test: ["CMD", "fnn-cli", "-u", "http://172.28.0.11:8227", "info"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
 
 networks:
   fibergate-net:
