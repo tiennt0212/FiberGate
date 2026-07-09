@@ -1,0 +1,123 @@
+# Templated by the `nginx` service's startup command (docker-compose.yml) via
+# `envsubst '$DOMAIN'` — restricted to ONLY that variable name so nginx's own
+# runtime `$variables` below ($host, $ssl_preread_protocol, $http_upgrade, ...)
+# are left untouched. Same class of gotcha as the Docker Compose `$VAR`
+# interpolation trap documented in decisions-log.md 2026-07-02 ("CHANGE_ME_*"
+# entry) — there it was Compose eating shell `$vars` inside `command:`; here
+# it's envsubst eating nginx's own `$vars` if you forget to restrict it.
+#
+# Fronts fibergate-core's dashboard/API (issue #17's original scope) and
+# fiber-node's P2P port over WSS (added scope — unlocks
+# apps/demo-storefront's "Pay with browser wallet" button). Does NOT front
+# apps/demo-storefront itself — that stays a separate, undeployed concern.
+#
+# stream{} + ssl_preread-based dual routing on the P2P port is adapted from
+# the official recipe: nervosnetwork/fiber, docs/fiber-node-wss.md, pinned to
+# tag v0.9.0-rc6 (matches this project's pinned `nervos/fiber` image tag).
+
+worker_processes auto;
+
+events {
+    worker_connections 1024;
+}
+
+http {
+    include       /etc/nginx/mime.types;
+    default_type  application/octet-stream;
+    sendfile      on;
+
+    # Re-resolve Docker's embedded DNS periodically instead of caching a
+    # sibling container's IP forever — without this, restarting
+    # fibergate-core or fiber-node without also restarting nginx leaves
+    # nginx proxying to a dead IP until it's restarted too.
+    resolver 127.0.0.11 valid=10s;
+
+    # ---- :80 — ACME HTTP-01 challenge (certbot's webroot) + redirect to https ----
+    server {
+        listen 80;
+        server_name ${DOMAIN};
+
+        location /.well-known/acme-challenge/ {
+            root /var/www/certbot;
+        }
+
+        location / {
+            return 301 https://$host$request_uri;
+        }
+    }
+
+    # ---- :443 — fibergate-core dashboard/API, TLS-terminated here ----
+    server {
+        listen 443 ssl;
+        server_name ${DOMAIN};
+
+        ssl_certificate     /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
+        ssl_certificate_key /etc/letsencrypt/live/${DOMAIN}/privkey.pem;
+        ssl_protocols       TLSv1.2 TLSv1.3;
+
+        location / {
+            set $fibergate_core fibergate-core:3000;
+            proxy_pass http://$fibergate_core;
+            proxy_set_header Host $host;
+            # apps/web/lib/auth/session.ts's isHttpsRequest() reads this to
+            # decide the dashboard session cookie's Secure flag — see
+            # system-design.md's cookie/X-Forwarded-Proto note.
+            proxy_set_header X-Forwarded-Proto https;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        }
+    }
+
+    # ---- Internal only, never published to the host — reached exclusively
+    # via the stream{} block below, which hands off TLS/WSS connections here
+    # after ssl_preread identifies them. Terminates TLS and proxies the
+    # WebSocket upgrade to fiber-node's plain P2P port. ----
+    server {
+        listen 127.0.0.1:8443 ssl;
+        server_name ${DOMAIN};
+
+        ssl_certificate     /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
+        ssl_certificate_key /etc/letsencrypt/live/${DOMAIN}/privkey.pem;
+        ssl_protocols       TLSv1.2 TLSv1.3;
+
+        location / {
+            set $fiber_node_p2p fiber-node:8228;
+            proxy_pass http://$fiber_node_p2p;
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection "upgrade";
+            proxy_read_timeout 3600s;
+            proxy_send_timeout 3600s;
+        }
+    }
+}
+
+# ---- fiber-node's public P2P/WSS port. One public port serves both regular
+# Fiber peers (raw TCP, no TLS — routed straight through to fiber-node) and
+# browser/WASM WSS clients (TLS ClientHello detected by ssl_preread, handed
+# off to the internal :8443 vhost above for TLS termination + WS upgrade).
+# Only WSS is currently announced in docker/fiber-node/config.yml's
+# announced_addrs (the raw-TCP path is kept only because the official recipe
+# includes it and it costs nothing to leave wired up — no /ip4/.../tcp/8228
+# entry is announced, so ordinary peers won't discover/dial this path today). ----
+stream {
+    log_format stream_log '$remote_addr [$time_local] '
+                           'proto=$ssl_preread_protocol status=$status '
+                           'bytes_sent=$bytes_sent bytes_received=$bytes_received '
+                           'session_time=$session_time upstream=$upstream_addr';
+    access_log /var/log/nginx/stream_access.log stream_log;
+    error_log  /var/log/nginx/stream_error.log;
+
+    resolver 127.0.0.11 valid=10s;
+
+    map $ssl_preread_protocol $p2p_target {
+        default    fiber-node:8228;
+        "TLSv1.2"  127.0.0.1:8443;
+        "TLSv1.3"  127.0.0.1:8443;
+    }
+
+    server {
+        listen 8228;
+        ssl_preread on;
+        proxy_pass $p2p_target;
+    }
+}

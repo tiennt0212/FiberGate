@@ -28,8 +28,10 @@ apps/demo-storefront/   — Reference merchant app (see "Demo storefront" below)
                           code with apps/web
 packages/sdk/           — npm package @fibergate/sdk (TypeScript, tsup)
 docker/                 — docker/fibergate-core/Dockerfile, fiber-node config,
-                          fiber-node-payer config (local-testing-only — see "Pay a
-                          demo invoice with a second local node" below)
+                          docker/nginx/nginx.conf.template (TLS/WSS reverse proxy — see
+                          "Public HTTPS deploy" below), fiber-node-payer config
+                          (local-testing-only — see "Pay a demo invoice with a second
+                          local node" below)
 .context/               — Project context files (single source of truth — read this before contributing)
 ```
 
@@ -72,14 +74,21 @@ pnpm --filter web db:migrate    # apply pending migrations to POSTGRES_* (run ma
 
 ## Running the full stack (Docker Compose)
 
-Brings up all 3 services — `postgres`, `fiber-node` (CKB testnet), `fibergate-core`
-(dashboard + API) — on one internal-only Docker network.
+Brings up all 6 services — `postgres`, `fiber-node` (CKB testnet), `fibergate-core`
+(dashboard + API), and `nginx`/`certbot`/`nginx-certs-preflight` (public HTTPS entry
+point) — on one internal-only Docker network. `nginx` is the only service that
+publishes genuinely public host ports; see "Public HTTPS deploy" below for what it
+needs (a real domain) and how to get a trusted cert. Without that, the stack still
+starts (nginx boots with a temporary self-signed cert), but it isn't reachable as a
+trusted `https://` URL from anywhere but this host until you complete that section.
 
 ### Generating secrets
 
-`.env.example` leaves 6 vars blank on purpose — they're required, no safe default
-exists, and `docker compose up -d` will fail (postgres/fibergate-core/fiber-node
-erroring on an empty credential) if you skip them:
+`.env.example` leaves 8 vars blank on purpose — they're required, no safe default
+exists, and `docker compose up -d` will fail (postgres/fibergate-core/fiber-node/nginx
+erroring on an empty credential) if you skip them. `DOMAIN` and `CERTBOT_EMAIL` are
+real-world values (not generated secrets) — see "Public HTTPS deploy" below for those
+two. The rest:
 
 ```bash
 # POSTGRES_PASSWORD, FIBERGATE_INTERNAL_SECRET, WEBHOOK_SECRET_ENCRYPTION_KEY,
@@ -111,7 +120,8 @@ docker run --rm httpd:alpine htpasswd -nbBC 10 admin 'your-real-password' | cut 
 **Prerequisites — do these before your first `docker compose up -d`:**
 
 1. Copy the root env file and fill in real values (see "Generating secrets"
-   above for all 6 required values):
+   above for the 6 generated ones, and "Public HTTPS deploy" below for `DOMAIN` /
+   `CERTBOT_EMAIL`):
    ```bash
    cp .env.example .env
    ```
@@ -129,12 +139,17 @@ docker run --rm httpd:alpine htpasswd -nbBC 10 admin 'your-real-password' | cut 
    rm ./exported-key
    chmod 600 docker/fiber-node/ckb/key
    ```
-3. Start the stack:
+3. Point `DOMAIN` at this host and forward ports 80/443/8228 — see "Public HTTPS
+   deploy" below. `docker compose up -d` will still come up without this (nginx boots
+   with a temporary self-signed cert), but nothing is reachable as a trusted
+   `https://` URL until this step is done.
+4. Start the stack:
    ```bash
    docker compose up -d
-   docker compose ps   # wait for postgres and fiber-node to report "healthy"
+   docker compose ps   # wait for postgres, fiber-node, and nginx-certs-preflight
+                        # ("Exited (0)") to report healthy/done
    ```
-4. Run database migrations once — this is a manual step, not automatic on container
+5. Run database migrations once — this is a manual step, not automatic on container
    boot (`fibergate-core` will start and serve requests even before this runs, but any
    DB-backed route will fail until the tables exist):
    ```bash
@@ -142,6 +157,8 @@ docker run --rm httpd:alpine htpasswd -nbBC 10 admin 'your-real-password' | cut 
    ```
    Re-run this any time you pull changes that touch `apps/web/lib/db/schema.ts` /
    `apps/web/lib/db/migrations/`.
+6. Get a real TLS cert (one-time, after DNS/port-forwarding in step 3 are actually
+   live) — see "Public HTTPS deploy" below.
 
 **Troubleshooting**
 
@@ -176,6 +193,124 @@ docker run --rm httpd:alpine htpasswd -nbBC 10 admin 'your-real-password' | cut 
   on both `postgres` and `fiber-node`, so it intentionally won't start until both are
   healthy. Check `docker compose ps` to see which one isn't healthy yet, then check
   that service's logs.
+- **`https://$DOMAIN` shows a certificate warning / "not secure"** — expected until
+  you've run the one-time certbot command in "Public HTTPS deploy" below. Until then
+  `nginx` is serving the temporary self-signed cert `nginx-certs-preflight` generated
+  so it could start at all — that's normal on first boot, not a bug.
+- **The certbot command in "Public HTTPS deploy" fails with a challenge/timeout
+  error** — almost always DNS or port-forwarding, not `.env`. Confirm `DOMAIN`
+  actually resolves to this host's public IP (`dig +short $DOMAIN` from any machine,
+  not this one) and that ports 80/443/8228 are forwarded to it — Let's Encrypt has to
+  reach port 80 on this host from the public internet to validate the challenge.
+- **"Pay with browser wallet" in the demo storefront still can't connect after
+  setting up WSS** — double-check `docker/fiber-node/config.yml`'s `announced_addrs`
+  was actually uncommented/edited with the real domain and `fiber-node` was restarted
+  (`docker compose restart fiber-node`) — this file isn't templated from `.env`, it's
+  a manual edit. See "Public HTTPS deploy" below for the verification commands.
+
+## Public HTTPS deploy
+
+Fronts `fibergate-core`'s dashboard/API and `fiber-node`'s P2P port with TLS via an
+`nginx` + `certbot` (Let's Encrypt) service pair, folded directly into
+`docker-compose.yml` — a plain `docker compose up -d` now requires `DOMAIN` and
+`CERTBOT_EMAIL` set in `.env`. Two things become reachable once this is fully set up:
+a trusted `https://$DOMAIN` for the dashboard/API (issue #17's original goal — HTTPS for
+judges trying the hosted demo), and WSS for `fiber-node`'s P2P port (unlocks
+`apps/demo-storefront`'s "Pay with browser wallet" button, currently blocked — see
+`decisions-log.md` 2026-07-08). It does **not** front `apps/demo-storefront` itself
+(a deliberately separate app/compose overlay) — that stays plain HTTP for now.
+
+Nginx boots even without a real cert (a temporary self-signed one, generated by
+`nginx-certs-preflight` if none exists yet), so `docker compose up -d` always comes up
+— but a trusted `https://` URL needs the steps below completed against a real,
+publicly-resolvable domain.
+
+### 1. Get a domain and point it at this host
+
+Any domain works; this project's own deploy uses a free subdomain from
+[is-a.dev](https://www.is-a.dev/) (a GitHub-PR-based free-subdomain registry — expect
+their review process to take some time before your subdomain resolves). Once you have
+one:
+
+- Point its DNS A/AAAA record at this host's public IP.
+- Forward ports **80**, **443**, and **8228** on your router/firewall to this
+  machine's LAN IP (in addition to anything else you already forward). All three are
+  used by `nginx`: 80 for the ACME HTTP-01 challenge + HTTPS redirect, 443 for the
+  dashboard/API, 8228 for `fiber-node`'s P2P/WSS traffic.
+- **If your registrar/DNS is Cloudflare: keep this record DNS-only ("grey cloud"),
+  not Proxied ("orange cloud").** Proxied mode terminates TLS at Cloudflare's edge
+  and doesn't forward arbitrary TCP ports like 8228 on the free/pro plan (only 80/443
+  and a handful of alt HTTP(S) ports are proxied) — the WSS path for the browser
+  wallet wouldn't be reachable through it. DNS-only means Cloudflare is just
+  answering DNS queries, no different from any other registrar; everything below
+  works exactly as written.
+- Confirm it actually resolves from outside your network before continuing —
+  `dig +short $DOMAIN` from a machine that isn't this one, or any public
+  "DNS checker" website.
+
+### 2. Configure and start
+
+```bash
+# In .env:
+DOMAIN=your-subdomain.example.com
+CERTBOT_EMAIL=you@example.com   # Let's Encrypt expiry notices
+
+docker compose up -d
+docker compose ps   # nginx-certs-preflight should show "Exited (0)", nginx "running"
+```
+
+### 3. Get a real certificate (one-time)
+
+Only run this once DNS + port-forwarding from step 1 are actually live — Let's
+Encrypt needs to reach port 80 on this host from the public internet:
+
+```bash
+docker compose run --rm certbot certonly \
+  --webroot -w /var/www/certbot \
+  -d "$DOMAIN" --email "$CERTBOT_EMAIL" --agree-tos --no-eff-email
+
+docker compose exec nginx nginx -s reload
+```
+
+The `certbot` service keeps running afterward and renews automatically (checks twice
+daily; Let's Encrypt certs are valid 90 days, renewed around day 60) — nginx reloads
+itself every 6h to pick up renewed certs, so no manual reload is needed again after
+this first one.
+
+Verify:
+```bash
+curl -I https://$DOMAIN   # should return a real response (e.g. a redirect to /login),
+                           # no -k/--insecure needed once the cert is trusted
+```
+Log into the dashboard through this URL and check the response's `Set-Cookie` header
+for the `Secure` attribute (browser dev tools' Application/Storage tab, or `curl -v`
+on the login request) — confirms `X-Forwarded-Proto` is being forwarded and read
+correctly end to end (see `system-design.md`'s cookie note for why this matters).
+
+### 4. Enable WSS for fiber-node (unlocks the browser wallet button)
+
+Optional — only needed for `apps/demo-storefront`'s "Pay with browser wallet" button.
+Skip this if you only care about the dashboard/API being on HTTPS.
+
+1. Edit `docker/fiber-node/config.yml`'s `announced_addrs` — uncomment the `/dns4/...`
+   line already there and replace `YOUR-DOMAIN` with your real `DOMAIN`.
+2. `docker compose restart fiber-node`.
+3. Verify the node's pubkey and that a peer can connect through the WSS path (from
+   this host, since `fiber-node`'s RPC stays loopback-only):
+   ```bash
+   curl -s -X POST http://127.0.0.1:8227 \
+     -H "Content-Type: application/json" \
+     -d '{"id": 1, "jsonrpc": "2.0", "method": "node_info", "params": []}' | jq -r '.result.pubkey'
+   ```
+   Full connect/verify flow (from a separate node or the browser wallet itself) is in
+   the official guide this setup is adapted from:
+   `nervosnetwork/fiber`'s `docs/fiber-node-wss.md` (pinned to tag `v0.9.0-rc6`,
+   matching this project's pinned `nervos/fiber` image).
+
+**Not yet verified against a real domain as of this writing** — the config above was
+built and smoke-tested locally (self-signed cert, `DOMAIN=localhost`) but not against
+real Let's Encrypt issuance or a live browser-wallet payment. Both are next steps once
+a real domain is live.
 
 ## Demo storefront
 
@@ -194,9 +329,11 @@ button — runs an actual Fiber node client-side via WASM (`@fiber-pay/react` /
 specifically to speed up manual testing; it's not part of the "storefront integrates
 like a real merchant" story the QR code demonstrates. Known gaps, not yet live-verified:
 - The browser wallet can only reach P2P peers over `wss://` (browsers can't open raw
-  TCP). `fiber-node` has no WSS-exposed P2P today — routing a payment through needs a
-  multi-hop path via a public testnet node that both supports WSS and already has a
-  channel to `fiber-node`. See `decisions-log.md` 2026-07-08 for the full reasoning.
+  TCP). `fiber-node` now has a WSS path available via `nginx` (see "Public HTTPS
+  deploy" above) once a real `DOMAIN` is configured and `announced_addrs` is updated —
+  the routing config exists but hasn't been exercised against a real domain or a real
+  browser payment yet. See `decisions-log.md` 2026-07-08/2026-07-09 for the full
+  reasoning.
 - `@fiber-pay/react`'s documented compatibility target is Fiber `v0.9.0-rc4`;
   `fiber-node` here is pinned to `v0.9.0-rc6` — likely fine, not confirmed.
 

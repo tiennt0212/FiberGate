@@ -255,9 +255,22 @@ WEBHOOK_SECRET_ENCRYPTION_KEY=   # 64-char hex (32-byte AES-256 key) encrypting
 CRON_SECRET=                     # optional
 ```
 
-Không có preflight/service nào tự động kiểm tra các biến này — để trống thì
-`docker compose up -d` sẽ fail rõ ràng ở `postgres`/`fibergate-core` (lỗi credential
-rỗng), đủ để merchant biết cần điền gì mà không cần thêm 1 service chỉ để validate.
+> **Cập nhật 2026-07-09 (issue #17)**: thêm 2 biến **required** mới,
+> `DOMAIN`/`CERTBOT_EMAIL` — dùng bởi `nginx`/`certbot` (mục "TLS/WSS reverse proxy"
+> ở trên), không phải secret sinh ngẫu nhiên như các biến khác mà là giá trị
+> real-world (domain thật + email thật). Không có default an toàn nào (nginx không
+> start ra config dùng được nếu thiếu `DOMAIN`) — xem README.md "Public HTTPS deploy".
+> ```bash
+> DOMAIN=                          # public domain, cần DNS trỏ vào host này +
+>                                   # port 80/443/8228 mở ra internet
+> CERTBOT_EMAIL=                   # Let's Encrypt expiry notices
+> ```
+
+Không có preflight/service nào tự động kiểm tra các biến bcrypt/secret ở trên (postgres/
+fibergate-core tự fail rõ ràng nếu thiếu) — riêng `DOMAIN` có `nginx-certs-preflight`
+sinh cert self-signed tạm nếu thiếu cert thật, nên `nginx`/`docker compose up -d` vẫn
+start được kể cả khi `DOMAIN` chưa trỏ đi đâu thật, chỉ là không dùng được qua HTTPS
+đáng tin cậy cho tới khi hoàn tất README.md "Public HTTPS deploy".
 
 > **Cập nhật 2026-07-08 (issue #12, demo storefront)**: `apps/demo-storefront` là 1
 > app hoàn toàn riêng (xem "Merchant's storefront app cụ thể hoá" ở mục kiến trúc
@@ -395,22 +408,66 @@ xem `api/rest-api-spec.md`).
   tự thêm path pattern vào matcher này, không tự động được guard.
 - **Cookie `Secure` flag dựa vào `X-Forwarded-Proto` header, không dựa vào
   `NODE_ENV`**: `docker/fibergate-core/Dockerfile` hardcode `NODE_ENV=production`, nhưng
-  `docker-compose.yml` bundle **không có TLS termination nào built-in** — `fibergate-core`
-  publish thẳng port `3000:3000` qua plain HTTP, không giống pattern loopback-only của
-  `postgres`/`fiber-node`. Nếu gắn `Secure` cookie theo `NODE_ENV==="production"`, browser
-  sẽ âm thầm từ chối lưu cookie trên chính flow deploy mặc định (plain HTTP) — login trông
-  như thành công (redirect `/dashboard`) nhưng session không bao giờ thực sự lưu, middleware
-  bounce ngược `/login` ngay, không có error message nào. Thay vào đó,
-  `apps/web/lib/auth/session.ts`'s `isHttpsRequest()` đọc header `X-Forwarded-Proto` (chuẩn
-  do reverse proxy terminate TLS set khi forward request) — không có header (mặc định hiện
-  tại, không proxy) thì `secure: false`, khớp đúng thực tế plain HTTP.
-  **Nếu sau này thêm 1 container nginx/Caddy làm TLS termination phía trước**: chỉ cần
-  nginx set đúng `X-Forwarded-Proto: https` khi forward (cấu hình chuẩn), code này tự động
-  chuyển sang `secure: true` mà không cần sửa lại — nhưng đồng thời phải đổi
-  `fibergate-core`'s port publish trong `docker-compose.yml` từ `"3000:3000"` sang
-  **không publish trực tiếp ra host nữa** (chỉ nginx mới expose ra ngoài), nếu không ai đó
-  gọi thẳng `http://host:3000` bỏ qua nginx vẫn có thể tự set header giả để đánh lừa cookie
-  thành "secure" trong khi kết nối thật là HTTP thuần.
+  `fibergate-core` tự nó không làm TLS termination — `apps/web/lib/auth/session.ts`'s
+  `isHttpsRequest()` đọc header `X-Forwarded-Proto` thay vì `NODE_ENV==="production"`,
+  không có header thì `secure: false`. **Cập nhật 2026-07-09 (issue #17)**: giờ đã có
+  TLS termination thật — `nginx` (service mới trong `docker-compose.yml`, xem mục
+  "TLS/WSS reverse proxy (nginx + certbot)" ngay dưới) set đúng
+  `X-Forwarded-Proto: https` khi forward tới `fibergate-core:3000`, nên `secure: true`
+  giờ là hành vi thật trên deploy mặc định, không còn là "nếu sau này thêm proxy" nữa.
+  Đi kèm: `fibergate-core`'s port publish đã đổi từ `"3000:3000"` sang
+  `"127.0.0.1:3000:3000"` (loopback-only, đúng như dự đoán trước đó) — không publish
+  trực tiếp ra host nữa, `nginx` là entry point công khai duy nhất, tránh ai đó gọi
+  thẳng `http://host:3000` bỏ qua nginx để tự set header giả đánh lừa cookie.
+
+### TLS/WSS reverse proxy (nginx + certbot) — issue #17
+
+`docker-compose.yml` có thêm 3 service: `nginx-certs-preflight` (one-shot, sinh cert
+self-signed tạm nếu chưa có cert thật, để `nginx` start được lần đầu — cùng tinh thần
+với `fiber-node-preflight`), `nginx` (`nginx:1.27-alpine` bản chính thức, **không cần
+custom build** — đã verify `nginx -V` có sẵn `--with-stream`/`--with-stream_ssl_module`/
+`--with-stream_ssl_preread_module` compiled tĩnh), và `certbot` (renew loop, issuance
+lần đầu là lệnh thủ công 1 lần — xem README.md "Public HTTPS deploy"). `nginx` là
+service DUY NHẤT publish host port công khai thật (`80`, `443`, `8228`) — `postgres`/
+`fiber-node`/`fibergate-core` đều giữ nguyên loopback-only.
+
+Kiến trúc `nginx.conf.template` (`docker/nginx/`, templated bằng `envsubst '$DOMAIN'`
+lúc container start — chỉ đúng 1 biến, tránh envsubst ăn nhầm `$variables` runtime của
+chính nginx, cùng class bug với gotcha `$`-escaping của Docker Compose đã ghi ở
+`decisions-log.md` 2026-07-02):
+- `:80` — ACME HTTP-01 challenge (webroot) + redirect sang https.
+- `:443 ssl` — dashboard/API, `proxy_pass` sang `fibergate-core:3000`, set
+  `X-Forwarded-Proto: https`.
+- `127.0.0.1:8443 ssl` (internal-only, không publish ra host) — terminate TLS, proxy
+  WebSocket-upgrade sang `fiber-node:8228` (plain P2P port bên trong container, không
+  đổi gì ở đó).
+- `stream{}` block trên `:8228` (public) — dùng `ssl_preread` để phân biệt: TLS
+  ClientHello (WSS, từ browser wallet) → forward sang `127.0.0.1:8443` ở trên; không
+  phải TLS (raw TCP, P2P node thường) → forward thẳng `fiber-node:8228`. Kỹ thuật này
+  copy nguyên từ tài liệu chính thức `nervosnetwork/fiber`'s `docs/fiber-node-wss.md`
+  (pin đúng tag `v0.9.0-rc6`, khớp image `nervos/fiber:0.9.0-rc6` đang dùng), chỉ đổi
+  số port cho khớp Docker networking của project này (bản gốc dùng chung port `443`
+  cho cả 2 mục đích; project này tách riêng `:443` cho dashboard và `:8228` cho P2P/WSS
+  vì cần `:443` sạch cho dashboard).
+
+`fiber-node`'s P2P listener (`fiber.listening_addr: "/ip4/0.0.0.0/tcp/8228"` trong
+`docker/fiber-node/config.yml`) không đổi gì — đã bind `0.0.0.0` sẵn bên trong network
+namespace riêng của chính container đó, `nginx` reach qua Docker network nội bộ
+(`fiber-node:8228`), không có host port nào publish trực tiếp cho port này (khác hẳn
+RPC's `172.28.0.10:8227` — port P2P không bị fnn's "public address refusal" check chi
+phối, chỉ RPC mới bị). `announced_addrs` là chỗ duy nhất cần sửa thủ công (file này
+`fiber-node` đọc trực tiếp, không qua Docker Compose interpolation) để thêm
+`/dns4/<DOMAIN>/tcp/8228/wss` — xem comment trong chính file đó.
+
+**Scope quyết định**: `nginx` chỉ front `fibergate-core` (dashboard/API + P2P/WSS của
+`fiber-node`), KHÔNG front `apps/demo-storefront` (app tách biệt hoàn toàn, compose
+overlay riêng) — giữ đúng scope gốc của issue #17. Nginx+certbot cũng được gộp thẳng
+vào root `docker-compose.yml` (không phải overlay tùy chọn) — nghĩa là **mọi**
+`docker compose up -d` từ giờ cần `DOMAIN`/`CERTBOT_EMAIL` trong `.env` và port
+80/443/8228 mở ra internet mới thực sự dùng được qua HTTPS (dù container vẫn start
+được với cert self-signed tạm nếu thiếu). Đây là thay đổi so với mô hình "mỗi merchant
+chỉ cần `docker compose up -d`, không cần domain" đã ngầm định trước đó — xem
+`decisions-log.md` 2026-07-09 để biết lý do human chọn hướng này.
 - **`ADMIN_PASSWORD_HASH_B64` lưu base64, không phải raw bcrypt hash — 2 cơ chế load
   `.env` khác nhau corrupt ký tự `$` theo 2 kiểu khác nhau, không có cách escape nào
   thoả cả hai** (phát hiện lúc human tự test `pnpm dev` login sau khi PR #32 merge, xem

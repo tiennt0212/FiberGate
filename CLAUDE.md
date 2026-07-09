@@ -36,8 +36,13 @@ apps/demo-storefront/ — Reference merchant app (issue #12) — app hoàn toàn
   docker-compose.demo.yml riêng ngay trong thư mục này (không nằm ở docker/ gốc —
   tự chứa hoàn toàn). Xem README.md "Demo storefront".
 packages/sdk/      — npm package @fibergate/sdk (TypeScript, tsup)
-docker-compose.yml — Fiber node + PostgreSQL + fibergate-core, merchant tự deploy
-docker/            — docker/fibergate-core/Dockerfile, config fiber-node
+docker-compose.yml — Fiber node + PostgreSQL + fibergate-core + nginx/certbot (TLS/WSS
+                     reverse proxy, issue #17 — xem CKB/Fiber References bên dưới),
+                     merchant tự deploy
+docker/            — docker/fibergate-core/Dockerfile, config fiber-node,
+                     docker/nginx/nginx.conf.template (nginx + certbot service, TLS
+                     cho fibergate-core dashboard/API + WSS cho fiber-node P2P — KHÔNG
+                     front apps/demo-storefront, xem README.md "Public HTTPS deploy")
 .context/          — Project context files (Single Source of Truth)
 .context/design/   — Mockup UI đầy đủ, commit thẳng vào repo (không chỉ token nữa):
                      - FiberGate.dc.html — mockup dashboard thật (mở trực tiếp bằng browser)
@@ -152,7 +157,7 @@ Khi cần thông tin về CKB protocol hoặc Fiber Network, tra cứu theo th�
 - **Official, dùng cho core (Phase 1/2):** `@ckb-ccc/fiber` (SDK cho `lib/fiber/client.ts`), `fnn-cli` + `ckb-cli` (setup/bootstrap channel lúc dev, không phải runtime dependency của app).
 - **Community, chỉ dùng làm reference cho Phase 3 (L402, optional stretch) — riêng cho `apps/web`:** `@fiber-pay/sdk` — xem demo tham chiếu [`fiber-l402`](https://github.com/RetricSu/fiber-l402) (Express + Astro + React, dùng chính thư viện này để build L402 paywall middleware).
   > **Cập nhật 2026-07-08 (issue #12)**: dòng "`@fiber-pay/react` không liên quan... FiberGate không có phần này" ở trên chỉ đúng cho `apps/web`/`fibergate-core` — vẫn giữ nguyên, KHÔNG dùng `@fiber-pay/react` trong `apps/web`. Nhưng `apps/demo-storefront` (app hoàn toàn tách biệt, xem monorepo layout phía trên) giờ **có dùng** `@fiber-pay/react` + `@nervosnetwork/fiber-js` thật — 1 nút "Pay with browser wallet" thử nghiệm (human yêu cầu trực tiếp), chạy 1 Fiber node WASM ngay trong browser để test thanh toán nhanh hơn không cần node/wallet riêng. Xem `apps/demo-storefront/app/BrowserWalletPay.tsx`, README.md "Demo storefront", và `decisions-log.md` 2026-07-08.
-- **Fiber WSS Config Manual** (`nervosnetwork/fiber/blob/develop/docs/fiber-node-wss.md`) — hướng dẫn expose P2P của node qua `wss://` (Nginx+TLS) cho browser/WASM client. **Không áp dụng** cho `fibergate-core`: gọi JSON-RPC tới `fiber-node` qua docker internal network (plain HTTP), không cần TLS/WSS. **Giờ đã liên quan** tới `apps/demo-storefront`'s browser wallet (ngay trên) — nhưng `fiber-node` hiện chưa expose WSS gì cả, nên nút "Pay with browser wallet" hiện chỉ route được nếu tìm được đường qua 1 public testnet node hỗ trợ WSS (chưa verify live).
+- **Fiber WSS Config Manual** (`nervosnetwork/fiber/blob/v0.9.0-rc6/docs/fiber-node-wss.md`, pin đúng tag khớp image đang dùng) — hướng dẫn expose P2P của node qua `wss://` (Nginx+TLS) cho browser/WASM client. **Không áp dụng** cho `fibergate-core` tự thân: gọi JSON-RPC tới `fiber-node` qua docker internal network (plain HTTP), không cần TLS/WSS. **Cập nhật 2026-07-09 (issue #17)**: `docker-compose.yml`'s `nginx` service (mới) giờ implement đúng recipe của tài liệu này — `stream{}` block + `ssl_preread` trên port `8228` phân biệt raw TCP (P2P thường) vs TLS/WSS (browser) — mở khoá đường route cho `apps/demo-storefront`'s "Pay with browser wallet" (ngay trên), miễn `DOMAIN` được cấu hình và `docker/fiber-node/config.yml`'s `announced_addrs` được sửa thủ công thêm dòng `/dns4/<DOMAIN>/tcp/8228/wss`. Chi tiết kiến trúc: `system-design.md`'s "TLS/WSS reverse proxy (nginx + certbot)"; runbook: README.md "Public HTTPS deploy". **Chưa live-verify** — mới smoke-test local với cert self-signed (`DOMAIN=localhost`), chưa test qua domain thật/Let's Encrypt/browser wallet thật (xem `decisions-log.md` 2026-07-09).
 
 ## Nguyên tắc làm việc với AI Agent
 

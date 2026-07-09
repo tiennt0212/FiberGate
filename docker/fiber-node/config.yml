@@ -25,6 +25,16 @@ fiber:
   announced_addrs:
     # If you want to announce your fiber node public address to the network, you need to add the address here, please change the ip to your public ip accordingly.
     # - "/ip4/YOUR-FIBER-NODE-PUBLIC-IP/tcp/8228"
+    #
+    # WSS (lets browser/WASM clients — e.g. apps/demo-storefront's "Pay with
+    # browser wallet" button — connect to this node, since browsers can't open
+    # raw TCP sockets): requires docker-compose.yml's nginx service to be
+    # running with a real TLS cert for DOMAIN (see README.md "Public HTTPS
+    # deploy" for the one-time certbot step — nginx boots with a temporary
+    # self-signed cert otherwise, which browsers will refuse for this). Once
+    # that's done, uncomment and replace YOUR-DOMAIN with the same value as
+    # root .env's DOMAIN, then `docker compose restart fiber-node`:
+    # - "/dns4/YOUR-DOMAIN/tcp/8228/wss"
   chain: testnet
 
   ## SOCKS5 proxy settings
