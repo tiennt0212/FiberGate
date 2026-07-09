@@ -2,6 +2,7 @@ import { randomBytes } from "node:crypto";
 
 import { and, desc, eq, gte, ilike, lt, lte, or, sql, type SQL } from "drizzle-orm";
 
+import { logActivity } from "@/lib/activity-log";
 import { db } from "@/lib/db";
 import { decodeCursor as decodeDeliveryCursor, encodeCursor as encodeDeliveryCursor } from "@/lib/db/cursor";
 import {
@@ -187,6 +188,8 @@ export async function resendDelivery(deliveryId: string): Promise<WebhookDeliver
   if (!resent) {
     logAndThrow("Webhook delivery resend insert returned no row");
   }
+
+  logActivity("info", "webhook", `queued 1 delivery for invoice ${resent.invoiceId} (event: ${resent.eventType}, manual resend of ${deliveryId})`);
 
   // Non-blocking dispatch, same as trigger.ts — only the DB insert above is
   // awaited, not the HTTP delivery itself.
