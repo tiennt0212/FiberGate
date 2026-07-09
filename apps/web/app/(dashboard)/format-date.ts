@@ -1,12 +1,18 @@
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-/** "Jul 01, 14:23" style timestamp, matching .context/design/FiberGate.dc.html's table cells. Server local time. */
-export function formatDateTime(input: Date | string | null | undefined): string {
+/** Shared by every formatter below: coerce to Date, or null for a missing/invalid input. */
+function parseDate(input: Date | string | null | undefined): Date | null {
   if (!input) {
-    return "—";
+    return null;
   }
   const date = typeof input === "string" ? new Date(input) : input;
-  if (Number.isNaN(date.getTime())) {
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+/** "Jul 01, 14:23" style timestamp, matching .context/design/FiberGate.dc.html's table cells. Server local time. */
+export function formatDateTime(input: Date | string | null | undefined): string {
+  const date = parseDate(input);
+  if (!date) {
     return "—";
   }
   const month = MONTHS[date.getMonth()];
@@ -18,11 +24,8 @@ export function formatDateTime(input: Date | string | null | undefined): string 
 
 /** "14:23:05" fixed-format timestamp with seconds, not locale-dependent — used by the Activity feed. */
 export function formatTimeWithSeconds(input: Date | string | null | undefined): string {
-  if (!input) {
-    return "—";
-  }
-  const date = typeof input === "string" ? new Date(input) : input;
-  if (Number.isNaN(date.getTime())) {
+  const date = parseDate(input);
+  if (!date) {
     return "—";
   }
   const hours = String(date.getHours()).padStart(2, "0");
