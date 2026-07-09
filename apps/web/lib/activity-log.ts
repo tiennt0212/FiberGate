@@ -16,7 +16,7 @@
 // see decisions-log.md 2026-07-09 — same defensive fix applied here
 // preemptively rather than waiting to hit the same bug again).
 
-export type ActivityLevel = "info" | "warn" | "error";
+export type ActivityLevel = "info" | "error";
 
 export interface ActivityLogEntry {
   id: string;

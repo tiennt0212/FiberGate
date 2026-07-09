@@ -15,7 +15,6 @@ const POLL_INTERVAL_MS = 3000;
 
 const LEVEL_CLASS: Record<ActivityLogEntry["level"], string> = {
   info: "text-[#e2e8f0]",
-  warn: "text-warning",
   error: "text-danger",
 };
 
