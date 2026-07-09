@@ -18,10 +18,13 @@
 | `COMPONENTS.dc.html` | Visual catalog — 11 component patterns mapped sang Antd v5 component + override recipe |
 
 ## Screens đã design (FiberGate.dc.html)
-1. **Overview** — 4 metric cards, Node Status (inbound/outbound capacity bars, pulse dot), Recent Transactions table
-2. **Webhooks** — endpoint list + delivery history panel, Add Endpoint modal (events: payment.paid / invoice.expired / invoice.failed / * all events)
-3. **Transactions** — tab Invoices (filter status + asset, Receipt button trên paid rows) + tab Settlement log
-4. **Quick Start** — 5 bước: Deploy → Login → Install SDK → Create Invoice → Configure Webhook
+1. **Overview** — 4 metric cards, **Invoice Funnel (30d)** row (Pending → Paid %, Pending → Expired %, Avg. Time to Payment — cho biết invoice có "trôi" hay bị bỏ ngang), Node Status (inbound/outbound capacity bars, pulse dot, Peers count = số peer thật từ Peers), Recent Transactions table
+2. **Channels** *(mới)* — bảng liệt kê từng payment channel: peer (rút gọn), asset (CKB hoặc UDT như RUSD — suy ra từ `fundingUdtTypeScript` có/không), local balance (outbound) / remote balance (inbound, đã làm tròn), trạng thái (Active/Disabled/Closing — cùng ngôn ngữ badge với invoice status). Có mini-diagram tĩnh ở đầu trang (node trung tâm + spokes tới từng peer, tô màu theo state: xanh=active, cam=closing, xám=disabled/no channel). Click 1 row → **Drawer** (Antd Drawer, trượt phải→trái) hiển thị: channel ID đầy đủ, peer pubkey đầy đủ + link "View peer →" nhảy sang Peers, trạng thái chi tiết (state name Fiber vd. `CHANNEL_READY`/`SHUTTING_DOWN` kèm giải thích ngôn ngữ thường), local/remote balance chính xác không làm tròn, TLC in-flight (offered/received) nếu > 0 kèm giải thích tại sao capacity khả dụng thấp hơn balance, public/private, ngày tạo, fee rate (millionths + %), channel outpoint + link funding tx hash sang CKB explorer (pudge.explorer.nervos.org), shutdown tx hash nếu đang đóng.
+3. **Peers** *(mới)* — bảng liệt kê CHỈ 2 cột đúng dữ liệu thật từ `listPeers()`: pubkey + address (multiaddr) — không thêm cột bịa. Click 1 peer → **Drawer** (trượt phải→trái) hiển thị: pubkey/address đầy đủ, tổng capacity (local+remote cộng dồn mọi channel với peer này — con số thanh khoản thật admin cần), danh sách tất cả channel đang mở với peer đó (derive theo pubkey trùng, mỗi channel show trạng thái + balance rút gọn, click → nhảy sang Channel Drawer tương ứng).
+4. **Webhooks** — thêm nhóm stat-card **Delivery Health** ở đầu trang: Delivery Success Rate (24h) + card cảnh báo "Needs Attention" (endpoint có failure rate cao nhất, tên/URL + % fail, style Warning Banner amber, derive động từ rate thấp nhất trong danh sách endpoint) — giúp phát hiện webhook hỏng trước khi mất payment notification. Bên dưới: endpoint list + delivery history panel, Add Endpoint modal (events: payment.paid / invoice.expired / invoice.failed / * all events)
+5. **Activity** *(mới)* — feed log real-time của poller + webhook delivery trong tiến trình fibergate-core (poll mỗi 3s, có countdown "Live · next poll in Ns"). Mỗi dòng: timestamp (giờ:phút:giây, mono), source (poller = dot indigo, webhook = dot purple), message, level (error nổi bật: nền đỏ nhạt + badge ERROR).
+6. **Transactions** — tab Invoices (filter status + asset, Receipt button trên paid rows) + tab Settlement log
+7. **Quick Start** — 5 bước: Deploy → Login → Install SDK → Create Invoice → Configure Webhook
 
 ## Design tokens chính
 - **Accent**: `#4f46e5` (indigo), hover `#4338ca`
