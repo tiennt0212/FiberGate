@@ -1,11 +1,13 @@
 import { randomBytes } from "node:crypto";
 
-import { FiberSDK } from "@ckb-ccc/fiber";
+import { FiberSDK, type UdtArgInfo } from "@ckb-ccc/fiber";
 
 import { requireEnv } from "../env";
 import {
   FiberRpcTimeoutError,
+  UdtNotConfiguredError,
   UnsupportedAssetError,
+  type FiberAsset,
   type FiberNodeInfo,
   type InvoiceStatusResult,
   type NewInvoiceInput,
@@ -23,9 +25,11 @@ import {
 // converts into FiberRpcTimeoutError.
 const RPC_TIMEOUT_MS = 5000;
 
-// The SDK's Currency values encode network (like Lightning's lnbc/lntb
-// prefixes). fiber-node here is testnet-only, so CKB always maps to Fibt.
-const CKB_CURRENCY = "Fibt" as const;
+// The SDK's Currency values encode network only (like Lightning's lnbc/lntb
+// prefixes) — orthogonal to which asset (CKB or a UDT like RUSD) the invoice
+// is denominated in, that's a separate udtTypeScript field. fiber-node here
+// is testnet-only, so every invoice uses Fibt regardless of asset.
+const INVOICE_CURRENCY = "Fibt" as const;
 
 // Singleton built once at import time, mirroring lib/db/index.ts. Not
 // exported — callers must go through the wrapper functions below.
@@ -78,28 +82,91 @@ function hexToNumber(hex: string): number {
   return Number(BigInt(hex));
 }
 
+// UDT type scripts (keyed by name), resolved from node_info's udtCfgInfos
+// (docker/fiber-node/config.yml's ckb.udt_whitelist) and cached for the
+// process lifetime — that whitelist rarely changes, so a fresh RPC call per
+// RUSD invoice would usually just be redundant load (human decision, issue
+// #27). Stored as an in-flight *promise*, not a resolved value: caching only
+// the value left a check-then-act race where concurrent callers arriving
+// before the first node_info response landed would each fire their own RPC.
+// Sharing the same promise means every concurrent caller awaits one RPC call.
+let udtScriptsPromise: Promise<Map<string, UdtArgInfo["script"]>> | null = null;
+
+async function fetchUdtScripts(): Promise<Map<string, UdtArgInfo["script"]>> {
+  const info = await callWithTimeout("node_info", () => sdk.getNodeInfo());
+  if (!Array.isArray(info.udtCfgInfos)) {
+    throw new Error(
+      "Fiber node's node_info response is missing udtCfgInfos — check the node version matches the pinned @ckb-ccc/fiber SDK's expected shape",
+    );
+  }
+  return new Map(info.udtCfgInfos.map((cfg) => [cfg.name, cfg.script]));
+}
+
+// Loads (and memoizes) the node's udt_whitelist. On failure, clears the
+// cache before rethrowing so the *next* call retries from scratch — a
+// transient RPC timeout must not get "stuck" as a permanently cached
+// rejection.
+function loadUdtScripts(): Promise<Map<string, UdtArgInfo["script"]>> {
+  if (!udtScriptsPromise) {
+    udtScriptsPromise = fetchUdtScripts().catch((error: unknown) => {
+      udtScriptsPromise = null;
+      throw error;
+    });
+  }
+  return udtScriptsPromise;
+}
+
+// Only "CKB" and "RUSD" are FiberGate-supported assets (BR-INV-002); anything
+// else fails fast without an RPC call. For "CKB", newInvoice() needs no
+// udtTypeScript at all (native asset). For "RUSD", the SDK's newInvoice()
+// takes the *same* currency/amount params as CKB plus one extra field,
+// udtTypeScript — UDT invoices are not a separate RPC method or code path,
+// verified by reading the installed @ckb-ccc/fiber's own
+// src/types/invoice.ts (NewInvoiceParamsLike.udtTypeScript).
+async function resolveUdtTypeScript(
+  asset: FiberAsset,
+): Promise<UdtArgInfo["script"] | undefined> {
+  if (asset === "CKB") {
+    return undefined;
+  }
+  if (asset !== "RUSD") {
+    throw new UnsupportedAssetError(asset);
+  }
+
+  const scripts = await loadUdtScripts();
+  const script = scripts.get(asset);
+  if (!script) {
+    // Don't remember "not configured" forever: an operator may fix
+    // ckb.udt_whitelist and restart just fiber-node (which does NOT restart
+    // this container — docker-compose's depends_on only governs startup
+    // order, not restart propagation). Clearing the cache here lets the
+    // *next* RUSD invoice attempt re-check instead of failing until someone
+    // separately restarts fibergate-core.
+    udtScriptsPromise = null;
+    throw new UdtNotConfiguredError(asset);
+  }
+  return script;
+}
+
 // Generates the HTLC preimage here — the caller never supplies or sees it
 // before creation. Returned alongside invoiceAddress/paymentHash so a future
 // issue can persist it (this file has no DB access). Whether the node
 // auto-settles once it recognizes the preimage, or needs an explicit
 // settleInvoice call, is unconfirmed — verify against a live node before
-// building the poller/settlement flow. Only CKB is supported; anything else
-// throws UnsupportedAssetError (UDT/RUSD tracked in issue #27).
+// building the poller/settlement flow.
 export async function createInvoice(
   input: NewInvoiceInput,
 ): Promise<NewInvoiceOutput> {
-  if (input.asset !== "CKB") {
-    throw new UnsupportedAssetError(input.asset);
-  }
-
+  const udtTypeScript = await resolveUdtTypeScript(input.asset);
   const paymentPreimage = randomBytes(32);
 
   return callWithTimeout("new_invoice", async () => {
     const result = await sdk.newInvoice({
       amount: input.amountShannon,
-      currency: CKB_CURRENCY,
+      currency: INVOICE_CURRENCY,
       paymentPreimage,
       description: input.description,
+      udtTypeScript,
     });
 
     return {

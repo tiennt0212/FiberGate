@@ -65,6 +65,7 @@ export const FiberGateErrorCode = {
   Unauthorized: "UNAUTHORIZED",
   RateLimited: "RATE_LIMITED",
   NodeUnavailable: "NODE_UNAVAILABLE",
+  AssetNotConfigured: "ASSET_NOT_CONFIGURED",
   NotFound: "NOT_FOUND",
   ValidationError: "VALIDATION_ERROR",
   InternalError: "INTERNAL_ERROR",

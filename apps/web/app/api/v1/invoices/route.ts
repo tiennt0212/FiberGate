@@ -2,7 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { requireAuth } from "@/lib/api/auth";
 import { tryConsumeInvoiceCreationSlot } from "@/lib/api/rate-limit";
-import { err, fiberTimeoutResponse, internalError, ok } from "@/lib/api/response";
+import {
+  err,
+  fiberTimeoutResponse,
+  internalError,
+  ok,
+  udtNotConfiguredResponse,
+  unsupportedAssetResponse,
+} from "@/lib/api/response";
 import { serializeCreatedInvoice, serializeInvoice } from "@/lib/api/serialize-invoice";
 import {
   ApiValidationError,
@@ -12,7 +19,6 @@ import {
   type ListInvoicesQuery,
 } from "@/lib/api/validation";
 import type { InvoiceRow } from "@/lib/db/schema";
-import { UnsupportedAssetError } from "@/lib/fiber/types";
 import { createInvoice, listInvoices, type ListInvoicesResult } from "@/lib/services/invoices";
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
@@ -48,13 +54,19 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     row = await createInvoice(input);
   } catch (error) {
-    if (error instanceof UnsupportedAssetError) {
-      return err(400, "UNSUPPORTED_ASSET", error.message);
+    const assetResponse = unsupportedAssetResponse(error);
+    if (assetResponse) {
+      return assetResponse;
     }
     const timeoutResponse = fiberTimeoutResponse(error);
     if (timeoutResponse) {
       return timeoutResponse;
     }
+    const udtResponse = udtNotConfiguredResponse(error);
+    if (udtResponse) {
+      return udtResponse;
+    }
+    console.error("Failed to create invoice:", error);
     return internalError();
   }
 

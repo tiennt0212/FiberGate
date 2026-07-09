@@ -1,7 +1,7 @@
 ---
 type: api_specification
-version: 1.1
-last_updated: 2026-07-04
+version: 1.2
+last_updated: 2026-07-09
 tags: [rest-api, endpoints, authentication]
 ---
 
@@ -68,6 +68,10 @@ Tạo invoice mới.
 - `401 UNAUTHORIZED` — token không khớp `FIBERGATE_INTERNAL_SECRET`
 - `429 RATE_LIMITED` — vượt quá 100 invoice/phút trên toàn bộ deployment (BR-RTE-001)
 - `503 NODE_UNAVAILABLE` — Fiber node không phản hồi
+- `503 ASSET_NOT_CONFIGURED` — asset hợp lệ (CKB/RUSD) nhưng node hiện tại chưa whitelist
+  UDT này trong `docker/fiber-node/config.yml`'s `ckb.udt_whitelist` — khác
+  `NODE_UNAVAILABLE`: retry không giúp được gì, cần merchant tự sửa config node
+  (issue #27)
 
 ---
 
