@@ -29,11 +29,6 @@ export interface ActivityLogEntry {
 }
 
 const MAX_ENTRIES = 200;
-// buffer.shift() is O(n) — letting the buffer grow this far past MAX_ENTRIES
-// before trimming amortizes that cost across TRIM_HEADROOM pushes instead of
-// paying it on every single push once at capacity. getRecentActivity() still
-// only ever returns MAX_ENTRIES entries.
-const TRIM_HEADROOM = 50;
 
 declare global {
   // eslint-disable-next-line no-var
@@ -77,12 +72,12 @@ export function logActivity(level: ActivityLevel, source: string, message: strin
 
   const buffer = getBuffer();
   buffer.push(entry);
-  if (buffer.length > MAX_ENTRIES + TRIM_HEADROOM) {
-    buffer.splice(0, buffer.length - MAX_ENTRIES);
+  if (buffer.length > MAX_ENTRIES) {
+    buffer.shift();
   }
 }
 
 /** Returns the most recent entries, oldest first — for the Activity page's initial render and poll refresh. */
 export function getRecentActivity(): ActivityLogEntry[] {
-  return getBuffer().slice(-MAX_ENTRIES);
+  return [...getBuffer()];
 }
