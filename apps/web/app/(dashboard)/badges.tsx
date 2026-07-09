@@ -14,6 +14,7 @@ const STATUS_CLASSNAMES: Record<string, string> = {
   failed: "bg-status-danger-bg! text-status-danger-text!",
   active: "bg-status-success-bg! text-status-success-text!",
   disabled: "bg-border-subtle! text-text-muted!",
+  closing: "bg-status-degraded-bg! text-status-degraded-text!", // Channels page (issue #40)
   success: "bg-status-success-bg! text-status-success-text!",
   retrying: "bg-status-warning-bg! text-status-warning-text!",
 };
@@ -25,6 +26,7 @@ const STATUS_LABELS: Record<string, string> = {
   failed: "Failed",
   active: "Active",
   disabled: "Disabled",
+  closing: "Closing",
   success: "Delivered",
   retrying: "Retrying",
 };
