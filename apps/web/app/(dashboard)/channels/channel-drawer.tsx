@@ -43,7 +43,10 @@ export function ChannelDrawer({ channel, onClose }: { channel: ChannelDetail | n
             <Row
               label="Peer"
               value={
-                <Link href={ROUTE.PEERS} className="break-all font-mono text-[11px] text-accent no-underline! hover:text-accent-hover">
+                <Link
+                  href={`${ROUTE.PEERS}?peer=${channel.peerPubkey}`}
+                  className="break-all font-mono text-[11px] text-accent no-underline! hover:text-accent-hover"
+                >
                   {channel.peerPubkey} →
                 </Link>
               }

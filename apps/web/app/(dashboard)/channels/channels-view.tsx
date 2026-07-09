@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Alert, Table } from "antd";
 import type { ColumnsType } from "antd/es/table";
 
@@ -50,8 +50,29 @@ function NodeTopology({ channels }: { channels: ChannelDetail[] }) {
   );
 }
 
-export function ChannelsView({ channels, error }: { channels: ChannelDetail[]; error: string | null }) {
+export function ChannelsView({
+  channels,
+  error,
+  openChannelId,
+}: {
+  channels: ChannelDetail[];
+  error: string | null;
+  /** Deep-link from the Peer Drawer's channel list (?channel=<id>) — auto-opens that channel's drawer on load. */
+  openChannelId: string | null;
+}) {
   const [selectedChannel, setSelectedChannel] = useState<ChannelDetail | null>(null);
+
+  useEffect(() => {
+    if (!openChannelId) {
+      return;
+    }
+    const match = channels.find((channel) => channel.channelId === openChannelId);
+    if (match) {
+      setSelectedChannel(match);
+    }
+    // Only run once per navigation to this deep link, not on every `channels` re-render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openChannelId]);
 
   const activeCount = channels.filter((channel) => channel.status === "active").length;
   // Same known CKB/RUSD-decimals simplification as the rest of the app
