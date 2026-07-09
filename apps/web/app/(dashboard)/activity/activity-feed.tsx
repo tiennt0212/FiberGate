@@ -20,15 +20,33 @@ const LEVEL_CLASS: Record<ActivityLogEntry["level"], string> = {
   error: "text-danger",
 };
 
+// Cheap enough to tell "nothing new happened" without a deep comparison: the
+// buffer only ever grows or FIFO-rotates, so (length, newest id) is identical
+// across polls iff the entries are identical.
+function signatureOf(entries: ActivityLogEntry[]): string {
+  return `${entries.length}:${entries.at(-1)?.id ?? ""}`;
+}
+
 export function ActivityFeed({ initialEntries }: { initialEntries: ActivityLogEntry[] }) {
   const [entries, setEntries] = useState(initialEntries);
   const scrollRef = useRef<HTMLDivElement>(null);
   const wasAtBottomRef = useRef(true);
+  const lastSignatureRef = useRef(signatureOf(initialEntries));
 
   useEffect(() => {
     const intervalId = setInterval(() => {
+      if (document.hidden) {
+        return;
+      }
       fetchRecentActivity()
-        .then(setEntries)
+        .then((fetched) => {
+          const signature = signatureOf(fetched);
+          if (signature === lastSignatureRef.current) {
+            return; // no new activity — skip the state update and its re-render
+          }
+          lastSignatureRef.current = signature;
+          setEntries(fetched);
+        })
         .catch((error: unknown) => {
           console.error("Activity: failed to poll recent activity:", error);
         });
