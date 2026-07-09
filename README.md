@@ -296,8 +296,12 @@ touches `postgres`/`fibergate-core`.
      --data '{"id":1,"jsonrpc":"2.0","method":"connect_peer","params":[{"address":"<multiaddr from step 4>"}]}'
 
    curl -s -X POST http://localhost:8237 -H 'Content-Type: application/json' \
-     --data '{"id":1,"jsonrpc":"2.0","method":"open_channel","params":[{"pubkey":"<fiber-node pubkey>","funding_amount":"0x2e90edd000"}]}'
-   # 0x2e90edd000 = 200 CKB in shannons — adjust to taste, must leave room for the 99 CKB reserve
+     --data '{"id":1,"jsonrpc":"2.0","method":"open_channel","params":[{"pubkey":"<fiber-node pubkey>","funding_amount":"0x4a817c800"}]}'
+   # 0x4a817c800 = 200 CKB in shannons — must be >= fiber-node's own
+   # open_channel_auto_accept_min_ckb_funding_amount (check via node_info on
+   # :8227; defaults to 100 CKB = 0x2540be400) or the channel needs a manual
+   # accept_channel from fiber-node's side. Adjust to taste, must also leave
+   # room for the 99 CKB reserve.
    ```
    Poll until ready (no gossip-sync wait needed — this is a direct channel, not a
    multi-hop route):
@@ -313,6 +317,26 @@ touches `postgres`/`fibergate-core`.
    ```
    `fibergate-core`'s poller (10s cycle) picks up the `Paid` status, fires the webhook, and
    the demo storefront's page updates automatically via SSE.
+
+**Troubleshooting** (see `decisions-log.md` 2026-07-09 for the full investigation of each):
+- **`connect_peer` succeeds but the peer disappears from `list_peers` within ~1s, and
+  `open_channel` fails with `"...waiting for peer to send Init message"`** — gossip
+  backlog overflow, not a transient issue. Happens when `fiber-node` has accumulated a
+  lot of real gossip data (e.g. from `bootnode_addrs` on a long-running node) and dumps
+  it all on the freshly-connected payer at once. Already worked around in
+  `docker/fiber-node-payer/config.yml` (`gossip_network_num_targeted_active_syncing_peers:
+  0`, no `bootnode_addrs`) — if you still hit this, check `fiber-node`'s own
+  `graph_channels` count via `node_info`/pagination.
+- **`open_channel` returns a `temporary_channel_id`, but `fiber-node`'s logs show
+  `"Failed to fund channel: ... need more capacity"`** — `fiber-node` itself needs its
+  own 99 CKB channel reserve to *accept* a channel, not just the opener's funding
+  amount. Fund `fiber-node`'s own address (derive it from `node_info`'s
+  `default_funding_lock_script` the same way as `fiber-node-payer`'s, or see
+  `decisions-log.md` for the exact `scriptToAddress` call) via the faucet.
+- **Channel stuck at `AwaitingTxSignatures` with all 3 signature flags set** — normal;
+  wait ~20-30s for the funding transaction to confirm on-chain, then re-poll
+  `list_channels`. A tx hash showing `status: "unknown"` right after signing is expected,
+  not a failure.
 
 ## Documentation
 
