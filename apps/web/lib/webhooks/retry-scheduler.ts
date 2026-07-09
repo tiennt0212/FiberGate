@@ -1,5 +1,6 @@
 import { and, eq, isNotNull } from "drizzle-orm";
 
+import { logActivity } from "@/lib/activity-log";
 import { db } from "@/lib/db";
 import { webhookDeliveries } from "@/lib/db/schema";
 
@@ -38,7 +39,7 @@ export function scheduleAttempt(deliveryId: string, delayMs: number): void {
     // expected failure mode, so a rejection here means something unexpected
     // (e.g. DB unreachable) — it must never crash the process or the timer.
     attemptDelivery(deliveryId).catch((error: unknown) => {
-      console.error(`[webhooks] Delivery attempt for ${deliveryId} failed unexpectedly:`, error);
+      logActivity("error", "webhook", `Delivery attempt for ${deliveryId} failed unexpectedly: ${String(error)}`, error);
     });
   }, delayMs);
 

@@ -25,6 +25,7 @@ export async function register(): Promise<void> {
     const { startInvoicePoller } = await import("./lib/poller/worker");
     startInvoicePoller();
 
+    const { logActivity } = await import("./lib/activity-log");
     const { recoverPendingDeliveries } = await import("./lib/webhooks/retry-scheduler");
     // Fire-and-forget, same as startInvoicePoller() above: a DB hiccup at the
     // exact instant register() runs (transient connection issue, cold
@@ -32,7 +33,7 @@ export async function register(): Promise<void> {
     // `condition: service_healthy` gate) must never block or crash Next.js
     // server startup.
     recoverPendingDeliveries().catch((error: unknown) => {
-      console.error("[webhooks] Retry recovery failed:", error);
+      logActivity("error", "webhook", `Retry recovery failed: ${String(error)}`, error);
     });
   }
 }
