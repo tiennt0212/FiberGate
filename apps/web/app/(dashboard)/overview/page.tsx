@@ -10,6 +10,7 @@ import type { InvoiceRow } from "@/lib/db/schema";
 
 import { shortId } from "../format-date";
 import { toInvoiceView } from "../invoice-view";
+import { StatCard } from "../stat-card";
 
 import { RecentInvoicesTable } from "./recent-invoices-table";
 
@@ -65,34 +66,22 @@ export default async function OverviewPage() {
   return (
     <div className="animate-[fade-in_0.2s_ease-out_forwards]">
       <div className="mb-5 grid grid-cols-4 gap-3.5">
-        <div className="rounded-lg border border-border bg-white px-5 py-4.5 hover:border-border-hover">
-          <div className="mb-2.5 text-[11.5px] font-semibold uppercase tracking-wider text-text-xsubtle">Paid Volume (30d)</div>
-          <div className="mb-1 text-[27px] font-bold leading-none text-text-primary">
-            {primaryVolume ? `${formatCkb(shannonToCkb(primaryVolume[1]))} ${primaryVolume[0]}` : "0 CKB"}
-          </div>
-          <div className="text-[12px] text-text-subtle">
-            {secondaryVolumes.length > 0
+        <StatCard
+          label="Paid Volume (30d)"
+          value={primaryVolume ? `${formatCkb(shannonToCkb(primaryVolume[1]))} ${primaryVolume[0]}` : "0 CKB"}
+          sub={
+            secondaryVolumes.length > 0
               ? secondaryVolumes.map(([asset, amount]) => `+ ${formatCkb(shannonToCkb(amount))} ${asset}`).join(", ")
-              : "Last 30 days"}
-          </div>
-        </div>
-        <div className="rounded-lg border border-border bg-white px-5 py-4.5 hover:border-border-hover">
-          <div className="mb-2.5 text-[11.5px] font-semibold uppercase tracking-wider text-text-xsubtle">Paid Invoices (30d)</div>
-          <div className="mb-1 text-[27px] font-bold leading-none text-text-primary">{stats?.paidCount ?? "—"}</div>
-          <div className="text-[12px] text-text-subtle">Successfully settled</div>
-        </div>
-        <div className="rounded-lg border border-border bg-white px-5 py-4.5 hover:border-border-hover">
-          <div className="mb-2.5 text-[11.5px] font-semibold uppercase tracking-wider text-text-xsubtle">Pending Invoices (30d)</div>
-          <div className="mb-1 text-[27px] font-bold leading-none text-text-primary">{stats?.pendingCount ?? "—"}</div>
-          <div className="text-[12px] text-text-subtle">Awaiting payment</div>
-        </div>
-        <div className="rounded-lg border border-border bg-white px-5 py-4.5 hover:border-border-hover">
-          <div className="mb-2.5 text-[11.5px] font-semibold uppercase tracking-wider text-text-xsubtle">Success Rate (30d)</div>
-          <div className="mb-1 text-[27px] font-bold leading-none text-text-primary">
-            {stats && stats.totalCount > 0 ? `${Math.round((stats.paidCount / stats.totalCount) * 100)}%` : "—"}
-          </div>
-          <div className="text-[12px] text-text-subtle">Paid / total invoices</div>
-        </div>
+              : "Last 30 days"
+          }
+        />
+        <StatCard label="Paid Invoices (30d)" value={stats?.paidCount ?? "—"} sub="Successfully settled" />
+        <StatCard label="Pending Invoices (30d)" value={stats?.pendingCount ?? "—"} sub="Awaiting payment" />
+        <StatCard
+          label="Success Rate (30d)"
+          value={stats && stats.totalCount > 0 ? `${Math.round((stats.paidCount / stats.totalCount) * 100)}%` : "—"}
+          sub="Paid / total invoices"
+        />
       </div>
 
       {statsError ? <Alert type="warning" showIcon message={statsError} className="mb-5 rounded-md!" /> : null}

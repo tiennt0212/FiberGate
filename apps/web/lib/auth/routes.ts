@@ -13,7 +13,13 @@
 
 export const ROUTE = {
   LOGIN: "/login",
-  DASHBOARD: "/dashboard", // Overview
+  // issue #40: renamed from "/dashboard" — "Overview" is the page label
+  // everywhere else in the UI (sidebar, header, PAGE_TITLES); the route
+  // segment matching that name reads better than a generic "/dashboard" that
+  // doesn't describe which dashboard page it is.
+  OVERVIEW: "/overview",
+  CHANNELS: "/channels",
+  PEERS: "/peers",
   INVOICES: "/invoices",
   DELIVERY_LOG: "/delivery-log",
   WEBHOOKS: "/webhooks",

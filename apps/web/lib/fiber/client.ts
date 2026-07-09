@@ -8,7 +8,9 @@ import {
   UdtNotConfiguredError,
   UnsupportedAssetError,
   type FiberAsset,
+  type FiberChannel,
   type FiberNodeInfo,
+  type FiberPeer,
   type InvoiceStatusResult,
   type NewInvoiceInput,
   type NewInvoiceOutput,
@@ -213,10 +215,70 @@ export async function getNodeInfo(): Promise<FiberNodeInfo> {
 
   return {
     pubkey: info.pubkey,
+    version: info.version,
+    commitHash: info.commitHash,
     totalChannels: hexToNumber(info.channelCount),
     activeChannels: activeChannels.length,
     inboundCapacityShannon,
     outboundCapacityShannon,
     peerCount: hexToNumber(info.peersCount),
   };
+}
+
+// Resolves a channel's funding UDT type script to the FiberGate-facing asset
+// name ("CKB" for a native channel, else the matching name from this node's
+// udt_whitelist, or "UNKNOWN_UDT" if the script doesn't match anything
+// configured) — same udt_whitelist cache createInvoice()/resolveUdtTypeScript()
+// use, kept private to this file so callers never see a raw ccc.Script.
+function resolveChannelAssetName(
+  fundingUdtTypeScript: UdtArgInfo["script"] | undefined,
+  udtScripts: Map<string, UdtArgInfo["script"]> | null,
+): string {
+  if (!fundingUdtTypeScript) {
+    return "CKB";
+  }
+  for (const [name, script] of udtScripts ?? []) {
+    if (fundingUdtTypeScript.eq(script)) {
+      return name;
+    }
+  }
+  return "UNKNOWN_UDT";
+}
+
+// Channels page (issue #40 follow-up) — per-channel detail that
+// getNodeInfo() above deliberately discards by aggregating into counts.
+// Only fetches the udt_whitelist (an extra node_info RPC, memoized by
+// loadUdtScripts()) when at least one channel actually needs it, so an
+// all-CKB node never pays for it.
+export async function listChannelsDetailed(): Promise<FiberChannel[]> {
+  const channels = await callWithTimeout("list_channels", () => sdk.listChannels());
+  const hasUdtChannel = channels.some((channel) => channel.fundingUdtTypeScript !== undefined);
+  const udtScripts = hasUdtChannel ? await loadUdtScripts() : null;
+
+  return channels.map((channel) => ({
+    channelId: channel.channelId,
+    peerPubkey: channel.pubkey,
+    isPublic: channel.isPublic,
+    channelOutpoint: channel.channelOutpoint,
+    asset: resolveChannelAssetName(channel.fundingUdtTypeScript, udtScripts),
+    state: channel.state,
+    localBalanceShannon: hexToBigInt(channel.localBalance),
+    remoteBalanceShannon: hexToBigInt(channel.remoteBalance),
+    offeredTlcBalanceShannon: hexToBigInt(channel.offeredTlcBalance),
+    receivedTlcBalanceShannon: hexToBigInt(channel.receivedTlcBalance),
+    createdAt: hexToNumber(channel.createdAt),
+    enabled: channel.enabled,
+    tlcExpiryDelta: hexToBigInt(channel.tlcExpiryDelta),
+    tlcFeeProportionalMillionths: hexToBigInt(channel.tlcFeeProportionalMillionths),
+    latestCommitmentTransactionHash: channel.latestCommitmentTransactionHash,
+    shutdownTransactionHash: channel.shutdownTransactionHash,
+  }));
+}
+
+// Peers page (issue #40 follow-up). sdk.listPeers() only ever returns
+// pubkey/address (see @ckb-ccc/fiber's PeerInfo type) — there is nothing else
+// to surface here, deliberately not padded out with invented fields.
+export async function listPeersDetailed(): Promise<FiberPeer[]> {
+  const peers = await callWithTimeout("list_peers", () => sdk.listPeers());
+  return peers.map((peer) => ({ pubkey: peer.pubkey, address: peer.address }));
 }

@@ -20,6 +20,27 @@ function OverviewIcon() {
   );
 }
 
+function ChannelsIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+      <circle cx="3.5" cy="7.5" r="2" />
+      <circle cx="11.5" cy="7.5" r="2" />
+      <line x1="5.5" y1="7.5" x2="9.5" y2="7.5" />
+    </svg>
+  );
+}
+
+function PeersIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+      <circle cx="5.5" cy="5" r="2.2" />
+      <path d="M1.5 12.5c0-2.2 1.8-3.5 4-3.5s4 1.3 4 3.5" />
+      <circle cx="11.5" cy="5.5" r="1.6" />
+      <path d="M9.8 9.3c.6-.3 1.2-.4 1.7-.4 1.8 0 3 1.1 3 3" />
+    </svg>
+  );
+}
+
 function InvoicesIcon() {
   return (
     <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
@@ -74,8 +95,11 @@ export interface DashboardNavItem {
   icon: ReactNode;
 }
 
+// Order matches .context/design/FiberGate.dc.html's sidebar (issue #40 Channels/Peers addition).
 export const MAIN_NAV_ITEMS: DashboardNavItem[] = [
-  { key: "overview", route: ROUTE.DASHBOARD, label: "Overview", icon: <OverviewIcon /> },
+  { key: "overview", route: ROUTE.OVERVIEW, label: "Overview", icon: <OverviewIcon /> },
+  { key: "channels", route: ROUTE.CHANNELS, label: "Channels", icon: <ChannelsIcon /> },
+  { key: "peers", route: ROUTE.PEERS, label: "Peers", icon: <PeersIcon /> },
   { key: "invoices", route: ROUTE.INVOICES, label: "Invoices", icon: <InvoicesIcon /> },
   { key: "delivery-log", route: ROUTE.DELIVERY_LOG, label: "Delivery Log", icon: <DeliveryLogIcon /> },
   { key: "webhooks", route: ROUTE.WEBHOOKS, label: "Webhooks", icon: <WebhooksIcon /> },
@@ -90,7 +114,9 @@ export const ALL_NAV_ITEMS: DashboardNavItem[] = [...MAIN_NAV_ITEMS, ...SETUP_NA
 
 /** Header page title per route — DESIGN.md "page-title" type scale. */
 export const PAGE_TITLES: Record<string, string> = {
-  [ROUTE.DASHBOARD]: "Overview",
+  [ROUTE.OVERVIEW]: "Overview",
+  [ROUTE.CHANNELS]: "Channels",
+  [ROUTE.PEERS]: "Peers",
   [ROUTE.INVOICES]: "Invoices",
   [ROUTE.DELIVERY_LOG]: "Delivery Log",
   [ROUTE.WEBHOOKS]: "Webhooks",

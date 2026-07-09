@@ -53,12 +53,16 @@ export async function middleware(request: NextRequest) {
 // see lib/auth/routes.ts's PROTECTED_PATH_MATCHERS-adjacent comment history.
 //
 // Issue #10: (dashboard)/transactions/ was renamed to (dashboard)/invoices/,
-// and routes were added since (delivery-log, quick-start, activity) — all 6
+// and routes were added since (delivery-log, quick-start, activity) — all
 // real dashboard routes must be listed here (BR-SEC-004). Forgetting one
 // silently ships that page unprotected.
+// Issue #40: (dashboard)/dashboard/ was renamed to (dashboard)/overview/, and
+// two new routes were added (channels, peers).
 export const config = {
   matcher: [
-    "/dashboard/:path*",
+    "/overview/:path*",
+    "/channels/:path*",
+    "/peers/:path*",
     "/invoices/:path*",
     "/delivery-log/:path*",
     "/webhooks/:path*",

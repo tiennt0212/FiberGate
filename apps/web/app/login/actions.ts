@@ -40,7 +40,7 @@ export async function login(_prevState: LoginState, formData: FormData): Promise
   }
 
   await setSessionCookie();
-  redirect(ROUTE.DASHBOARD);
+  redirect(ROUTE.OVERVIEW);
 }
 
 export async function logout(): Promise<void> {

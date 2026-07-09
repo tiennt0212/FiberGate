@@ -44,11 +44,59 @@ export interface InvoiceStatusResult {
 // to the _ckb units shown in GET /node/info is left to that future layer.
 export interface FiberNodeInfo {
   pubkey: string;
+  /** Real fields from sdk.getNodeInfo() — Overview's Node Status panel (issue #40). */
+  version: string;
+  commitHash: string;
   totalChannels: number;
   activeChannels: number;
   inboundCapacityShannon: bigint;
   outboundCapacityShannon: bigint;
   peerCount: number;
+}
+
+// Channels/Peers pages (issue #40 follow-up) — per-item detail that
+// getNodeInfo() above deliberately throws away by aggregating into counts.
+export interface FiberChannelState {
+  /** Raw Fiber state name, e.g. "CHANNEL_READY", "SHUTTING_DOWN". */
+  stateName: string;
+  stateFlags: string;
+}
+
+export interface FiberChannel {
+  channelId: string;
+  peerPubkey: string;
+  isPublic: boolean;
+  channelOutpoint: string;
+  /**
+   * "CKB" when the channel has no funding UDT type script (native asset);
+   * otherwise the matched name from this node's udt_whitelist (e.g. "RUSD"),
+   * or "UNKNOWN_UDT" if the funding script doesn't match any configured UDT.
+   * Resolved inside client.ts (same udt_whitelist cache createInvoice() uses)
+   * so no other file needs to import/compare raw Script values.
+   */
+  asset: string;
+  state: FiberChannelState;
+  localBalanceShannon: bigint;
+  remoteBalanceShannon: bigint;
+  /** Value currently locked in in-flight TLCs — not spendable until settled. */
+  offeredTlcBalanceShannon: bigint;
+  receivedTlcBalanceShannon: bigint;
+  /**
+   * Epoch milliseconds, assuming the SDK's createdAt hex encodes ms since
+   * epoch like other CKB/Fiber timestamps — unconfirmed against a live node,
+   * verify before trusting sub-day display precision.
+   */
+  createdAt: number;
+  enabled: boolean;
+  tlcExpiryDelta: bigint;
+  tlcFeeProportionalMillionths: bigint;
+  latestCommitmentTransactionHash?: string;
+  shutdownTransactionHash?: string;
+}
+
+export interface FiberPeer {
+  pubkey: string;
+  address: string;
 }
 
 // Thrown when a Fiber RPC call exceeds the 5s bound (BR-POL-004). Callers
