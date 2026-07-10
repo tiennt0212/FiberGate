@@ -62,6 +62,9 @@ export function ActivityFeed({ initialEntries }: { initialEntries: ActivityLogEn
   // POLL_INTERVAL_MS regardless of what this displays.
   useEffect(() => {
     const tickId = setInterval(() => {
+      if (document.hidden) {
+        return; // matches the poll effect above — no point re-rendering a backgrounded tab every second
+      }
       setSecondsUntilNextPoll((prev) => (prev <= 1 ? POLL_INTERVAL_SECONDS : prev - 1));
     }, 1000);
 

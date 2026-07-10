@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { Alert, Table } from "antd";
 import type { ColumnsType } from "antd/es/table";
 
@@ -38,6 +39,8 @@ export function PeersView({
   /** Deep-link from the Channel Drawer's "View peer →" link (?peer=<pubkey>) — auto-opens that peer's drawer on load. */
   openPeerPubkey: string | null;
 }) {
+  const router = useRouter();
+  const pathname = usePathname();
   const [selectedPeer, setSelectedPeer] = useState<PeerListItem | null>(null);
 
   useEffect(() => {
@@ -51,6 +54,16 @@ export function PeersView({
     // Only run once per navigation to this deep link, not on every `peers` re-render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openPeerPubkey]);
+
+  // Strips a stale ?peer= from the address bar on close — otherwise a
+  // refresh or browser back-navigation would silently reopen the drawer the
+  // user just dismissed (issue #40 review).
+  function closeDrawer(): void {
+    setSelectedPeer(null);
+    if (openPeerPubkey) {
+      router.replace(pathname);
+    }
+  }
 
   return (
     <div className="animate-[fade-in_0.2s_ease-out_forwards]">
@@ -71,7 +84,7 @@ export function PeersView({
         </div>
       )}
 
-      <PeerDrawer peer={selectedPeer} channels={channels} onClose={() => setSelectedPeer(null)} />
+      <PeerDrawer peer={selectedPeer} channels={channels} onClose={closeDrawer} />
     </div>
   );
 }

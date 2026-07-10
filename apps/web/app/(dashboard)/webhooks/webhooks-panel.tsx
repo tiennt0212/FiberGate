@@ -39,10 +39,12 @@ export function WebhooksPanel({
   initialEndpoints,
   error,
   health,
+  healthError,
 }: {
   initialEndpoints: EndpointView[];
   error: string | null;
   health: WebhookDeliveryHealth | null;
+  healthError: string | null;
 }) {
   const router = useRouter();
   const { setAction } = useHeaderActionContext();
@@ -144,6 +146,7 @@ export function WebhooksPanel({
       <div className="mb-5.5 text-[12.5px] text-text-muted">Real-time event notifications sent to your endpoints</div>
 
       {error ? <Alert type="error" showIcon message={error} className="mb-4 rounded-md!" /> : null}
+      {healthError ? <Alert type="warning" showIcon message={healthError} className="mb-4 rounded-md!" /> : null}
 
       {health ? (
         <div className="mb-3.5 grid grid-cols-2 gap-3.5">

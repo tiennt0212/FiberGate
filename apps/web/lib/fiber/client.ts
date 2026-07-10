@@ -252,7 +252,10 @@ function resolveChannelAssetName(
 // all-CKB node never pays for it.
 export async function listChannelsDetailed(): Promise<FiberChannel[]> {
   const channels = await callWithTimeout("list_channels", () => sdk.listChannels());
-  const hasUdtChannel = channels.some((channel) => channel.fundingUdtTypeScript !== undefined);
+  // Same falsy check resolveChannelAssetName() uses below (not `!== undefined`)
+  // so both agree on what counts as "no funding UDT script" even if the SDK
+  // ever returns null instead of undefined for a non-UDT channel.
+  const hasUdtChannel = channels.some((channel) => Boolean(channel.fundingUdtTypeScript));
   const udtScripts = hasUdtChannel ? await loadUdtScripts() : null;
 
   return channels.map((channel) => ({

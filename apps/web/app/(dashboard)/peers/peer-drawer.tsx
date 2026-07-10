@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import Link from "next/link";
 import { Drawer } from "antd";
 
@@ -9,18 +10,10 @@ import type { ChannelDetail } from "@/lib/services/channels";
 import type { PeerListItem } from "@/lib/services/peers";
 
 import { StatusTag } from "../badges";
+import { Row } from "../drawer-row";
 import { shortId } from "../format-date";
 
 import { getChannelsForPeer } from "./peer-channels";
-
-function Row({ label, value }: { label: string; value: React.ReactNode }) {
-  return (
-    <div className="flex items-baseline justify-between gap-4">
-      <span className="text-[12.5px] text-text-muted">{label}</span>
-      <span className="text-right text-[12.5px] font-medium text-text-primary">{value}</span>
-    </div>
-  );
-}
 
 export function PeerDrawer({
   peer,
@@ -31,7 +24,7 @@ export function PeerDrawer({
   channels: ChannelDetail[];
   onClose: () => void;
 }) {
-  const summary = peer ? getChannelsForPeer(channels, peer.pubkey) : null;
+  const summary = useMemo(() => (peer ? getChannelsForPeer(channels, peer.pubkey) : null), [channels, peer]);
 
   return (
     <Drawer

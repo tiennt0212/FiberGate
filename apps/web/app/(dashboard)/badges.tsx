@@ -78,6 +78,23 @@ export function deliveryStatusColor(status: string): DeliveryStatusColor {
   return DELIVERY_STATUS_COLORS[status] ?? DEFAULT_DELIVERY_STATUS_COLOR;
 }
 
+// Single source of truth for Channel status (issue #40 review cleanup) ->
+// dot color, consolidating what were 3 independent hardcoded-hex copies
+// (channel-topology.ts's STATUS_COLOR map, channels-view.tsx's LEGEND array,
+// and its topology SVG's edge-line/center-node colors) — same "N hand-
+// maintained color maps drift" problem deliveryStatusColor() above already
+// solved for webhook_deliveries.status. CSS vars, not raw hex, so a future
+// token change propagates here automatically.
+const CHANNEL_STATUS_DOT_COLORS: Record<string, string> = {
+  active: "var(--color-success)",
+  closing: "var(--color-status-degraded-dot)",
+  disabled: "var(--color-text-subtle)",
+};
+
+export function channelStatusDotColor(status: string): string {
+  return CHANNEL_STATUS_DOT_COLORS[status] ?? "var(--color-text-subtle)";
+}
+
 // Shared "HTTP status or pending→'Retrying…'" cell text, previously
 // reimplemented independently in delivery-log-table.tsx, receipt-drawer.tsx,
 // and webhooks-panel.tsx. `fallback` keeps each call site's existing

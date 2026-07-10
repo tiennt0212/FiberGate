@@ -8,6 +8,7 @@ import { ROUTE } from "@/lib/auth/routes";
 import type { ChannelDetail } from "@/lib/services/channels";
 
 import { StatusTag } from "../badges";
+import { Row } from "../drawer-row";
 import { formatDateTime } from "../format-date";
 
 // Colocated with channels-view.tsx (its only caller). Unlike
@@ -17,15 +18,6 @@ import { formatDateTime } from "../format-date";
 // already-selected ChannelDetail.
 
 const EXPLORER_TX_BASE = "https://pudge.explorer.nervos.org/transaction/";
-
-function Row({ label, value }: { label: string; value: React.ReactNode }) {
-  return (
-    <div className="flex items-baseline justify-between gap-4">
-      <span className="text-[12.5px] text-text-muted">{label}</span>
-      <span className="text-right text-[12.5px] font-medium text-text-primary">{value}</span>
-    </div>
-  );
-}
 
 export function ChannelDrawer({ channel, onClose }: { channel: ChannelDetail | null; onClose: () => void }) {
   return (

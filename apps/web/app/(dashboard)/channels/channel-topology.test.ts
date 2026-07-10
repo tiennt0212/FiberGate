@@ -44,7 +44,7 @@ describe("computeTopology", () => {
       stubChannel({ peerPubkey: "peerA", status: "active" }),
     ]);
 
-    expect(nodes[0]?.color).toBe("#16a34a");
+    expect(nodes[0]?.status).toBe("active");
   });
 
   it("returns an empty array for no channels", () => {

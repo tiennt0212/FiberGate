@@ -1,5 +1,7 @@
 import type { ChannelDetail } from "@/lib/services/channels";
 
+import { sumCapacityCkb } from "../channels/channel-capacity";
+
 // Cross-references the Channels page's already-fetched list by peerPubkey —
 // PeerInfo itself (lib/services/peers.ts) has nothing beyond pubkey/address,
 // so this derived view (which channels does this peer have, how much
@@ -13,8 +15,5 @@ export interface PeerChannelsSummary {
 
 export function getChannelsForPeer(channels: ChannelDetail[], peerPubkey: string): PeerChannelsSummary {
   const peerChannels = channels.filter((channel) => channel.peerPubkey === peerPubkey);
-  // Same known CKB/RUSD-decimals simplification noted in channels-view.tsx —
-  // sums across assets without converting between them.
-  const totalCapacityCkb = peerChannels.reduce((sum, channel) => sum + channel.localBalanceCkb + channel.remoteBalanceCkb, 0);
-  return { channels: peerChannels, totalCapacityCkb };
+  return { channels: peerChannels, totalCapacityCkb: sumCapacityCkb(peerChannels) };
 }

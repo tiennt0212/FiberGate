@@ -1,22 +1,24 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { Alert, Table } from "antd";
 import type { ColumnsType } from "antd/es/table";
 
 import { formatCkb } from "@/lib/api/format";
 import type { ChannelDetail } from "@/lib/services/channels";
 
-import { AssetTag, StatusTag } from "../badges";
+import { AssetTag, channelStatusDotColor, StatusTag } from "../badges";
 import { shortId } from "../format-date";
 
+import { sumCapacityCkb } from "./channel-capacity";
 import { ChannelDrawer } from "./channel-drawer";
 import { computeTopology } from "./channel-topology";
 
 const LEGEND = [
-  { color: "#16a34a", label: "Active — routing normally" },
-  { color: "#f59e0b", label: "Closing — cooperative close in progress" },
-  { color: "#a1a1aa", label: "Disabled" },
+  { color: channelStatusDotColor("active"), label: "Active — routing normally" },
+  { color: channelStatusDotColor("closing"), label: "Closing — cooperative close in progress" },
+  { color: channelStatusDotColor("disabled"), label: "Disabled" },
 ];
 
 function NodeTopology({ channels }: { channels: ChannelDetail[] }) {
@@ -31,12 +33,20 @@ function NodeTopology({ channels }: { channels: ChannelDetail[] }) {
       </div>
       <svg width="100%" height="180" viewBox="0 0 220 220" className="mx-auto block">
         {nodes.map((node) => (
-          <line key={`line-${node.peerPubkey}`} x1={110} y1={110} x2={node.x} y2={node.y} stroke="#e4e4e7" strokeWidth={1.5} />
+          <line
+            key={`line-${node.peerPubkey}`}
+            x1={110}
+            y1={110}
+            x2={node.x}
+            y2={node.y}
+            stroke="var(--color-border)"
+            strokeWidth={1.5}
+          />
         ))}
         {nodes.map((node) => (
-          <circle key={`dot-${node.peerPubkey}`} cx={node.x} cy={node.y} r={6} fill={node.color} />
+          <circle key={`dot-${node.peerPubkey}`} cx={node.x} cy={node.y} r={6} fill={channelStatusDotColor(node.status)} />
         ))}
-        <circle cx={110} cy={110} r={14} fill="#4f46e5" />
+        <circle cx={110} cy={110} r={14} fill="var(--color-accent)" />
       </svg>
       <div className="mt-3.5 flex flex-col gap-1.75 border-t border-border-subtle pt-3">
         {LEGEND.map((item) => (
@@ -60,6 +70,8 @@ export function ChannelsView({
   /** Deep-link from the Peer Drawer's channel list (?channel=<id>) — auto-opens that channel's drawer on load. */
   openChannelId: string | null;
 }) {
+  const router = useRouter();
+  const pathname = usePathname();
   const [selectedChannel, setSelectedChannel] = useState<ChannelDetail | null>(null);
 
   useEffect(() => {
@@ -74,12 +86,18 @@ export function ChannelsView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openChannelId]);
 
-  const activeCount = channels.filter((channel) => channel.status === "active").length;
-  // Same known CKB/RUSD-decimals simplification as the rest of the app
-  // (decisions-log.md issue #27) — combined balance sums across assets
-  // without converting between them, just like getInvoiceStats()'s
-  // paidVolumeByAsset does per-asset rather than a single blended total.
-  const combinedBalanceCkb = channels.reduce((sum, channel) => sum + channel.localBalanceCkb + channel.remoteBalanceCkb, 0);
+  // Strips a stale ?channel= from the address bar on close — otherwise a
+  // refresh or browser back-navigation would silently reopen the drawer the
+  // user just dismissed (issue #40 review).
+  function closeDrawer(): void {
+    setSelectedChannel(null);
+    if (openChannelId) {
+      router.replace(pathname);
+    }
+  }
+
+  const activeCount = useMemo(() => channels.filter((channel) => channel.status === "active").length, [channels]);
+  const combinedBalanceCkb = useMemo(() => sumCapacityCkb(channels), [channels]);
 
   const columns: ColumnsType<ChannelDetail> = [
     {
@@ -145,7 +163,7 @@ export function ChannelsView({
         </div>
       )}
 
-      <ChannelDrawer channel={selectedChannel} onClose={() => setSelectedChannel(null)} />
+      <ChannelDrawer channel={selectedChannel} onClose={closeDrawer} />
     </div>
   );
 }
