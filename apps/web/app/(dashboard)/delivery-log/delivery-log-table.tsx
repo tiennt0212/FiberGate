@@ -8,6 +8,7 @@ import type { ColumnsType } from "antd/es/table";
 import type { WebhookDeliveryListItem } from "@/lib/services/webhooks";
 
 import { deliveryHttpText, deliveryStatusColor } from "../badges";
+import { DateRangeFilter } from "../date-range-filter";
 import { downloadCsv } from "../search-params";
 import { formatDateTime, shortId } from "../format-date";
 import { TablePagination } from "../table-pagination";
@@ -187,19 +188,7 @@ export function DeliveryLogTable({
           options={STATUS_OPTIONS}
           className="w-41! [&_.ant-select-selector]:rounded-md!"
         />
-        <input
-          type="date"
-          value={filters.from}
-          onChange={(e) => updateFilters({ from: e.target.value })}
-          className="rounded-md border border-border px-2.5 py-1.5 text-[12.5px] text-text-strong"
-        />
-        <span className="text-[12px] text-text-subtle">–</span>
-        <input
-          type="date"
-          value={filters.to}
-          onChange={(e) => updateFilters({ to: e.target.value })}
-          className="rounded-md border border-border px-2.5 py-1.5 text-[12.5px] text-text-strong"
-        />
+        <DateRangeFilter from={filters.from} to={filters.to} onChange={(range) => updateFilters(range)} />
         {hasActiveFilters ? (
           <Button onClick={clearFilters} className="h-auto! rounded-md! px-2.5! py-1.5! text-[12.5px]!">
             Clear filters
