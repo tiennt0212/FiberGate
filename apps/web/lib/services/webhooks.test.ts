@@ -34,6 +34,7 @@ const {
   resendDelivery,
   regenerateWebhookSecret,
   listWebhookDeliveries,
+  getWebhookDeliveryHealth,
 } = await import("./webhooks");
 
 afterEach(() => {
@@ -273,5 +274,57 @@ describe("listWebhookDeliveries", () => {
     });
 
     expect(chain.where).toHaveBeenCalled();
+  });
+});
+
+describe("getWebhookDeliveryHealth", () => {
+  it("computes success rate over resolved deliveries only, excluding pending", async () => {
+    const chain = createQueryChain([
+      { endpointId: "ep-1", endpointUrl: "https://good.example", status: "success" },
+      { endpointId: "ep-1", endpointUrl: "https://good.example", status: "success" },
+      { endpointId: "ep-1", endpointUrl: "https://good.example", status: "pending" },
+      { endpointId: "ep-2", endpointUrl: "https://bad.example", status: "failed" },
+    ]);
+    vi.mocked(db.select).mockReturnValue(chain as unknown as ReturnType<typeof db.select>);
+
+    const health = await getWebhookDeliveryHealth();
+
+    // 2 success + 1 failed = 3 resolved (the pending row excluded); 2/3 -> 67%.
+    expect(health.resolvedCount).toBe(3);
+    expect(health.successRatePct).toBe(67);
+  });
+
+  it("reports the endpoint with the highest failure rate as worstEndpoint", async () => {
+    const chain = createQueryChain([
+      { endpointId: "ep-1", endpointUrl: "https://mostly-fine.example", status: "success" },
+      { endpointId: "ep-1", endpointUrl: "https://mostly-fine.example", status: "success" },
+      { endpointId: "ep-1", endpointUrl: "https://mostly-fine.example", status: "failed" },
+      { endpointId: "ep-2", endpointUrl: "https://always-fails.example", status: "failed" },
+      { endpointId: "ep-2", endpointUrl: "https://always-fails.example", status: "failed" },
+    ]);
+    vi.mocked(db.select).mockReturnValue(chain as unknown as ReturnType<typeof db.select>);
+
+    const health = await getWebhookDeliveryHealth();
+
+    expect(health.worstEndpoint).toEqual({ endpointId: "ep-2", endpointUrl: "https://always-fails.example", failurePct: 100 });
+  });
+
+  it("returns null successRatePct and worstEndpoint when there are no deliveries in-window", async () => {
+    vi.mocked(db.select).mockReturnValue(createQueryChain([]) as unknown as ReturnType<typeof db.select>);
+
+    await expect(getWebhookDeliveryHealth()).resolves.toEqual({
+      successRatePct: null,
+      resolvedCount: 0,
+      worstEndpoint: null,
+    });
+  });
+
+  it("does not flag an endpoint with 100% success as worstEndpoint", async () => {
+    const chain = createQueryChain([{ endpointId: "ep-1", endpointUrl: "https://good.example", status: "success" }]);
+    vi.mocked(db.select).mockReturnValue(chain as unknown as ReturnType<typeof db.select>);
+
+    const health = await getWebhookDeliveryHealth();
+
+    expect(health.worstEndpoint).toBeNull();
   });
 });

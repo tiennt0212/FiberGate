@@ -66,6 +66,12 @@
   --color-status-offline-dot: #ef4444;
   --color-status-offline-text: #991b1b;
   --color-status-offline-desc: #ef4444;
+  /* DESIGN.md's generic "Warning Banner" pattern (bg/border shared with the
+     degraded tokens above, but title/body/icon are distinct — first real
+     usage is Webhooks' "Needs Attention" stat-card, issue #40). */
+  --color-warning-banner-icon: #d97706;
+  --color-warning-banner-title: #92400e;
+  --color-warning-banner-body: #a16207;
   --color-delivery-pending-text: #b45309; /* webhook_deliveries "pending" text — deliberately a distinct amber
     from status-warning-text (#854d0e), chosen for AA contrast in deliveryStatusColor(); not the same status
     role as the invoice "pending" badge despite the similar hue, see badges.tsx's DELIVERY_STATUS_COLORS comment */
