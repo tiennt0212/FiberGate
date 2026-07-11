@@ -1,0 +1,50 @@
+# Builds and publishes fibergate-core to GitHub Container Registry (issues
+# #21 + #41). Tags by git commit SHA (reproducible, pin-able deploys per
+# #21) plus a floating `latest` tracking canary's HEAD. Uses the built-in
+# GITHUB_TOKEN — no third-party registry account/secret to configure.
+#
+# Operational note: GHCR packages default to private on first publish. After
+# the first successful run, make the package public once via GitHub's UI
+# (repo -> Packages -> fibergate-core -> Package settings) — a workflow can't
+# do this on its own without extra org-level permissions.
+name: Publish fibergate-core image
+
+on:
+  push:
+    branches: [canary]
+  workflow_dispatch: {}
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository_owner }}/fibergate-core
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set image tag from short commit SHA
+        id: vars
+        run: echo "sha_tag=sha-$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/fibergate-core/Dockerfile
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.vars.outputs.sha_tag }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
