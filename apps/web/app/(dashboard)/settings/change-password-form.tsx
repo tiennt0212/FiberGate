@@ -17,32 +17,29 @@ const FIELD_CLASS =
   "w-full rounded-md border border-border px-2.5 py-2 text-[13px] text-text-primary outline-none";
 const LABEL_CLASS = "mb-1.5 block text-[12px] font-medium text-text-strong";
 
+const INITIAL_FORM = { current: "", next: "", confirm: "" };
+
 export function ChangePasswordForm() {
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const [form, setForm] = useState(INITIAL_FORM);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  function reset(): void {
-    setCurrentPassword("");
-    setNewPassword("");
-    setConfirmPassword("");
-    setError(null);
+  function setField(field: keyof typeof INITIAL_FORM, value: string): void {
+    setForm((prev) => ({ ...prev, [field]: value }));
   }
 
   function handleSubmit(): void {
     setError(null);
-    if (newPassword !== confirmPassword) {
+    if (form.next !== form.confirm) {
       setError("New password and confirmation do not match.");
       return;
     }
 
     setSubmitting(true);
-    changePassword(currentPassword, newPassword)
+    changePassword(form.current, form.next)
       .then((result) => {
         if (result.ok) {
-          reset();
+          setForm(INITIAL_FORM);
           void message.success("Password updated.");
         } else {
           setError(result.error ?? "Could not change the password.");
@@ -63,22 +60,22 @@ export function ChangePasswordForm() {
           <label className={LABEL_CLASS}>Current password</label>
           <input
             type="password"
-            value={currentPassword}
-            onChange={(e) => setCurrentPassword(e.target.value)}
+            value={form.current}
+            onChange={(e) => setField("current", e.target.value)}
             className={FIELD_CLASS}
           />
         </div>
         <div>
           <label className={LABEL_CLASS}>New password</label>
-          <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className={FIELD_CLASS} />
+          <input type="password" value={form.next} onChange={(e) => setField("next", e.target.value)} className={FIELD_CLASS} />
           <div className="mt-1.5 text-[12px] text-text-subtle">At least 8 characters.</div>
         </div>
         <div>
           <label className={LABEL_CLASS}>Confirm new password</label>
           <input
             type="password"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
+            value={form.confirm}
+            onChange={(e) => setField("confirm", e.target.value)}
             className={FIELD_CLASS}
           />
         </div>

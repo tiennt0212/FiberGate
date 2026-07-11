@@ -46,11 +46,11 @@ export function Sidebar({ step4Done, step5Done }: { step4Done: boolean; step5Don
       key: "setup-group",
       type: "group",
       label: "Setup",
-      // Progress badge only belongs on the Quick Start item itself — issue #30
-      // added a Settings item to this same "Setup" group, which isn't a
-      // step-progress page.
+      // Progress badge only belongs on items opted in via showsProgress
+      // (nav-items.tsx) — issue #30 added a Settings item to this same
+      // "Setup" group, which isn't a step-progress page.
       children: SETUP_NAV_ITEMS.map((item) =>
-        navItemToMenuItem(item, item.key === "quick-start" ? `${completedSteps}/${totalSteps}` : undefined),
+        navItemToMenuItem(item, item.showsProgress ? `${completedSteps}/${totalSteps}` : undefined),
       ),
     },
   ];

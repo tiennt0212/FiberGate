@@ -4,14 +4,12 @@ import bcrypt from "bcryptjs";
 
 import { getAdminPasswordHash, setAdminPassword } from "@/lib/services/settings";
 
-// Server Action for the Settings page (issue #30). Follows webhooks/actions.ts's
-// { ok, error? } convention: validate first, try/catch around the service call,
-// never surface the raw thrown error to the client.
+import type { SimpleResult } from "../action-result";
 
-export interface SimpleResult {
-  ok: boolean;
-  error?: string;
-}
+// Server Action for the Settings page (issue #30). Follows webhooks/actions.ts's
+// { ok, error? } convention (SimpleResult, shared via ../action-result.ts):
+// validate first, try/catch around the service call, never surface the raw
+// thrown error to the client.
 
 // No existing business rule sets a minimum password length/complexity — 8
 // chars is a reasonable baseline assumption, flagged as such in the plan for

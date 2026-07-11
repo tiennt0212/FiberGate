@@ -102,6 +102,10 @@ export interface DashboardNavItem {
   route: (typeof ROUTE)[keyof typeof ROUTE];
   label: string;
   icon: ReactNode;
+  // Quick Start's "N/5" completion badge (see sidebar.tsx) — a property of
+  // the item itself rather than a key string sidebar.tsx has to know about,
+  // so a future SETUP_NAV_ITEMS entry doesn't need matching special-case code.
+  showsProgress?: boolean;
 }
 
 // Order matches .context/design/FiberGate.dc.html's sidebar (issue #40 Channels/Peers addition).
@@ -116,7 +120,7 @@ export const MAIN_NAV_ITEMS: DashboardNavItem[] = [
 ];
 
 export const SETUP_NAV_ITEMS: DashboardNavItem[] = [
-  { key: "quick-start", route: ROUTE.QUICK_START, label: "Quick Start", icon: <QuickStartIcon /> },
+  { key: "quick-start", route: ROUTE.QUICK_START, label: "Quick Start", icon: <QuickStartIcon />, showsProgress: true },
   { key: "settings", route: ROUTE.SETTINGS, label: "Settings", icon: <SettingsIcon /> },
 ];
 

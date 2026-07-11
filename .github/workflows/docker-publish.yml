@@ -12,7 +12,15 @@ name: Publish fibergate-core image
 on:
   push:
     branches: [canary]
+    # Skip pure docs/context changes — nothing that affects the built image.
+    paths-ignore:
+      - "**.md"
+      - ".context/**"
   workflow_dispatch: {}
+
+concurrency:
+  group: docker-publish-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   REGISTRY: ghcr.io
@@ -35,9 +43,12 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # ${GITHUB_SHA:0:7} (bash substring on the env var Actions already sets)
+      # instead of `git rev-parse --short HEAD` — same short-SHA value,
+      # without spawning git as a subprocess for it.
       - name: Set image tag from short commit SHA
         id: vars
-        run: echo "sha_tag=sha-$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+        run: echo "sha_tag=sha-${GITHUB_SHA:0:7}" >> "$GITHUB_OUTPUT"
 
       - name: Build and push
         uses: docker/build-push-action@v6
@@ -45,6 +56,8 @@ jobs:
           context: .
           file: docker/fibergate-core/Dockerfile
           push: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.vars.outputs.sha_tag }}
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
