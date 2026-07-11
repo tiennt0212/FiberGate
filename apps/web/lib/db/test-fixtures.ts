@@ -44,6 +44,8 @@ export type QueryChain<T = InvoiceRow> = Promise<T[]> & {
   // .leftJoin() afterward (Drizzle's real $dynamic() only flips a type-level
   // flag; the runtime object is unchanged) — a no-op passthrough here too.
   $dynamic: (...args: unknown[]) => QueryChain<T>;
+  // settings.ts's upsert (db.insert(...).values(...).onConflictDoUpdate(...)).
+  onConflictDoUpdate: (...args: unknown[]) => QueryChain<T>;
 };
 
 export function createQueryChain<T = InvoiceRow>(rows: T[]): QueryChain<T> {
@@ -57,5 +59,6 @@ export function createQueryChain<T = InvoiceRow>(rows: T[]): QueryChain<T> {
   chain.returning = vi.fn(() => chain);
   chain.leftJoin = vi.fn(() => chain);
   chain.$dynamic = vi.fn(() => chain);
+  chain.onConflictDoUpdate = vi.fn(() => chain);
   return chain;
 }
