@@ -46,9 +46,25 @@ jobs:
       # ${GITHUB_SHA:0:7} (bash substring on the env var Actions already sets)
       # instead of `git rev-parse --short HEAD` — same short-SHA value,
       # without spawning git as a subprocess for it.
-      - name: Set image tag from short commit SHA
+      #
+      # The floating `:latest` tag only gets pushed when the ref is canary —
+      # workflow_dispatch lets the invoker pick any branch/tag to run
+      # against, and without this guard a manual run against a feature
+      # branch would silently overwrite `:latest` (the default
+      # docker-compose.release.yml pulls) with unreviewed code.
+      - name: Compute image tags
         id: vars
-        run: echo "sha_tag=sha-${GITHUB_SHA:0:7}" >> "$GITHUB_OUTPUT"
+        run: |
+          IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
+          TAGS="$IMAGE:sha-${GITHUB_SHA:0:7}"
+          if [ "${{ github.ref }}" = "refs/heads/canary" ]; then
+            TAGS="$(printf '%s\n%s' "$TAGS" "$IMAGE:latest")"
+          fi
+          {
+            echo "tags<<TAGS_EOF"
+            echo "$TAGS"
+            echo "TAGS_EOF"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Build and push
         uses: docker/build-push-action@v6
@@ -58,6 +74,4 @@ jobs:
           push: true
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.vars.outputs.sha_tag }}
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          tags: ${{ steps.vars.outputs.tags }}
