@@ -25,6 +25,8 @@ export const ROUTE = {
   WEBHOOKS: "/webhooks",
   ACTIVITY: "/activity",
   QUICK_START: "/quick-start",
+  // issue #30: change-password page.
+  SETTINGS: "/settings",
 } as const;
 
 export type DashboardRoute = Exclude<(typeof ROUTE)[keyof typeof ROUTE], typeof ROUTE.LOGIN>;

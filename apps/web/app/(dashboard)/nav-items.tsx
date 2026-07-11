@@ -88,6 +88,15 @@ function QuickStartIcon() {
   );
 }
 
+function SettingsIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="7.5" cy="7.5" r="2" />
+      <path d="M7.5 1.5v1.6M7.5 11.9v1.6M13.5 7.5h-1.6M3.1 7.5H1.5M11.6 3.4l-1.1 1.1M4.5 10.5l-1.1 1.1M11.6 11.6l-1.1-1.1M4.5 4.5L3.4 3.4" />
+    </svg>
+  );
+}
+
 export interface DashboardNavItem {
   key: string;
   route: (typeof ROUTE)[keyof typeof ROUTE];
@@ -108,6 +117,7 @@ export const MAIN_NAV_ITEMS: DashboardNavItem[] = [
 
 export const SETUP_NAV_ITEMS: DashboardNavItem[] = [
   { key: "quick-start", route: ROUTE.QUICK_START, label: "Quick Start", icon: <QuickStartIcon /> },
+  { key: "settings", route: ROUTE.SETTINGS, label: "Settings", icon: <SettingsIcon /> },
 ];
 
 export const ALL_NAV_ITEMS: DashboardNavItem[] = [...MAIN_NAV_ITEMS, ...SETUP_NAV_ITEMS];
@@ -122,4 +132,5 @@ export const PAGE_TITLES: Record<string, string> = {
   [ROUTE.WEBHOOKS]: "Webhooks",
   [ROUTE.ACTIVITY]: "Activity",
   [ROUTE.QUICK_START]: "Quick Start",
+  [ROUTE.SETTINGS]: "Settings",
 };
