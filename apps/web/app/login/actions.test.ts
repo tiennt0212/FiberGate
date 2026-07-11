@@ -24,6 +24,7 @@ vi.mock("next/navigation", () => ({
 
 const { setSessionCookie, clearSessionCookie } = await import("@/lib/auth/session");
 const { redirect } = await import("next/navigation");
+const { db } = await import("@/lib/db");
 const { login, logout } = await import("./actions");
 
 const REAL_PASSWORD = "correct-horse-battery-staple";
@@ -69,6 +70,18 @@ describe("login", () => {
 
     expect(setSessionCookie).toHaveBeenCalledTimes(1);
     expect(redirect).toHaveBeenCalledWith(ROUTE.OVERVIEW);
+  });
+
+  it("returns a graceful error instead of throwing when the settings lookup fails (e.g. DB unreachable)", async () => {
+    vi.mocked(db.select).mockImplementationOnce(() => {
+      throw new Error("connection refused");
+    });
+
+    const state = await login({ error: null }, formDataWithPassword(REAL_PASSWORD));
+
+    expect(state).toEqual({ error: "Could not verify the password right now. Please try again shortly." });
+    expect(setSessionCookie).not.toHaveBeenCalled();
+    expect(redirect).not.toHaveBeenCalled();
   });
 });
 

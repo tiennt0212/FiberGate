@@ -28,7 +28,19 @@ export async function login(_prevState: LoginState, formData: FormData): Promise
     return { error: "Password is required" };
   }
 
-  const passwordHash = await getAdminPasswordHash();
+  // getAdminPasswordHash() now does a DB round-trip (issue #30) where this
+  // used to be a pure env-var read — guard it explicitly so a transient DB
+  // outage or an unrun migration surfaces as a normal login-form error
+  // instead of an uncaught Server Action exception (a hard error page,
+  // right when the admin might most need dashboard access to diagnose it).
+  let passwordHash: string;
+  try {
+    passwordHash = await getAdminPasswordHash();
+  } catch (error) {
+    console.error("login: getAdminPasswordHash failed:", error);
+    return { error: "Could not verify the password right now. Please try again shortly." };
+  }
+
   const isValid = await bcrypt.compare(password, passwordHash);
   if (!isValid) {
     return { error: "Incorrect password" };
