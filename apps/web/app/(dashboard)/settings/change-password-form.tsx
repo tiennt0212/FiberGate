@@ -68,7 +68,7 @@ export function ChangePasswordForm() {
         <div>
           <label className={LABEL_CLASS}>New password</label>
           <input type="password" value={form.next} onChange={(e) => setField("next", e.target.value)} className={FIELD_CLASS} />
-          <div className="mt-1.5 text-[12px] text-text-subtle">At least 8 characters.</div>
+          <div className="mt-1.5 text-[12px] text-text-subtle">8–72 characters.</div>
         </div>
         <div>
           <label className={LABEL_CLASS}>Confirm new password</label>
