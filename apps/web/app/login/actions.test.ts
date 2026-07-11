@@ -1,15 +1,22 @@
 import bcrypt from "bcryptjs";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { createQueryChain } from "@/lib/db/test-fixtures";
 import { ROUTE } from "@/lib/auth/routes";
 
-// Mock at the module boundary this action calls out to (@/lib/auth/session),
-// same convention as app/api/v1/**'s route.test.ts mocking @/lib/db and
-// @/lib/fiber/client — never mock bcryptjs/jose themselves, the whole point
-// is exercising the real password-check logic (BR-SEC-002).
+// Mock at the module boundary this action calls out to (@/lib/auth/session,
+// @/lib/db), same convention as app/api/v1/**'s route.test.ts mocking
+// @/lib/db and @/lib/fiber/client — never mock bcryptjs/jose themselves, the
+// whole point is exercising the real password-check logic (BR-SEC-002).
+// @/lib/db's select() returns no row, so getAdminPasswordHash() (issue #30)
+// falls through to the ADMIN_PASSWORD_HASH_B64 env-fallback path these tests
+// exercise — the DB-backed path is covered separately by settings.test.ts.
 vi.mock("@/lib/auth/session", () => ({
   setSessionCookie: vi.fn(),
   clearSessionCookie: vi.fn(),
+}));
+vi.mock("@/lib/db", () => ({
+  db: { select: vi.fn(() => createQueryChain([])) },
 }));
 vi.mock("next/navigation", () => ({
   redirect: vi.fn(),

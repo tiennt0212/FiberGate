@@ -3,37 +3,32 @@
 import { redirect } from "next/navigation";
 import bcrypt from "bcryptjs";
 
-import { requireEnv } from "@/lib/env";
 import { clearSessionCookie, setSessionCookie } from "@/lib/auth/session";
 import { ROUTE } from "@/lib/auth/routes";
+import { getAdminPasswordHash } from "@/lib/services/settings";
 
 export type LoginState = { error: string | null };
 
 // Single-admin password check (BR-SEC-002): compare the submitted password
-// against ADMIN_PASSWORD_HASH_B64 via bcrypt, never storing or logging
-// plaintext. Server Action, not a /api/v1/* route, so the { data, error }
-// envelope from lib/api/response.ts does not apply here (see
-// harness-brief.md "Resolved decisions") — this return shape only feeds
-// useFormState() on the login form.
+// against the current hash via bcrypt, never storing or logging plaintext.
+// Server Action, not a /api/v1/* route, so the { data, error } envelope from
+// lib/api/response.ts does not apply here (see harness-brief.md "Resolved
+// decisions") — this return shape only feeds useFormState() on the login form.
 //
-// The hash is stored base64-encoded in the env var (decoded here before
-// bcrypt.compare) rather than as the raw bcrypt string. A raw hash contains
-// literal "$" characters ($2y$10$...), and Docker Compose's `.env`
-// interpolation and dotenv-expand (used by `pnpm dev`/`build` via
-// dotenv-cli) each mangle those differently — verified against real
-// containers: Compose only round-trips a hash correctly if every "$" is
-// doubled to "$$", while dotenv-expand corrupts both the raw and "$$"-doubled
-// forms. Base64 has no "$" in its alphabet, so it passes through both
-// unmangled with no escaping needed. See decisions-log.md and
-// system-design.md's "Dashboard auth" section for the full investigation.
+// getAdminPasswordHash() (issue #30) reads a DB-backed hash if the admin has
+// ever changed their password via Dashboard -> Settings, else falls back to
+// ADMIN_PASSWORD_HASH_B64 (env var, base64-encoded — see that function's doc
+// comment for why base64: Docker Compose's `.env` interpolation and
+// dotenv-expand each mangle a raw bcrypt hash's "$" characters differently,
+// base64 has none). See decisions-log.md and system-design.md's "Dashboard
+// auth" section for the full investigation.
 export async function login(_prevState: LoginState, formData: FormData): Promise<LoginState> {
   const password = formData.get("password");
   if (typeof password !== "string" || password.length === 0) {
     return { error: "Password is required" };
   }
 
-  const passwordHashBase64 = requireEnv("ADMIN_PASSWORD_HASH_B64");
-  const passwordHash = Buffer.from(passwordHashBase64, "base64").toString("utf-8");
+  const passwordHash = await getAdminPasswordHash();
   const isValid = await bcrypt.compare(password, passwordHash);
   if (!isValid) {
     return { error: "Incorrect password" };
