@@ -38,7 +38,16 @@ apps/demo-storefront/ — Reference merchant app (issue #12) — app hoàn toàn
 packages/sdk/      — npm package @fibergate/sdk (TypeScript, tsup)
 docker-compose.yml — Fiber node + PostgreSQL + fibergate-core + nginx/certbot (TLS/WSS
                      reverse proxy, issue #17 — xem CKB/Fiber References bên dưới),
-                     merchant tự deploy
+                     build fibergate-core từ source — dùng cho contributor/dev, không
+                     phải đường deploy merchant khuyến nghị (xem dòng dưới)
+docker-compose.release.yml — issue #21 + #41: cùng 6 service như docker-compose.yml,
+                     nhưng fibergate-core dùng image: ghcr.io/<GHCR_NAMESPACE>/
+                     fibergate-core (published qua .github/workflows/docker-publish.yml,
+                     tag theo git commit SHA + latest) thay vì build: — merchant chỉ cần
+                     file này + .env, không cần clone repo, xem README.md "Deploy from a
+                     published image"
+.github/workflows/docker-publish.yml — build + push fibergate-core lên GHCR mỗi lần
+                     push canary (+ workflow_dispatch để trigger thủ công)
 docker/            — docker/fibergate-core/Dockerfile, config fiber-node,
                      docker/nginx/nginx.conf.template (nginx + certbot service, TLS
                      cho fibergate-core dashboard/API + WSS cho fiber-node P2P — KHÔNG

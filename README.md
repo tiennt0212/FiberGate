@@ -72,15 +72,54 @@ pnpm --filter web db:generate   # generate a Drizzle SQL migration from lib/db/s
 pnpm --filter web db:migrate    # apply pending migrations to POSTGRES_* (run manually — see below)
 ```
 
-## Running the full stack (Docker Compose)
+## Deploy from a published image (recommended for merchants)
+
+No monorepo clone needed — `fibergate-core` is published to GHCR on every push to
+`canary` (tagged by git commit SHA, plus a floating `latest`; see
+`.github/workflows/docker-publish.yml`). Grab just 3 files:
+
+```bash
+mkdir fibergate-deploy && cd fibergate-deploy
+mkdir -p docker/fiber-node docker/nginx
+curl -O https://raw.githubusercontent.com/tiennt0212/FiberGate/canary/docker-compose.release.yml
+curl -o .env https://raw.githubusercontent.com/tiennt0212/FiberGate/canary/.env.release.example
+curl -o docker/fiber-node/config.yml https://raw.githubusercontent.com/tiennt0212/FiberGate/canary/docker/fiber-node/config.yml
+curl -o docker/nginx/nginx.conf.template https://raw.githubusercontent.com/tiennt0212/FiberGate/canary/docker/nginx/nginx.conf.template
+```
+
+Then fill in `.env` (same "Generating secrets" steps below, plus `GHCR_NAMESPACE` — the
+GitHub org/user the image was published under) and provide your CKB key at
+`docker/fiber-node/ckb/key` (see "Running the full stack" step 2 below — that step
+still applies, only the compose file and the fibergate-core build step differ), then:
+
+```bash
+docker compose -f docker-compose.release.yml up -d
+pnpm --filter web db:migrate # or run migrations another way — see below
+```
+
+`docker-compose.release.yml` mirrors root `docker-compose.yml`'s 6 services (same
+TLS/WSS setup via nginx+certbot) — it just references the published image instead of
+building `fibergate-core` from source, and drops `fiber-node-payer`
+(local-testing-only). Everything below this section — "Generating secrets",
+"Prerequisites", "Public HTTPS deploy" — applies the same way to this path; substitute
+`-f docker-compose.release.yml` into any `docker compose` command you see.
+
+**Operational note:** GHCR packages default to private on first publish — until the
+package is made public once via GitHub's UI, `docker compose pull` will fail with an
+auth error even though the image exists.
+
+## Running the full stack from source (contributor path)
 
 Brings up all 6 services — `postgres`, `fiber-node` (CKB testnet), `fibergate-core`
 (dashboard + API), and `nginx`/`certbot`/`nginx-certs-preflight` (public HTTPS entry
-point) — on one internal-only Docker network. `nginx` is the only service that
-publishes genuinely public host ports; see "Public HTTPS deploy" below for what it
-needs (a real domain) and how to get a trusted cert. Without that, the stack still
-starts (nginx boots with a temporary self-signed cert), but it isn't reachable as a
-trusted `https://` URL from anywhere but this host until you complete that section.
+point) — on one internal-only Docker network, building `fibergate-core` from source
+(`docker compose build`) rather than pulling a published image — use this if you're
+modifying FiberGate's code, or see "Deploy from a published image" above if you're a
+merchant just running it. `nginx` is the only service that publishes genuinely public
+host ports; see "Public HTTPS deploy" below for what it needs (a real domain) and how
+to get a trusted cert. Without that, the stack still starts (nginx boots with a
+temporary self-signed cert), but it isn't reachable as a trusted `https://` URL from
+anywhere but this host until you complete that section.
 
 ### Generating secrets
 
