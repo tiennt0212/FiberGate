@@ -117,6 +117,13 @@ docker run --rm httpd:alpine htpasswd -nbBC 10 admin 'your-real-password' | cut 
 # the full investigation.
 ```
 
+**issue #30 update:** `ADMIN_PASSWORD_HASH_B64` only seeds the *initial* password now
+— once you're logged in, change it any time from Dashboard → Settings instead of
+re-running the command above and restarting the stack. That change is DB-backed (the
+`settings` table); the env var is never read again once you've changed the password at
+least once. If you're upgrading an existing deployment, nothing changes until you
+actually use the new Settings page — the env var keeps working exactly as before.
+
 **Prerequisites — do these before your first `docker compose up -d`:**
 
 1. Copy the root env file and fill in real values (see "Generating secrets"

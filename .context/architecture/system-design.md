@@ -420,6 +420,28 @@ xem `api/rest-api-spec.md`).
   trực tiếp ra host nữa, `nginx` là entry point công khai duy nhất, tránh ai đó gọi
   thẳng `http://host:3000` bỏ qua nginx để tự set header giả đánh lừa cookie.
 
+### Admin password: DB-backed with env-var seed (issue #30)
+
+Login itself (`app/login/actions.ts`'s `login()`) không đổi hành vi — vẫn `bcrypt.compare`
+password nhập vào với 1 hash duy nhất. Cái đổi là **hash đó lấy từ đâu**:
+`getAdminPasswordHash()` (`lib/services/settings.ts`) đọc bảng `settings` (key
+`admin_password_hash`) trước; nếu chưa có row nào (deployment mới, hoặc chưa từng đổi
+password qua Dashboard) → fallback đọc `ADMIN_PASSWORD_HASH_B64` y hệt logic cũ (decode
+base64). Nói cách khác, env var giờ chỉ **seed giá trị ban đầu** — ngay khi admin đổi
+password lần đầu qua `/settings` (`setAdminPassword()`, bcrypt cost 10 — khớp README's
+`htpasswd -nbBC 10`), 1 row được upsert vào `settings` và **từ đó DB luôn thắng**, env
+var không bao giờ được đọc lại nữa cho deployment đó (không có cơ chế nào xoá row để
+"quay lại" đọc env var — nếu cần reset, phải `DELETE FROM settings WHERE key =
+'admin_password_hash'` thủ công qua psql).
+
+`/settings` (route mới, `app/(dashboard)/settings/`) nằm sau cùng 1 session-cookie guard
+với mọi route `(dashboard)` khác (`middleware.ts`'s `config.matcher`, đã thêm
+`/settings/:path*`) — đổi password bắt buộc đang có session hợp lệ (đã login), và Server
+Action `changePassword()` (`app/(dashboard)/settings/actions.ts`) bắt buộc nhập đúng
+current password trước khi cho đổi (so sánh qua `getAdminPasswordHash()` +
+`bcrypt.compare`), tránh 1 session bị chiếm (tab quên đăng xuất, máy không khoá) đổi
+password mà admin thật không hay biết.
+
 ### TLS/WSS reverse proxy (nginx + certbot) — issue #17
 
 `docker-compose.yml` có thêm 3 service: `nginx-certs-preflight` (one-shot, sinh cert
