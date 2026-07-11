@@ -14,9 +14,11 @@ afterEach(() => {
 });
 
 describe("getNodeStatus", () => {
-  it("converts capacities from shannon to CKB and shapes the API response", async () => {
+  it("converts capacities from shannon to CKB and reports degraded when a channel is disabled", async () => {
     vi.mocked(getNodeInfo).mockResolvedValue({
       pubkey: "02fee732ac31e04f990dd7e1e25283d714b55f5dba822e3edbd9170557dd7bf0c5",
+      version: "0.9.0-rc6",
+      commitHash: "abc123",
       totalChannels: 4,
       activeChannels: 3,
       inboundCapacityShannon: 80_000_000_000n,
@@ -31,8 +33,25 @@ describe("getNodeStatus", () => {
       active_channels: 3,
       inbound_capacity_ckb: 800,
       outbound_capacity_ckb: 400,
-      status: "online",
+      status: "degraded",
     });
+  });
+
+  it("reports online when every channel is active", async () => {
+    vi.mocked(getNodeInfo).mockResolvedValue({
+      pubkey: "02fee732ac31e04f990dd7e1e25283d714b55f5dba822e3edbd9170557dd7bf0c5",
+      version: "0.9.0-rc6",
+      commitHash: "abc123",
+      totalChannels: 3,
+      activeChannels: 3,
+      inboundCapacityShannon: 80_000_000_000n,
+      outboundCapacityShannon: 40_000_000_000n,
+      peerCount: 2,
+    });
+
+    const status = await getNodeStatus();
+
+    expect(status.status).toBe("online");
   });
 
   it("propagates a Fiber RPC timeout", async () => {
@@ -51,11 +70,13 @@ describe("getNodeStatus", () => {
 });
 
 describe("getNodeStatusDetail", () => {
-  it("includes total_channels and peer_count alongside getNodeStatus()'s fields", async () => {
+  it("includes total_channels, peer_count and version alongside getNodeStatus()'s fields", async () => {
     vi.mocked(getNodeInfo).mockResolvedValue({
       pubkey: "02fee732ac31e04f990dd7e1e25283d714b55f5dba822e3edbd9170557dd7bf0c5",
+      version: "0.9.0-rc6",
+      commitHash: "abc123",
       totalChannels: 4,
-      activeChannels: 3,
+      activeChannels: 4,
       inboundCapacityShannon: 80_000_000_000n,
       outboundCapacityShannon: 40_000_000_000n,
       peerCount: 8,
@@ -66,10 +87,11 @@ describe("getNodeStatusDetail", () => {
     expect(detail).toEqual({
       pubkey: "02fee732ac31e04f990dd7e1e25283d714b55f5dba822e3edbd9170557dd7bf0c5",
       total_channels: 4,
-      active_channels: 3,
+      active_channels: 4,
       peer_count: 8,
       inbound_capacity_ckb: 800,
       outbound_capacity_ckb: 400,
+      version: "0.9.0-rc6",
       status: "online",
     });
   });

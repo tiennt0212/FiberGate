@@ -61,7 +61,7 @@ describe("login", () => {
     await login({ error: null }, formDataWithPassword(REAL_PASSWORD));
 
     expect(setSessionCookie).toHaveBeenCalledTimes(1);
-    expect(redirect).toHaveBeenCalledWith(ROUTE.DASHBOARD);
+    expect(redirect).toHaveBeenCalledWith(ROUTE.OVERVIEW);
   });
 });
 

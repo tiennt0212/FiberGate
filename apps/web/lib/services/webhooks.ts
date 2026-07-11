@@ -321,3 +321,85 @@ export async function listWebhookDeliveries(
 
   return { rows: pageRows, nextCursor };
 }
+
+// --- Delivery Health (issue #40) -------------------------------------------
+// Webhooks page's "Delivery Success Rate" + "Needs Attention" stat-cards.
+// Same JS-aggregation-over-narrow-projection style as
+// lib/services/invoices.ts's getInvoiceStats()/getInvoiceFunnelStats().
+
+const HEALTH_WINDOW_HOURS = 24;
+
+export interface WebhookEndpointFailure {
+  endpointId: string;
+  endpointUrl: string;
+  /** % of that endpoint's resolved (success+failed) deliveries in-window that failed. */
+  failurePct: number;
+}
+
+export interface WebhookDeliveryHealth {
+  /**
+   * % of resolved deliveries (status success or failed) in the last 24h that
+   * succeeded — still-retrying "pending" deliveries are excluded from both
+   * the numerator and denominator since they have no final outcome yet.
+   * Null when there were no resolved deliveries in-window.
+   */
+  successRatePct: number | null;
+  resolvedCount: number;
+  /** The single endpoint with the highest failure rate in-window, if any delivery to it failed. */
+  worstEndpoint: WebhookEndpointFailure | null;
+}
+
+export async function getWebhookDeliveryHealth(): Promise<WebhookDeliveryHealth> {
+  const since = new Date(Date.now() - HEALTH_WINDOW_HOURS * 60 * 60 * 1000);
+  const rows = await db
+    .select({
+      endpointId: webhookDeliveries.endpointId,
+      endpointUrl: webhookEndpoints.url,
+      status: webhookDeliveries.status,
+    })
+    .from(webhookDeliveries)
+    .leftJoin(webhookEndpoints, eq(webhookDeliveries.endpointId, webhookEndpoints.id))
+    .where(gte(webhookDeliveries.createdAt, since));
+
+  let successCount = 0;
+  let failedCount = 0;
+  const byEndpoint = new Map<string, { url: string; resolved: number; failed: number }>();
+
+  for (const row of rows) {
+    if (row.status === "success") {
+      successCount += 1;
+    } else if (row.status === "failed") {
+      failedCount += 1;
+    } else {
+      continue; // "pending" — still retrying, no final outcome yet
+    }
+
+    if (row.endpointId) {
+      const entry = byEndpoint.get(row.endpointId) ?? { url: row.endpointUrl ?? "—", resolved: 0, failed: 0 };
+      entry.resolved += 1;
+      if (row.status === "failed") {
+        entry.failed += 1;
+      }
+      byEndpoint.set(row.endpointId, entry);
+    }
+  }
+
+  const resolvedCount = successCount + failedCount;
+
+  let worstEndpoint: WebhookEndpointFailure | null = null;
+  for (const [endpointId, entry] of byEndpoint) {
+    if (entry.failed === 0) {
+      continue;
+    }
+    const failurePct = Math.round((entry.failed / entry.resolved) * 100);
+    if (!worstEndpoint || failurePct > worstEndpoint.failurePct) {
+      worstEndpoint = { endpointId, endpointUrl: entry.url, failurePct };
+    }
+  }
+
+  return {
+    successRatePct: resolvedCount > 0 ? Math.round((successCount / resolvedCount) * 100) : null,
+    resolvedCount,
+    worstEndpoint,
+  };
+}

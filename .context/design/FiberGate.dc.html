@@ -97,6 +97,14 @@ body{background:#f7f7f8;-webkit-font-smoothing:antialiased}
         <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="1.5" y="1.5" width="5" height="5" rx="1"/><rect x="8.5" y="1.5" width="5" height="5" rx="1"/><rect x="1.5" y="8.5" width="5" height="5" rx="1"/><rect x="8.5" y="8.5" width="5" height="5" rx="1"/></svg>
         Overview
       </button>
+      <button onClick="{{ goChannels }}" style="display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:6px;border:none;cursor:pointer;width:100%;text-align:left;font-family:inherit;font-size:13.5px;background:{{ noChBg }};color:{{ noChC }};font-weight:{{ noChW }}" style-hover="opacity:0.85">
+        <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="3.5" cy="7.5" r="2"/><circle cx="11.5" cy="7.5" r="2"/><line x1="5.5" y1="7.5" x2="9.5" y2="7.5"/></svg>
+        Channels
+      </button>
+      <button onClick="{{ goPeers }}" style="display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:6px;border:none;cursor:pointer;width:100%;text-align:left;font-family:inherit;font-size:13.5px;background:{{ noPeBg }};color:{{ noPeC }};font-weight:{{ noPeW }}" style-hover="opacity:0.85">
+        <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="5.5" cy="5" r="2.2"/><path d="M1.5 12.5c0-2.2 1.8-3.5 4-3.5s4 1.3 4 3.5"/><circle cx="11.5" cy="5.5" r="1.6"/><path d="M9.8 9.3c.6-.3 1.2-.4 1.7-.4 1.8 0 3 1.1 3 3"/></svg>
+        Peers
+      </button>
       <button onClick="{{ goInvoices }}" style="display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:6px;border:none;cursor:pointer;width:100%;text-align:left;font-family:inherit;font-size:13.5px;background:{{ nIBg }};color:{{ nIC }};font-weight:{{ nIW }}" style-hover="opacity:0.85">
         <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="2" y="1.5" width="11" height="12" rx="1.5"/><line x1="5" y1="5" x2="10" y2="5"/><line x1="5" y1="7.8" x2="10" y2="7.8"/><line x1="5" y1="10.5" x2="8" y2="10.5"/></svg>
         Invoices
@@ -108,6 +116,10 @@ body{background:#f7f7f8;-webkit-font-smoothing:antialiased}
       <button onClick="{{ goWebhooks }}" style="display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:6px;border:none;cursor:pointer;width:100%;text-align:left;font-family:inherit;font-size:13.5px;background:{{ nWBg }};color:{{ nWC }};font-weight:{{ nWW }}" style-hover="opacity:0.85">
         <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 1.5L3.5 8H8L6 13.5L13.5 6H9.5z"/></svg>
         Webhooks
+      </button>
+      <button onClick="{{ goActivity }}" style="display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:6px;border:none;cursor:pointer;width:100%;text-align:left;font-family:inherit;font-size:13.5px;background:{{ noAcBg }};color:{{ noAcC }};font-weight:{{ noAcW }}" style-hover="opacity:0.85">
+        <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 7.5h2.5l1.5-4 2.5 8 1.5-4H14"/></svg>
+        Activity
       </button>
       <div style="padding:8px 6px 4px;font-size:10.5px;font-weight:600;color:#c0bfcc;letter-spacing:0.07em;text-transform:uppercase;margin-top:4px">Setup</div>
       <button onClick="{{ goQuickStart }}" style="display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:6px;border:none;cursor:pointer;width:100%;text-align:left;font-family:inherit;font-size:13.5px;background:{{ nQBg }};color:{{ nQC }};font-weight:{{ nQW }}" style-hover="opacity:0.85">
@@ -165,6 +177,17 @@ body{background:#f7f7f8;-webkit-font-smoothing:antialiased}
             </sc-for>
           </div>
 
+          <div style="margin-bottom:10px;font-size:11.5px;font-weight:600;color:#9898a8;text-transform:uppercase;letter-spacing:0.05em">Invoice Funnel (30d)</div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px">
+            <sc-for list="{{ funnelCards }}" as="fc" hint-placeholder-count="3">
+              <div style="background:white;border:1px solid #e4e4e7;border-radius:8px;padding:16px 20px" style-hover="border-color:#c9c7e5">
+                <div style="font-size:11.5px;font-weight:600;color:#9898a8;margin-bottom:9px">{{ fc.label }}</div>
+                <div style="font-size:22px;font-weight:700;color:#141414;line-height:1;margin-bottom:4px">{{ fc.value }}</div>
+                <div style="font-size:12px;color:#a1a1aa">{{ fc.sub }}</div>
+              </div>
+            </sc-for>
+          </div>
+
           <div style="display:grid;grid-template-columns:272px 1fr;gap:14px">
             <!-- Node Status -->
             <div style="background:white;border:1px solid #e4e4e7;border-radius:8px;padding:18px 20px;align-self:start">
@@ -200,7 +223,7 @@ body{background:#f7f7f8;-webkit-font-smoothing:antialiased}
                 </div>
                 <div style="display:flex;justify-content:space-between;align-items:center">
                   <span style="font-size:12.5px;color:#71717a">Peers</span>
-                  <span style="font-size:12.5px;font-weight:500;color:#141414">8</span>
+                  <span style="font-size:12.5px;font-weight:500;color:#141414">{{ nodePeerCount }}</span>
                 </div>
               </div>
               <div style="border-top:1px solid #f3f4f6;padding-top:14px;display:flex;flex-direction:column;gap:11px">
@@ -472,6 +495,23 @@ body{background:#f7f7f8;-webkit-font-smoothing:antialiased}
           <div style="margin-bottom:22px">
             <div style="font-size:12.5px;color:#71717a">Real-time event notifications sent to your endpoints</div>
           </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+            <div style="background:white;border:1px solid #e4e4e7;border-radius:8px;padding:16px 20px">
+              <div style="font-size:11.5px;font-weight:600;color:#9898a8;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:9px">Delivery Success Rate</div>
+              <div style="font-size:22px;font-weight:700;color:#141414;line-height:1;margin-bottom:4px">{{ whHealthSuccessRate }}</div>
+              <div style="font-size:12px;color:#a1a1aa">{{ whHealthSuccessSub }}</div>
+            </div>
+            <sc-if value="{{ hasWorstWebhook }}" hint-placeholder-val="{{ true }}">
+              <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:16px 20px">
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:9px">
+                  <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="#d97706" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 1.5L12 11H1z"/><line x1="6.5" y1="5" x2="6.5" y2="7.8"/><circle cx="6.5" cy="9.3" r=".5" fill="#d97706" stroke="none"/></svg>
+                  <span style="font-size:11.5px;font-weight:600;color:#92400e;text-transform:uppercase;letter-spacing:0.05em">Needs Attention</span>
+                </div>
+                <div style="font-size:22px;font-weight:700;color:#92400e;line-height:1;margin-bottom:4px">{{ worstFailurePct }} fail rate</div>
+                <div style="font-size:12px;color:#a16207;font-family:'JetBrains Mono',monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ worstWebhookLabel }}</div>
+              </div>
+            </sc-if>
+          </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
             <div style="background:white;border:1px solid #e4e4e7;border-radius:8px;overflow:hidden;align-self:start">
               <div style="padding:14px 18px;border-bottom:1px solid #f3f4f6;font-size:13px;font-weight:600;color:#141414">Endpoints</div>
@@ -537,6 +577,138 @@ body{background:#f7f7f8;-webkit-font-smoothing:antialiased}
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- CHANNELS -->
+      <sc-if value="{{ isChannels }}" hint-placeholder-val="{{ false }}">
+        <div style="animation:fade-in .2s ease-out forwards">
+          <div style="margin-bottom:18px">
+            <div style="font-size:12.5px;color:#71717a">All Fiber Network payment channels on this node</div>
+          </div>
+          <div style="display:grid;grid-template-columns:272px 1fr;gap:14px">
+            <!-- Topology -->
+            <div style="background:white;border:1px solid #e4e4e7;border-radius:8px;padding:18px 20px;align-self:start">
+              <div style="font-size:13px;font-weight:600;color:#141414;margin-bottom:2px">Node Topology</div>
+              <div style="font-size:11.5px;color:#a1a1aa;margin-bottom:14px">Single-node star · {{ diagramPeerCount }} peers</div>
+              <svg width="100%" height="180" viewBox="0 0 220 220" style="display:block;margin:0 auto">
+                <sc-for list="{{ diagramNodes }}" as="node" hint-placeholder-count="7">
+                  <line x1="{{ node.x1 }}" y1="{{ node.y1 }}" x2="{{ node.x2 }}" y2="{{ node.y2 }}" stroke="#e4e4e7" stroke-width="1.5"></line>
+                </sc-for>
+                <sc-for list="{{ diagramNodes }}" as="node" hint-placeholder-count="7">
+                  <circle cx="{{ node.dotX }}" cy="{{ node.dotY }}" r="6" fill="{{ node.color }}"></circle>
+                </sc-for>
+                <circle cx="110" cy="110" r="14" fill="#4f46e5"></circle>
+              </svg>
+              <div style="display:flex;flex-direction:column;gap:7px;margin-top:14px;border-top:1px solid #f3f4f6;padding-top:12px">
+                <div style="display:flex;align-items:center;gap:7px;font-size:11.5px;color:#71717a"><div style="width:7px;height:7px;border-radius:50%;background:#16a34a;flex-shrink:0"></div>Active — routing normally</div>
+                <div style="display:flex;align-items:center;gap:7px;font-size:11.5px;color:#71717a"><div style="width:7px;height:7px;border-radius:50%;background:#f59e0b;flex-shrink:0"></div>Closing — cooperative close in progress</div>
+                <div style="display:flex;align-items:center;gap:7px;font-size:11.5px;color:#71717a"><div style="width:7px;height:7px;border-radius:50%;background:#a1a1aa;flex-shrink:0"></div>Has disabled channel(s)</div>
+                <div style="display:flex;align-items:center;gap:7px;font-size:11.5px;color:#71717a"><div style="width:7px;height:7px;border-radius:50%;background:#d4d4d8;flex-shrink:0"></div>No open channel</div>
+              </div>
+            </div>
+
+            <!-- Channels table -->
+            <div style="background:white;border:1px solid #e4e4e7;border-radius:8px;overflow:hidden">
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid #f3f4f6">
+                <span style="font-size:13px;font-weight:600;color:#141414">Channels</span>
+                <span style="font-size:12.5px;color:#71717a">{{ activeChannelCount }} active · {{ totalCapacityAllFmt }} combined balance</span>
+              </div>
+              <table style="width:100%;border-collapse:collapse">
+                <thead>
+                  <tr style="background:#f9f9fb">
+                    <th style="padding:9px 20px;text-align:left;font-size:11.5px;font-weight:600;color:#9898a8;border-bottom:1px solid #e4e4e7;text-transform:uppercase;letter-spacing:0.04em;white-space:nowrap">Peer</th>
+                    <th style="padding:9px 16px;text-align:left;font-size:11.5px;font-weight:600;color:#9898a8;border-bottom:1px solid #e4e4e7;text-transform:uppercase;letter-spacing:0.04em">Asset</th>
+                    <th style="padding:9px 16px;text-align:right;font-size:11.5px;font-weight:600;color:#9898a8;border-bottom:1px solid #e4e4e7;text-transform:uppercase;letter-spacing:0.04em;white-space:nowrap">Local (out)</th>
+                    <th style="padding:9px 16px;text-align:right;font-size:11.5px;font-weight:600;color:#9898a8;border-bottom:1px solid #e4e4e7;text-transform:uppercase;letter-spacing:0.04em;white-space:nowrap">Remote (in)</th>
+                    <th style="padding:9px 20px 9px 16px;text-align:left;font-size:11.5px;font-weight:600;color:#9898a8;border-bottom:1px solid #e4e4e7;text-transform:uppercase;letter-spacing:0.04em">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <sc-for list="{{ channels }}" as="ch" hint-placeholder-count="8">
+                    <tr onClick="{{ ch.onOpen }}" style="cursor:pointer" style-hover="background:#f9f9fb">
+                      <td style="padding:12px 20px;border-bottom:1px solid #f3f4f6;font-family:'JetBrains Mono',monospace;font-size:12px;color:#374151;white-space:nowrap">{{ ch.peerShort }}</td>
+                      <td style="padding:12px 16px;border-bottom:1px solid #f3f4f6">
+                        <span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:11.5px;font-weight:600;background:#f3f4f6;color:#374151;font-family:'JetBrains Mono',monospace">{{ ch.asset }}</span>
+                      </td>
+                      <td style="padding:12px 16px;border-bottom:1px solid #f3f4f6;text-align:right;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:500;color:#141414;white-space:nowrap">{{ ch.localTable }}</td>
+                      <td style="padding:12px 16px;border-bottom:1px solid #f3f4f6;text-align:right;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:500;color:#141414;white-space:nowrap">{{ ch.remoteTable }}</td>
+                      <td style="padding:12px 20px 12px 16px;border-bottom:1px solid #f3f4f6">
+                        <span style="display:inline-block;padding:2px 8px;border-radius:9999px;font-size:11.5px;font-weight:500;background:{{ ch.statusBadge.bg }};color:{{ ch.statusBadge.color }}">{{ ch.statusBadge.label }}</span>
+                      </td>
+                    </tr>
+                  </sc-for>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- PEERS -->
+      <sc-if value="{{ isPeers }}" hint-placeholder-val="{{ false }}">
+        <div style="animation:fade-in .2s ease-out forwards">
+          <div style="margin-bottom:18px">
+            <div style="font-size:12.5px;color:#71717a">Connected Fiber Network peers</div>
+          </div>
+          <div style="background:white;border:1px solid #e4e4e7;border-radius:8px;overflow:hidden">
+            <table style="width:100%;border-collapse:collapse">
+              <thead>
+                <tr style="background:#f9f9fb">
+                  <th style="padding:10px 20px;text-align:left;font-size:11.5px;font-weight:600;color:#9898a8;border-bottom:1px solid #e4e4e7;text-transform:uppercase;letter-spacing:0.04em">Pubkey</th>
+                  <th style="padding:10px 20px 10px 16px;text-align:left;font-size:11.5px;font-weight:600;color:#9898a8;border-bottom:1px solid #e4e4e7;text-transform:uppercase;letter-spacing:0.04em">Address</th>
+                </tr>
+              </thead>
+              <tbody>
+                <sc-for list="{{ peers }}" as="pe" hint-placeholder-count="8">
+                  <tr onClick="{{ pe.onOpen }}" style="cursor:pointer" style-hover="background:#f9f9fb">
+                    <td style="padding:12px 20px;border-bottom:1px solid #f3f4f6">
+                      <div style="display:flex;align-items:center;gap:8px">
+                        <div style="width:7px;height:7px;border-radius:50%;background:{{ pe.dotColor }};flex-shrink:0"></div>
+                        <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#374151">{{ pe.pubkeyShort }}</span>
+                      </div>
+                    </td>
+                    <td style="padding:12px 20px 12px 16px;border-bottom:1px solid #f3f4f6;font-family:'JetBrains Mono',monospace;font-size:12px;color:#71717a">{{ pe.address }}</td>
+                  </tr>
+                </sc-for>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ACTIVITY -->
+      <sc-if value="{{ isActivity }}" hint-placeholder-val="{{ false }}">
+        <div style="animation:fade-in .2s ease-out forwards">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+            <div style="font-size:12.5px;color:#71717a">Real-time log of poller + webhook delivery activity in fibergate-core</div>
+            <div style="display:flex;align-items:center;gap:7px;font-size:12px;color:#15803d;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:5px 11px">
+              <div style="width:7px;height:7px;border-radius:50%;background:#16a34a;animation:pulse-dot 2s ease-in-out infinite;flex-shrink:0"></div>
+              Live · next poll in {{ pollTick }}s
+            </div>
+          </div>
+          <div style="background:white;border:1px solid #e4e4e7;border-radius:8px;overflow:hidden">
+            <div style="display:grid;grid-template-columns:76px 76px 1fr;padding:9px 20px;background:#f9f9fb;border-bottom:1px solid #e4e4e7">
+              <span style="font-size:11.5px;font-weight:600;color:#9898a8;text-transform:uppercase;letter-spacing:0.04em">Time</span>
+              <span style="font-size:11.5px;font-weight:600;color:#9898a8;text-transform:uppercase;letter-spacing:0.04em">Source</span>
+              <span style="font-size:11.5px;font-weight:600;color:#9898a8;text-transform:uppercase;letter-spacing:0.04em">Message</span>
+            </div>
+            <sc-for list="{{ activityRows }}" as="row" hint-placeholder-count="12">
+              <div style="display:grid;grid-template-columns:76px 76px 1fr;align-items:start;padding:9px 20px;border-bottom:1px solid #f3f4f6;background:{{ row.rowBg }}">
+                <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#a1a1aa;white-space:nowrap;padding-top:1px">{{ row.time }}</span>
+                <span style="display:flex;align-items:center;gap:6px;padding-top:1px">
+                  <div style="width:6px;height:6px;border-radius:50%;background:{{ row.sourceDot }};flex-shrink:0"></div>
+                  <span style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#52525b">{{ row.source }}</span>
+                </span>
+                <span style="font-size:13px;color:{{ row.msgColor }};line-height:1.5;display:flex;align-items:center;gap:8px">
+                  {{ row.message }}
+                  <sc-if value="{{ row.isError }}" hint-placeholder-val="{{ false }}">
+                    <span style="flex-shrink:0;display:inline-block;padding:1px 7px;border-radius:9999px;font-size:10.5px;font-weight:600;background:#fee2e2;color:#991b1b">ERROR</span>
+                  </sc-if>
+                </span>
+              </div>
+            </sc-for>
           </div>
         </div>
       </sc-if>
@@ -771,6 +943,140 @@ body{background:#f7f7f8;-webkit-font-smoothing:antialiased}
     </div>
   </sc-if>
 
+  <!-- CHANNEL DRAWER -->
+  <sc-if value="{{ showChannelDrawer }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeChannelDrawer }}" style="position:fixed;inset:0;background:rgba(0,0,0,0.28);z-index:50;display:flex;justify-content:flex-end">
+      <div onClick="{{ stopProp }}" style="width:520px;background:white;border-left:1px solid #e4e4e7;display:flex;flex-direction:column;height:100vh;animation:slide-in-right .2s ease-out">
+        <div style="padding:20px 24px;border-bottom:1px solid #e4e4e7;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+          <div>
+            <div style="font-size:15px;font-weight:600;color:#141414">Channel Detail</div>
+            <div style="font-size:12px;color:#a1a1aa;margin-top:2px;font-family:'JetBrains Mono',monospace">{{ chAsset }} channel</div>
+          </div>
+          <button onClick="{{ closeChannelDrawer }}" style="width:28px;height:28px;border-radius:6px;border:1px solid #e4e4e7;background:white;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#71717a" style-hover="background:#f4f4f5">
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="2" y1="2" x2="11" y2="11"/><line x1="11" y1="2" x2="2" y2="11"/></svg>
+          </button>
+        </div>
+        <div style="flex:1;overflow-y:auto;padding:24px;display:flex;flex-direction:column;gap:20px">
+
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <span style="font-size:12.5px;color:#71717a">Status</span>
+            <span style="display:inline-block;padding:2px 9px;border-radius:9999px;font-size:11.5px;font-weight:500;background:{{ chStatusBg }};color:{{ chStatusColor }}">{{ chStatusLabel }}</span>
+          </div>
+
+          <div style="background:#f9f9fb;border:1px solid #f3f4f6;border-radius:8px;padding:14px 16px">
+            <div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:3px">{{ chStateLabel }} <span style="font-family:'JetBrains Mono',monospace;font-weight:400;color:#a1a1aa;font-size:11px">({{ chStateName }})</span></div>
+            <div style="font-size:12.5px;color:#71717a;line-height:1.5">{{ chStateExplain }}</div>
+          </div>
+
+          <div>
+            <div style="font-size:12px;color:#71717a;margin-bottom:5px">Channel ID</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#374151;background:#f3f4f6;padding:8px 10px;border-radius:5px;word-break:break-all;line-height:1.5">{{ chChannelId }}</div>
+          </div>
+
+          <div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
+              <span style="font-size:12px;color:#71717a">Peer Pubkey</span>
+              <button onClick="{{ viewPeerFromChannel }}" style="font-size:12px;color:#4f46e5;background:none;border:none;cursor:pointer;font-family:inherit;font-weight:500" style-hover="color:#4338ca">View peer →</button>
+            </div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#374151;background:#f3f4f6;padding:8px 10px;border-radius:5px;word-break:break-all;line-height:1.5">{{ chPeerPubkey }}</div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:12px;border-top:1px solid #f3f4f6;padding-top:16px">
+            <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:12.5px;color:#71717a">Local balance (outbound)</span><span style="font-size:13.5px;font-weight:600;color:#141414;font-family:'JetBrains Mono',monospace">{{ chLocalExact }} <span style="font-size:11px;font-weight:400;color:#71717a">{{ chAsset }}</span></span></div>
+            <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:12.5px;color:#71717a">Remote balance (inbound)</span><span style="font-size:13.5px;font-weight:600;color:#141414;font-family:'JetBrains Mono',monospace">{{ chRemoteExact }} <span style="font-size:11px;font-weight:400;color:#71717a">{{ chAsset }}</span></span></div>
+          </div>
+
+          <sc-if value="{{ chHasTlc }}" hint-placeholder-val="{{ false }}">
+            <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:12px 16px">
+              <div style="font-size:12px;font-weight:600;color:#92400e;margin-bottom:6px">Funds locked in-flight (TLC)</div>
+              <div style="font-size:12px;color:#a16207;line-height:1.5;margin-bottom:8px">Temporarily unavailable — held for a payment currently being routed through this channel.</div>
+              <div style="display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:12px;color:#92400e"><span>Offered</span><span>{{ chTlcOfferedExact }} {{ chAsset }}</span></div>
+              <div style="display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:12px;color:#92400e;margin-top:4px"><span>Received</span><span>{{ chTlcReceivedExact }} {{ chAsset }}</span></div>
+            </div>
+          </sc-if>
+
+          <div style="display:flex;flex-direction:column;gap:12px;border-top:1px solid #f3f4f6;padding-top:16px">
+            <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:12.5px;color:#71717a">Visibility</span><span style="font-size:12.5px;font-weight:500;color:#141414">{{ chPublicLabel }}</span></div>
+            <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:12.5px;color:#71717a">Created</span><span style="font-size:12.5px;font-weight:500;color:#141414">{{ chCreatedAt }}</span></div>
+            <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:12.5px;color:#71717a">Forwarding fee rate</span><span style="font-size:12.5px;font-weight:500;color:#141414;font-family:'JetBrains Mono',monospace">{{ chFeeRateMicro }} <span style="color:#a1a1aa;font-weight:400">/1,000,000 ({{ chFeeRatePct }})</span></span></div>
+          </div>
+
+          <div style="border-top:1px solid #f3f4f6;padding-top:16px">
+            <div style="font-size:12px;color:#71717a;margin-bottom:5px">Channel outpoint</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:#374151;margin-bottom:10px">{{ chOutpointDisplay }}</div>
+            <div style="font-size:12px;color:#71717a;margin-bottom:5px">Funding transaction</div>
+            <a href="{{ chExplorerUrl }}" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:6px;font-family:'JetBrains Mono',monospace;font-size:11px;color:#4f46e5;text-decoration:none;word-break:break-all;line-height:1.5" style-hover="color:#4338ca">
+              {{ chFundingTxHash }}
+              <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M4 2H2a1 1 0 00-1 1v6a1 1 0 001 1h6a1 1 0 001-1V7"/><path d="M6.5 1.5H9.5V4.5"/><line x1="9.5" y1="1.5" x2="5" y2="6"/></svg>
+            </a>
+          </div>
+
+          <sc-if value="{{ chIsShuttingDown }}" hint-placeholder-val="{{ false }}">
+            <div style="border-top:1px solid #f3f4f6;padding-top:16px">
+              <div style="font-size:12px;color:#71717a;margin-bottom:5px">Shutdown transaction</div>
+              <a href="{{ chShutdownExplorerUrl }}" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:6px;font-family:'JetBrains Mono',monospace;font-size:11px;color:#4f46e5;text-decoration:none;word-break:break-all;line-height:1.5" style-hover="color:#4338ca">
+                {{ chShutdownTxHash }}
+                <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M4 2H2a1 1 0 00-1 1v6a1 1 0 001 1h6a1 1 0 001-1V7"/><path d="M6.5 1.5H9.5V4.5"/><line x1="9.5" y1="1.5" x2="5" y2="6"/></svg>
+              </a>
+            </div>
+          </sc-if>
+
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- PEER DRAWER -->
+  <sc-if value="{{ showPeerDrawer }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closePeerDrawer }}" style="position:fixed;inset:0;background:rgba(0,0,0,0.28);z-index:50;display:flex;justify-content:flex-end">
+      <div onClick="{{ stopProp }}" style="width:520px;background:white;border-left:1px solid #e4e4e7;display:flex;flex-direction:column;height:100vh;animation:slide-in-right .2s ease-out">
+        <div style="padding:20px 24px;border-bottom:1px solid #e4e4e7;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+          <div>
+            <div style="font-size:15px;font-weight:600;color:#141414">Peer Detail</div>
+            <div style="font-size:12px;color:#a1a1aa;margin-top:2px">{{ peChannelCount }} channel(s)</div>
+          </div>
+          <button onClick="{{ closePeerDrawer }}" style="width:28px;height:28px;border-radius:6px;border:1px solid #e4e4e7;background:white;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#71717a" style-hover="background:#f4f4f5">
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="2" y1="2" x2="11" y2="11"/><line x1="11" y1="2" x2="2" y2="11"/></svg>
+          </button>
+        </div>
+        <div style="flex:1;overflow-y:auto;padding:24px;display:flex;flex-direction:column;gap:20px">
+
+          <div>
+            <div style="font-size:12px;color:#71717a;margin-bottom:5px">Pubkey</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#374151;background:#f3f4f6;padding:8px 10px;border-radius:5px;word-break:break-all;line-height:1.5">{{ pePubkey }}</div>
+          </div>
+
+          <div>
+            <div style="font-size:12px;color:#71717a;margin-bottom:5px">Address</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#374151;background:#f3f4f6;padding:8px 10px;border-radius:5px;word-break:break-all;line-height:1.5">{{ peAddress }}</div>
+          </div>
+
+          <div style="background:#eef2ff;border:1px solid #c7d2fe;border-radius:8px;padding:14px 16px">
+            <div style="font-size:11.5px;font-weight:600;color:#4338ca;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px">Total Liquidity With This Peer</div>
+            <div style="font-size:22px;font-weight:700;color:#141414;line-height:1">{{ peTotalCapacityExact }}</div>
+            <div style="font-size:12px;color:#71717a;margin-top:4px">Combined local + remote balance across all open channels</div>
+          </div>
+
+          <div>
+            <div style="font-size:13px;font-weight:600;color:#141414;margin-bottom:10px">Channels with this peer</div>
+            <sc-if value="{{ selPeerHasChannels }}" hint-placeholder-val="{{ true }}">
+              <div style="border:1px solid #e4e4e7;border-radius:8px;overflow:hidden">
+                <sc-for list="{{ selPeerChannels }}" as="pc" hint-placeholder-count="2">
+                  <div onClick="{{ pc.onJump }}" style="padding:12px 16px;border-bottom:1px solid #f3f4f6;display:flex;align-items:center;gap:12px;cursor:pointer" style-hover="background:#f9f9fb">
+                    <span style="display:inline-block;padding:2px 8px;border-radius:9999px;font-size:11px;font-weight:500;background:{{ pc.statusBadge.bg }};color:{{ pc.statusBadge.color }};flex-shrink:0">{{ pc.statusBadge.label }}</span>
+                    <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#374151;flex:1">{{ pc.localTable }} / {{ pc.remoteTable }} {{ pc.asset }}</span>
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="#a1a1aa" stroke-width="1.6" stroke-linecap="round" style="flex-shrink:0"><path d="M4.5 2.5L8 6l-3.5 3.5"/></svg>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-if>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
 </div>
 </sc-if>
 
@@ -798,21 +1104,35 @@ class Component extends DCLogic {
     sdkInstalled: false,
     nodeStatus: 'online',
     copyToast: null,
+    selChannelId: null, selPeerPubkey: null,
+    pollTick: 3,
   };
   _timers = {};
 
   componentDidMount() {
     this._escHandler = (e) => {
-      if (e.key === 'Escape') this.setState({ showAddWebhook: false, receiptTx: null });
+      if (e.key === 'Escape') this.setState({ showAddWebhook: false, receiptTx: null, selChannelId: null, selPeerPubkey: null });
     };
     document.addEventListener('keydown', this._escHandler);
+    this._pollTimer = setInterval(() => {
+      this.setState(st => ({ pollTick: st.pollTick <= 1 ? 3 : st.pollTick - 1 }));
+    }, 1000);
   }
   componentWillUnmount() {
     document.removeEventListener('keydown', this._escHandler);
     Object.values(this._timers).forEach(clearTimeout);
+    clearInterval(this._pollTimer);
   }
 
   go(s) { this.setState({ screen: s }); }
+
+  openChannel(id) { this.setState({ selChannelId: id }); }
+  closeChannelDrawer() { this.setState({ selChannelId: null }); }
+  openPeer(key) { this.setState({ selPeerPubkey: key }); }
+  closePeerDrawer() { this.setState({ selPeerPubkey: null }); }
+  viewPeerFromChannel(key) { this.setState({ selChannelId: null, screen: 'peers', selPeerPubkey: key }); }
+  viewChannelFromPeer(id) { this.setState({ selPeerPubkey: null, screen: 'channels', selChannelId: id }); }
+  hx(seed, len) { let out = ''; while (out.length < len) out += seed; return out.slice(0, len); }
 
   debounce(key, fn, ms = 300) {
     clearTimeout(this._timers[key]);
@@ -1007,6 +1327,156 @@ class Component extends DCLogic {
         })
       : [];
 
+    // ---- Channels & Peers (Fiber node) ----
+    const RAW_PEERS = [
+      { key: 'p1', pubkey: '03' + this.hx('a1f2e4c9b7d0a5e3', 64), address: '/ip4/45.32.121.44/tcp/8228' },
+      { key: 'p2', pubkey: '02' + this.hx('b3d8f1a4c7e0b2d5', 64), address: '/ip4/104.18.36.202/tcp/8228' },
+      { key: 'p3', pubkey: '03' + this.hx('c5e9f2b4a7d0c3e6', 64), address: '/ip4/172.104.88.19/tcp/8228' },
+      { key: 'p4', pubkey: '02' + this.hx('d7f1a4c9e2b5d8f1', 64), address: '/ip4/198.51.100.23/tcp/8228' },
+      { key: 'p5', pubkey: '03' + this.hx('e9b3d6f9a2c5e8b1', 64), address: '/ip4/95.216.34.71/tcp/8228' },
+      { key: 'p6', pubkey: '02' + this.hx('f1c4e7b0d3f6a9c2', 64), address: '/ip4/188.166.94.12/tcp/8228' },
+      { key: 'p7', pubkey: '03' + this.hx('6a9d2f5c8b1e4a7d', 64), address: '/ip4/64.225.112.55/tcp/8228' },
+      { key: 'p8', pubkey: '02' + this.hx('c8f1b4e7a0d3c6f9', 64), address: '/ip4/159.203.77.90/tcp/8228' },
+    ];
+    const peerByKey = Object.fromEntries(RAW_PEERS.map(p => [p.key, p]));
+
+    const RAW_CHANNELS = [
+      { id: 'ch1', channelId: '0x' + this.hx('7f2a91d0c4b8e3f1', 64), peerKey: 'p1',
+        fundingUdtTypeScript: null, localBalance: 42000.125, remoteBalance: 3150.4,
+        state: 'ready', enabled: true, public: true, createdAt: 'Jun 02, 2026',
+        feeRateMicro: 1000, fundingTxHash: '0x' + this.hx('1a2b3c4d5e6f7081', 64), outpointIndex: 0,
+        tlcOffered: 0, tlcReceived: 0, shutdownTxHash: null },
+      { id: 'ch2', channelId: '0x' + this.hx('3b8e1f4a9c2d5e8b', 64), peerKey: 'p2',
+        fundingUdtTypeScript: { codeHash: '0x' + this.hx('9c2e5b8f1d4a7c0e', 64), hashType: 'type', args: '0x' + this.hx('c0ffee01', 64) },
+        localBalance: 850.00, remoteBalance: 1200.50,
+        state: 'ready', enabled: true, public: true, createdAt: 'Jun 05, 2026',
+        feeRateMicro: 500, fundingTxHash: '0x' + this.hx('2b3c4d5e6f708192', 64), outpointIndex: 0,
+        tlcOffered: 0, tlcReceived: 0, shutdownTxHash: null },
+      { id: 'ch3', channelId: '0x' + this.hx('a4c7e0b3d6f9a2c5', 64), peerKey: 'p3',
+        fundingUdtTypeScript: null, localBalance: 5000.0, remoteBalance: 4800.0,
+        state: 'ready', enabled: true, public: false, createdAt: 'Jun 10, 2026',
+        feeRateMicro: 0, fundingTxHash: '0x' + this.hx('3c4d5e6f70819203', 64), outpointIndex: 1,
+        tlcOffered: 0, tlcReceived: 0, shutdownTxHash: null },
+      { id: 'ch4', channelId: '0x' + this.hx('d2f5a8c1e4b7d0a3', 64), peerKey: 'p4',
+        fundingUdtTypeScript: null, localBalance: 1200.0, remoteBalance: 300.0,
+        state: 'ready', enabled: false, public: true, createdAt: 'Jun 12, 2026',
+        feeRateMicro: 1000, fundingTxHash: '0x' + this.hx('4d5e6f7081920a3b', 64), outpointIndex: 0,
+        tlcOffered: 0, tlcReceived: 0, shutdownTxHash: null },
+      { id: 'ch5', channelId: '0x' + this.hx('e6b9d2f5a8c1e4b7', 64), peerKey: 'p4',
+        fundingUdtTypeScript: null, localBalance: 8000.0, remoteBalance: 2000.0,
+        state: 'ready', enabled: true, public: true, createdAt: 'Jun 18, 2026',
+        feeRateMicro: 1000, fundingTxHash: '0x' + this.hx('5e6f7081920a3b4c', 64), outpointIndex: 0,
+        tlcOffered: 120.5, tlcReceived: 0, shutdownTxHash: null },
+      { id: 'ch6', channelId: '0x' + this.hx('f0a3d6c9f2e5b8a1', 64), peerKey: 'p5',
+        fundingUdtTypeScript: { codeHash: '0x' + this.hx('8b1d4f7a0c3e6b9d', 64), hashType: 'type', args: '0x' + this.hx('c0ffee02', 64) },
+        localBalance: 300.25, remoteBalance: 50.0,
+        state: 'shutting_down', enabled: true, public: true, createdAt: 'May 20, 2026',
+        feeRateMicro: 500, fundingTxHash: '0x' + this.hx('6f7081920a3b4c5d', 64), outpointIndex: 0,
+        tlcOffered: 0, tlcReceived: 0, shutdownTxHash: '0x' + this.hx('9c1e4b7d0a3c6f9b', 64) },
+      { id: 'ch7', channelId: '0x' + this.hx('c1e4f7b0a3d6c9f2', 64), peerKey: 'p6',
+        fundingUdtTypeScript: null, localBalance: 600.0, remoteBalance: 5400.0,
+        state: 'ready', enabled: true, public: true, createdAt: 'Jun 20, 2026',
+        feeRateMicro: 200, fundingTxHash: '0x' + this.hx('7081920a3b4c5d6e', 64), outpointIndex: 0,
+        tlcOffered: 0, tlcReceived: 0, shutdownTxHash: null },
+      { id: 'ch8', channelId: '0x' + this.hx('b5f8a1c4d7e0b3f6', 64), peerKey: 'p7',
+        fundingUdtTypeScript: null, localBalance: 3000.0, remoteBalance: 3000.0,
+        state: 'ready', enabled: true, public: false, createdAt: 'Jun 25, 2026',
+        feeRateMicro: 0, fundingTxHash: '0x' + this.hx('81920a3b4c5d6e70', 64), outpointIndex: 1,
+        tlcOffered: 0, tlcReceived: 0, shutdownTxHash: null },
+    ];
+
+    const CH_STATE_CFG = {
+      ready:         { name: 'CHANNEL_READY', label: 'Ready',   explain: 'Channel is fully open and actively accepting payments in both directions.' },
+      shutting_down: { name: 'SHUTTING_DOWN', label: 'Closing', explain: 'A cooperative close has been negotiated. Waiting for the closing transaction to confirm on-chain — funds remain locked until then.' },
+    };
+
+    const fmtExact = (v) => v.toLocaleString('en-US', { maximumFractionDigits: 20 });
+    const fmtTable = (v) => v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const shortPub = (pk) => pk.slice(0, 8) + '…' + pk.slice(-6);
+
+    const channels = RAW_CHANNELS.map(c => {
+      const peer = peerByKey[c.peerKey];
+      const asset = c.fundingUdtTypeScript ? 'RUSD' : 'CKB';
+      const sc = CH_STATE_CFG[c.state] || CH_STATE_CFG.ready;
+      const statusBadge = c.state === 'shutting_down'
+        ? { bg: '#fef9c3', color: '#854d0e', label: 'Closing' }
+        : (c.enabled ? this.bx('active') : this.bx('disabled'));
+      return {
+        ...c, peer, asset, stateCfg: sc, statusBadge,
+        capacity: c.localBalance + c.remoteBalance,
+        localExact: fmtExact(c.localBalance), remoteExact: fmtExact(c.remoteBalance),
+        localTable: fmtTable(c.localBalance), remoteTable: fmtTable(c.remoteBalance),
+        peerShort: shortPub(peer.pubkey),
+        hasTlc: c.tlcOffered > 0 || c.tlcReceived > 0,
+        tlcOfferedExact: fmtExact(c.tlcOffered), tlcReceivedExact: fmtExact(c.tlcReceived),
+        isShuttingDown: c.state === 'shutting_down',
+        outpointDisplay: c.fundingTxHash.slice(0, 12) + '…:' + c.outpointIndex,
+        explorerUrl: 'https://pudge.explorer.nervos.org/transaction/' + c.fundingTxHash,
+        shutdownExplorerUrl: c.shutdownTxHash ? 'https://pudge.explorer.nervos.org/transaction/' + c.shutdownTxHash : null,
+        onOpen: () => this.openChannel(c.id),
+      };
+    });
+
+    const peers = RAW_PEERS.map(p => {
+      const pChannels = channels.filter(c => c.peerKey === p.key);
+      const totalCapacity = pChannels.reduce((sum, c) => sum + c.capacity, 0);
+      const anyShutting = pChannels.some(c => c.state === 'shutting_down');
+      const anyActive = pChannels.some(c => c.enabled && c.state === 'ready');
+      const dotColor = pChannels.length === 0 ? '#d4d4d8' : anyShutting ? '#f59e0b' : anyActive ? '#16a34a' : '#a1a1aa';
+      return {
+        ...p, channels: pChannels, channelCount: pChannels.length,
+        totalCapacity, totalCapacityExact: fmtExact(totalCapacity),
+        pubkeyShort: shortPub(p.pubkey), dotColor,
+        onOpen: () => this.openPeer(p.key),
+      };
+    });
+
+    const selChannel = channels.find(c => c.id === s.selChannelId) || null;
+    const selPeer = peers.find(p => p.key === s.selPeerPubkey) || null;
+    const selPeerChannels = selPeer ? selPeer.channels.map(c => ({ ...c, onJump: () => this.viewChannelFromPeer(c.id) })) : [];
+
+    const diaCx = 110, diaCy = 110, diaR = 84;
+    const diagramNodes = peers.map((p, i) => {
+      const angle = (i / peers.length) * Math.PI * 2 - Math.PI / 2;
+      const x = diaCx + diaR * Math.cos(angle), y = diaCy + diaR * Math.sin(angle);
+      return { x1: diaCx, y1: diaCy, x2: x, y2: y, dotX: x, dotY: y, color: p.dotColor, key: p.key };
+    });
+
+    const totalCapacityAll = channels.reduce((sum, c) => sum + c.capacity, 0);
+    const activeChannelCount = channels.filter(c => c.enabled && c.state === 'ready').length;
+
+    const funnelCards = [
+      { label: 'Pending → Paid',       value: '82.4%',  sub: '233 of 283 pending invoices' },
+      { label: 'Pending → Expired',    value: '14.1%',  sub: '40 of 283 pending invoices' },
+      { label: 'Avg. Time to Payment', value: '4m 12s', sub: 'From invoice created to paid' },
+    ];
+
+    const parseRate = (r) => parseFloat(r);
+    const worstWebhook = webhooks.length ? webhooks.reduce((a, b) => parseRate(a.rate) <= parseRate(b.rate) ? a : b) : null;
+    const worstFailurePct = worstWebhook ? (100 - parseRate(worstWebhook.rate)).toFixed(1) + '%' : '—';
+
+    const RAW_ACTIVITY = [
+      { time: '14:35:12', source: 'webhook', level: 'error', message: 'HMAC signature mismatch rejected by endpoint staging.myapp.com/hooks — 401' },
+      { time: '14:35:09', source: 'poller',  level: 'info',  message: 'Node status check: online, 8 peers connected, 8 channels open' },
+      { time: '14:35:06', source: 'poller',  level: 'error', message: 'Failed to parse UDT type script on channel 3b8e1f4a…2d5e8b — skipping capacity calc this cycle' },
+      { time: '14:35:03', source: 'poller',  level: 'info',  message: 'Channel 7f2a91d0…b8e3f1 balance updated: local 42,000.125 CKB' },
+      { time: '14:35:01', source: 'webhook', level: 'info',  message: 'Retry succeeded for invoice.expired → api.myapp.com (attempt 2/5)' },
+      { time: '14:35:00', source: 'poller',  level: 'info',  message: 'Invoice 3c7e1a9b expired (payment window elapsed)' },
+      { time: '14:34:57', source: 'poller',  level: 'error', message: 'RPC call to fiber-node timed out after 5000ms — retrying next cycle' },
+      { time: '14:34:54', source: 'webhook', level: 'error', message: 'Delivery to debug.myapp.com/all-events failed — connection refused' },
+      { time: '14:34:53', source: 'webhook', level: 'info',  message: 'Dispatched payment.paid to api.myapp.com/webhooks/fibergate — 200 OK (142ms)' },
+      { time: '14:34:51', source: 'poller',  level: 'info',  message: 'Invoice 7f3a2b1c marked as paid (payment_hash confirmed on-chain)' },
+      { time: '14:34:48', source: 'poller',  level: 'info',  message: 'Polled fiber-node RPC: 3 pending invoices checked, no state change' },
+      { time: '14:34:45', source: 'webhook', level: 'info',  message: 'Queued invoice.failed for delivery to 1 endpoint' },
+    ];
+    const SOURCE_CFG = { poller: { dot: '#4f46e5' }, webhook: { dot: '#7c3aed' } };
+    const activityRows = RAW_ACTIVITY.map(r => ({
+      ...r, sourceDot: SOURCE_CFG[r.source].dot,
+      isError: r.level === 'error',
+      msgColor: r.level === 'error' ? '#991b1b' : '#374151',
+      rowBg: r.level === 'error' ? '#fef2f2' : 'white',
+    }));
+
     const NODE_CFG = {
       online:   { bannerBg: '#f0fdf4', bannerBorder: '#bbf7d0', dotBg: '#16a34a', dotAnim: 'pulse-dot 2s ease-in-out infinite', labelColor: '#15803d', label: 'Online',   descColor: '#4ade80', desc: 'All systems operational' },
       degraded: { bannerBg: '#fffbeb', bannerBorder: '#fde68a', dotBg: '#f59e0b', dotAnim: 'pulse-dot 1s ease-in-out infinite', labelColor: '#b45309', label: 'Degraded', descColor: '#f59e0b', desc: 'Some channels unavailable' },
@@ -1071,9 +1541,10 @@ class Component extends DCLogic {
       isOverview: s.screen === 'overview', isInvoices: s.screen === 'invoices',
       isDelivery: s.screen === 'delivery', isWebhooks: s.screen === 'webhooks',
       isQuickStart: s.screen === 'quickstart',
+      isChannels: s.screen === 'channels', isPeers: s.screen === 'peers', isActivity: s.screen === 'activity',
 
-      pageTitle: { overview: 'Overview', invoices: 'Invoices', delivery: 'Delivery Log', webhooks: 'Webhooks', quickstart: 'Quick Start' }[s.screen] || 'Overview',
-      showHeaderCta: s.screen !== 'overview' && s.screen !== 'login',
+      pageTitle: { overview: 'Overview', invoices: 'Invoices', delivery: 'Delivery Log', webhooks: 'Webhooks', quickstart: 'Quick Start', channels: 'Channels', peers: 'Peers', activity: 'Activity' }[s.screen] || 'Overview',
+      showHeaderCta: !!({ invoices: 1, delivery: 1, webhooks: 1, quickstart: 1 }[s.screen]),
       ctaLabel: { invoices: 'Export CSV', delivery: 'Export CSV', webhooks: 'Add Endpoint', quickstart: 'View Docs' }[s.screen] || '',
       headerCtaAction: s.screen === 'webhooks' ? () => this.setState(st => ({ showAddWebhook: !st.showAddWebhook, addWhUrl: '', addWhUrlError: null }))
         : s.screen === 'invoices' ? exportInvCsv
@@ -1085,6 +1556,9 @@ class Component extends DCLogic {
       nSBg:  n('delivery').bg,  nSC:  n('delivery').color,  nSW:  n('delivery').weight,
       nWBg:  n('webhooks').bg,  nWC:  n('webhooks').color,  nWW:  n('webhooks').weight,
       nQBg:  n('quickstart').bg,nQC:  n('quickstart').color,nQW:  n('quickstart').weight,
+      noChBg: n('channels').bg, noChC: n('channels').color, noChW: n('channels').weight,
+      noPeBg: n('peers').bg,    noPeC: n('peers').color,    noPeW: n('peers').weight,
+      noAcBg: n('activity').bg, noAcC: n('activity').color, noAcW: n('activity').weight,
       qsBadge: qsDoneCount + '/5',
 
       goOverview:   () => this.go('overview'),
@@ -1092,6 +1566,9 @@ class Component extends DCLogic {
       goDelivery:   () => this.go('delivery'),
       goWebhooks:   () => this.go('webhooks'),
       goQuickStart: () => this.go('quickstart'),
+      goChannels:   () => this.go('channels'),
+      goPeers:      () => this.go('peers'),
+      goActivity:   () => this.go('activity'),
 
       inboundPct: '72%', outboundPct: '30%',
 
@@ -1104,7 +1581,7 @@ class Component extends DCLogic {
 
       statsCards: [
         { label: 'Total Volume (30d)',     value: '12,450 CKB', sub: '+ 142 RUSD',    delta: '↑ 12.4%', dColor: '#16a34a' },
-        { label: 'Active Channels',        value: '24',          sub: '3 inactive',    delta: '↑ 3',     dColor: '#16a34a' },
+        { label: 'Active Channels',        value: String(activeChannelCount), sub: (channels.length - activeChannelCount) + ' inactive', delta: '↑ 3', dColor: '#16a34a' },
         { label: 'Success Rate',           value: '98.2%',       sub: '486 / 495 paid',delta: '↑ 0.4%',  dColor: '#16a34a' },
         { label: 'Invoices Created (24h)', value: '24',          sub: '~1 / hour',     delta: '↓ 4.1%',  dColor: '#dc2626' },
       ],
@@ -1220,6 +1697,55 @@ class Component extends DCLogic {
 
       hasCopyToast: !!s.copyToast,
       copyToastMsg: s.copyToast || '',
+
+      channels, activeChannelCount, totalCapacityAllFmt: fmtExact(totalCapacityAll),
+      diagramNodes, diagramPeerCount: peers.length, nodePeerCount: peers.length,
+
+      showChannelDrawer: !!selChannel,
+      closeChannelDrawer: () => this.closeChannelDrawer(),
+      chAsset:            selChannel ? selChannel.asset : '',
+      chStatusBg:         selChannel ? selChannel.statusBadge.bg : '',
+      chStatusColor:      selChannel ? selChannel.statusBadge.color : '',
+      chStatusLabel:      selChannel ? selChannel.statusBadge.label : '',
+      chStateExplain:     selChannel ? selChannel.stateCfg.explain : '',
+      chStateName:        selChannel ? selChannel.stateCfg.name : '',
+      chStateLabel:       selChannel ? selChannel.stateCfg.label : '',
+      chChannelId:        selChannel ? selChannel.channelId : '',
+      chPeerPubkey:       selChannel ? selChannel.peer.pubkey : '',
+      chLocalExact:       selChannel ? selChannel.localExact : '',
+      chRemoteExact:      selChannel ? selChannel.remoteExact : '',
+      chHasTlc:           selChannel ? selChannel.hasTlc : false,
+      chTlcOfferedExact:  selChannel ? selChannel.tlcOfferedExact : '',
+      chTlcReceivedExact: selChannel ? selChannel.tlcReceivedExact : '',
+      chPublicLabel:      selChannel ? (selChannel.public ? 'Public' : 'Private') : '',
+      chCreatedAt:        selChannel ? selChannel.createdAt : '',
+      chFeeRateMicro:     selChannel ? selChannel.feeRateMicro : '',
+      chFeeRatePct:       selChannel ? (selChannel.feeRateMicro / 10000).toFixed(3) + '%' : '',
+      chOutpointDisplay:  selChannel ? selChannel.outpointDisplay : '',
+      chExplorerUrl:      selChannel ? selChannel.explorerUrl : '',
+      chFundingTxHash:    selChannel ? selChannel.fundingTxHash : '',
+      chIsShuttingDown:   selChannel ? selChannel.isShuttingDown : false,
+      chShutdownExplorerUrl: selChannel ? selChannel.shutdownExplorerUrl : '',
+      chShutdownTxHash:   selChannel ? selChannel.shutdownTxHash : '',
+      viewPeerFromChannel: selChannel ? () => this.viewPeerFromChannel(selChannel.peerKey) : () => {},
+
+      peers,
+      showPeerDrawer: !!selPeer,
+      closePeerDrawer: () => this.closePeerDrawer(),
+      pePubkey:  selPeer ? selPeer.pubkey : '',
+      peAddress: selPeer ? selPeer.address : '',
+      peChannelCount: selPeer ? selPeer.channelCount : 0,
+      peTotalCapacityExact: selPeer ? selPeer.totalCapacityExact : '',
+      selPeerChannels, selPeerHasChannels: selPeerChannels.length > 0,
+
+      funnelCards,
+
+      whHealthSuccessRate: '96.8%', whHealthSuccessSub: '182 of 188 deliveries (24h)',
+      hasWorstWebhook: !!worstWebhook,
+      worstWebhookLabel: worstWebhook ? worstWebhook.url : '—',
+      worstFailurePct,
+
+      activityRows, pollTick: s.pollTick,
 
       codeDeploy:  "# .env\n# base64-encoded bcrypt hash — use generate script, see README\nADMIN_PASSWORD_HASH_B64=\n\nPOSTGRES_USER=fibergate\nPOSTGRES_PASSWORD=\nPOSTGRES_DB=fibergate\n\nFIBER_NODE_URL=http://fiber-node:8227\nDASHBOARD_SESSION_SECRET=\nWEBHOOK_SIGNING_KEY=\nFIBER_SECRET_KEY_PASSWORD=\n\ndocker compose up -d",
       codeInstall: 'npm install @fibergate/sdk',

@@ -153,10 +153,13 @@ async function applyNodeStatus(
 export async function runPollCycle(now: Date = new Date()): Promise<void> {
   const checked = await pollPendingBatch(now);
   const expired = await expireOverdueInvoices(now);
-  // Only log a per-cycle summary line when something actually happened —
-  // otherwise a healthy idle deployment would push a "checked 0" line into
-  // the activity buffer every 10s (BR-POL-001), crowding out real events.
-  if (checked > 0 || expired.length > 0) {
-    logActivity("info", "poller", `poll cycle: checked ${checked} pending invoice(s), ${expired.length} clock-expired`);
-  }
+  // Always log the per-cycle summary, including "checked 0" — human decision
+  // (2026-07-11): the Activity page's live "next poll in Ns" countdown next
+  // to a permanently empty table read as broken during an idle period
+  // (nothing pending, buffer reset by the last restart), even though the
+  // poller was alive and polling the whole time. A visible "checked 0" line
+  // every 10s is the confirmation an admin actually wants here; MAX_ENTRIES
+  // (200, ~33min at this cadence) already bounds how much buffer this can
+  // consume.
+  logActivity("info", "poller", `poll cycle: checked ${checked} pending invoice(s), ${expired.length} clock-expired`);
 }

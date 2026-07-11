@@ -126,6 +126,11 @@ Thông tin node hiện tại (public).
 }
 ```
 
+`status` là `"online"` (mọi channel active) hoặc `"degraded"` (RPC thành công nhưng
+`active_channels < total_channels` — có channel bị disable, issue #40). Không có giá trị
+`"offline"` ở đây — node không phản hồi được thì endpoint trả lỗi `503 NODE_UNAVAILABLE`
+(xem Errors bên dưới) thay vì trả `200` với `status: "offline"`.
+
 ---
 
 ### POST /api/cron/poll-invoices

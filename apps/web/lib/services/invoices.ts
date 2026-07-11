@@ -215,3 +215,48 @@ export async function getInvoiceStats(): Promise<InvoiceStats> {
 
   return { totalCount: rows.length, paidCount, pendingCount, paidVolumeByAsset };
 }
+
+export interface InvoiceFunnelStats {
+  /** % of invoices created in-window that reached "paid" (0 when totalCount is 0). */
+  paidPct: number;
+  /** % of invoices created in-window that reached "expired". */
+  expiredPct: number;
+  /** Average paidAt - createdAt in seconds, over paid invoices in-window; null when none paid. */
+  avgTimeToPaymentSeconds: number | null;
+}
+
+/**
+ * Overview page's Invoice Funnel row (issue #40 mockup addition) — same
+ * STATS_WINDOW_DAYS/JS-aggregation style as getInvoiceStats() above, sharing
+ * its "no fabricated denominator" restraint: only createdAt/paidAt/expiresAt
+ * already on the invoices row are used, no new column.
+ */
+export async function getInvoiceFunnelStats(): Promise<InvoiceFunnelStats> {
+  const since = new Date(Date.now() - STATS_WINDOW_DAYS * 24 * 60 * 60 * 1000);
+  const rows = await db
+    .select({ status: invoices.status, createdAt: invoices.createdAt, paidAt: invoices.paidAt })
+    .from(invoices)
+    .where(gte(invoices.createdAt, since));
+
+  let paidCount = 0;
+  let expiredCount = 0;
+  let totalTimeToPaymentSeconds = 0;
+
+  for (const row of rows) {
+    if (row.status === "paid") {
+      paidCount += 1;
+      if (row.paidAt && row.createdAt) {
+        totalTimeToPaymentSeconds += (row.paidAt.getTime() - row.createdAt.getTime()) / 1000;
+      }
+    } else if (row.status === "expired") {
+      expiredCount += 1;
+    }
+  }
+
+  const totalCount = rows.length;
+  return {
+    paidPct: totalCount > 0 ? Math.round((paidCount / totalCount) * 100) : 0,
+    expiredPct: totalCount > 0 ? Math.round((expiredCount / totalCount) * 100) : 0,
+    avgTimeToPaymentSeconds: paidCount > 0 ? totalTimeToPaymentSeconds / paidCount : null,
+  };
+}

@@ -14,6 +14,7 @@ const STATUS_CLASSNAMES: Record<string, string> = {
   failed: "bg-status-danger-bg! text-status-danger-text!",
   active: "bg-status-success-bg! text-status-success-text!",
   disabled: "bg-border-subtle! text-text-muted!",
+  closing: "bg-status-degraded-bg! text-status-degraded-text!", // Channels page (issue #40)
   success: "bg-status-success-bg! text-status-success-text!",
   retrying: "bg-status-warning-bg! text-status-warning-text!",
 };
@@ -25,6 +26,7 @@ const STATUS_LABELS: Record<string, string> = {
   failed: "Failed",
   active: "Active",
   disabled: "Disabled",
+  closing: "Closing",
   success: "Delivered",
   retrying: "Retrying",
 };
@@ -74,6 +76,23 @@ const DEFAULT_DELIVERY_STATUS_COLOR: DeliveryStatusColor = {
 
 export function deliveryStatusColor(status: string): DeliveryStatusColor {
   return DELIVERY_STATUS_COLORS[status] ?? DEFAULT_DELIVERY_STATUS_COLOR;
+}
+
+// Single source of truth for Channel status (issue #40 review cleanup) ->
+// dot color, consolidating what were 3 independent hardcoded-hex copies
+// (channel-topology.ts's STATUS_COLOR map, channels-view.tsx's LEGEND array,
+// and its topology SVG's edge-line/center-node colors) — same "N hand-
+// maintained color maps drift" problem deliveryStatusColor() above already
+// solved for webhook_deliveries.status. CSS vars, not raw hex, so a future
+// token change propagates here automatically.
+const CHANNEL_STATUS_DOT_COLORS: Record<string, string> = {
+  active: "var(--color-success)",
+  closing: "var(--color-status-degraded-dot)",
+  disabled: "var(--color-text-subtle)",
+};
+
+export function channelStatusDotColor(status: string): string {
+  return CHANNEL_STATUS_DOT_COLORS[status] ?? "var(--color-text-subtle)";
 }
 
 // Shared "HTTP status or pending→'Retrying…'" cell text, previously

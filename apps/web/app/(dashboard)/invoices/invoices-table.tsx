@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Alert, Button, Input, Select, Table, message } from "antd";
+import { Alert, Button, Input, InputNumber, Select, Table, message } from "antd";
 import type { ColumnsType } from "antd/es/table";
 
 import { formatCkb } from "@/lib/api/format";
 
 import { StatusTag } from "../badges";
+import { DateRangeFilter } from "../date-range-filter";
 import { downloadCsv } from "../search-params";
 import { formatDateTime, shortId } from "../format-date";
 import { useHeaderActionContext } from "../header-action-context";
@@ -178,34 +179,22 @@ export function InvoicesTable({
           options={ASSET_OPTIONS}
           className="w-30! [&_.ant-select-selector]:rounded-md!"
         />
-        <input
-          type="date"
-          value={filters.from}
-          onChange={(e) => updateFilters({ from: e.target.value })}
-          className="rounded-md border border-border px-2.5 py-1.5 text-[12.5px] text-text-strong"
-        />
-        <span className="text-[12px] text-text-subtle">–</span>
-        <input
-          type="date"
-          value={filters.to}
-          onChange={(e) => updateFilters({ to: e.target.value })}
-          className="rounded-md border border-border px-2.5 py-1.5 text-[12.5px] text-text-strong"
-        />
-        <div className="flex items-center gap-1 rounded-md border border-border bg-white px-2.5 py-1.5">
-          <input
-            type="number"
+        <DateRangeFilter from={filters.from} to={filters.to} onChange={(range) => updateFilters(range)} />
+        <div className="flex items-center gap-1 rounded-md border border-border bg-white px-1.5 py-0.5">
+          <InputNumber
             placeholder="Min"
-            value={filters.min}
-            onChange={(e) => updateFilters({ min: e.target.value })}
-            className="w-13 border-none text-[12.5px] text-text-strong outline-none"
+            value={filters.min === "" ? null : Number(filters.min)}
+            onChange={(value) => updateFilters({ min: value === null ? "" : String(value) })}
+            controls={false}
+            className="w-15! border-none! text-[12.5px]! shadow-none!"
           />
           <span className="shrink-0 text-[12px] text-[#d4d4d8]">–</span>
-          <input
-            type="number"
+          <InputNumber
             placeholder="Max"
-            value={filters.max}
-            onChange={(e) => updateFilters({ max: e.target.value })}
-            className="w-13 border-none text-[12.5px] text-text-strong outline-none"
+            value={filters.max === "" ? null : Number(filters.max)}
+            onChange={(value) => updateFilters({ max: value === null ? "" : String(value) })}
+            controls={false}
+            className="w-15! border-none! text-[12.5px]! shadow-none!"
           />
         </div>
         {hasActiveFilters ? (

@@ -4,10 +4,13 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Alert, Button, message } from "antd";
 
+import type { WebhookDeliveryHealth } from "@/lib/services/webhooks";
+
 import { deliveryHttpText, deliveryStatusColor, StatusTag } from "../badges";
 import type { DeliveryView } from "../delivery-view";
 import { formatDateTime } from "../format-date";
 import { useHeaderActionContext } from "../header-action-context";
+import { StatCard } from "../stat-card";
 import { useBusyKeys } from "../use-busy-keys";
 
 import { getEndpointDeliveries, regenerateSecret, toggleEndpointActive, type EndpointView } from "./actions";
@@ -15,7 +18,34 @@ import { AddEndpointDrawer } from "./add-endpoint-drawer";
 
 const SECRET_MASK = "whsec_" + "•".repeat(26);
 
-export function WebhooksPanel({ initialEndpoints, error }: { initialEndpoints: EndpointView[]; error: string | null }) {
+function NeedsAttentionCard({ worstEndpoint }: { worstEndpoint: NonNullable<WebhookDeliveryHealth["worstEndpoint"]> }) {
+  return (
+    <div className="rounded-lg border border-status-degraded-border bg-status-degraded-bg px-5 py-4">
+      <div className="mb-2.25 flex items-center gap-1.5">
+        <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="var(--color-warning-banner-icon)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M6.5 1.5L12 11H1z" />
+          <line x1="6.5" y1="5" x2="6.5" y2="7.8" />
+          <circle cx="6.5" cy="9.3" r="0.5" fill="var(--color-warning-banner-icon)" stroke="none" />
+        </svg>
+        <span className="text-[11.5px] font-semibold uppercase tracking-wider text-warning-banner-title">Needs Attention</span>
+      </div>
+      <div className="mb-1 text-[22px] font-bold leading-none text-warning-banner-title">{worstEndpoint.failurePct}% fail rate</div>
+      <div className="truncate font-mono text-[12px] text-warning-banner-body">{worstEndpoint.endpointUrl}</div>
+    </div>
+  );
+}
+
+export function WebhooksPanel({
+  initialEndpoints,
+  error,
+  health,
+  healthError,
+}: {
+  initialEndpoints: EndpointView[];
+  error: string | null;
+  health: WebhookDeliveryHealth | null;
+  healthError: string | null;
+}) {
   const router = useRouter();
   const { setAction } = useHeaderActionContext();
   const [endpoints, setEndpoints] = useState(initialEndpoints);
@@ -116,6 +146,19 @@ export function WebhooksPanel({ initialEndpoints, error }: { initialEndpoints: E
       <div className="mb-5.5 text-[12.5px] text-text-muted">Real-time event notifications sent to your endpoints</div>
 
       {error ? <Alert type="error" showIcon message={error} className="mb-4 rounded-md!" /> : null}
+      {healthError ? <Alert type="warning" showIcon message={healthError} className="mb-4 rounded-md!" /> : null}
+
+      {health ? (
+        <div className="mb-3.5 grid grid-cols-2 gap-3.5">
+          <StatCard
+            label="Delivery Success Rate"
+            value={health.successRatePct !== null ? `${health.successRatePct}%` : "—"}
+            sub={health.resolvedCount > 0 ? `${health.resolvedCount} delivered · 24h` : "No deliveries in the last 24h"}
+            size="md"
+          />
+          {health.worstEndpoint ? <NeedsAttentionCard worstEndpoint={health.worstEndpoint} /> : null}
+        </div>
+      ) : null}
 
       <div className="grid grid-cols-2 gap-3.5">
         <div className="self-start overflow-hidden rounded-lg border border-border bg-white">
