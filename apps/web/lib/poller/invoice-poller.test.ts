@@ -266,3 +266,19 @@ describe("runPollCycle — RPC-driven batch", () => {
     expect(triggerWebhook).not.toHaveBeenCalled();
   });
 });
+
+describe("runPollCycle — per-cycle summary logging", () => {
+  it("logs a summary line even when nothing happened (checked=0, none expired) — human decision 2026-07-11, Activity page must show the poller is alive", async () => {
+    const consoleLogSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+    mockSelectResult([]);
+    mockUpdateResults([[]]);
+
+    await runPollCycle(NOW);
+
+    expect(consoleLogSpy).toHaveBeenCalledWith(
+      expect.stringContaining("poll cycle: checked 0 pending invoice(s), 0 clock-expired"),
+    );
+
+    consoleLogSpy.mockRestore();
+  });
+});
