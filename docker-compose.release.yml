@@ -1,0 +1,197 @@
+# FiberGate release bundle for merchants (issues #21 + #41) — the same 6
+# services as root docker-compose.yml (postgres, fiber-node, fibergate-core,
+# nginx-certs-preflight, nginx, certbot), except fibergate-core references
+# the published GHCR image instead of building from source. No monorepo
+# clone needed: download just this file + docker/fiber-node/config.yml +
+# docker/nginx/nginx.conf.template (see README.md "Deploy from a published
+# image") + your .env, then `docker compose -f docker-compose.release.yml up
+# -d`. docker-compose.yml (root) stays the contributor/build-from-source
+# path — keep the two in sync whenever a service definition changes;
+# nothing here does that automatically.
+#
+# Does NOT include fiber-node-payer(-preflight) — local-testing-only,
+# irrelevant to a real merchant deploy (see docker-compose.yml's own
+# comment on that service if you need it for local testing).
+#
+# See README.md "Generating secrets" + "Public HTTPS deploy" for the .env
+# values this file needs, plus GHCR_NAMESPACE/FIBERGATE_CORE_TAG below
+# (.env.release.example).
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - fibergate-net
+    ports:
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  fiber-node-preflight:
+    image: alpine:3.20
+    volumes:
+      - ./docker/fiber-node:/fiber:ro
+    networks:
+      - fibergate-net
+    command:
+      - sh
+      - -c
+      - |
+        if [ ! -f /fiber/ckb/key ]; then
+          echo "============================================================"
+          echo "FiberGate setup incomplete: missing CKB testnet key."
+          echo ""
+          echo "fiber-node needs your own CKB testnet signing key before it"
+          echo "can start. Run this before 'docker compose up -d':"
+          echo ""
+          echo "  mkdir -p docker/fiber-node/ckb"
+          echo "  # put your CKB testnet private key at docker/fiber-node/ckb/key"
+          echo ""
+          echo "Then set FIBER_SECRET_KEY_PASSWORD (see README.md 'Running the full stack')"
+          echo "and re-run: docker compose -f docker-compose.release.yml up -d"
+          echo "============================================================"
+          exit 1
+        fi
+        echo "fiber-node-preflight OK: CKB key found at docker/fiber-node/ckb/key"
+
+  fiber-node:
+    image: nervos/fiber:0.9.0-rc6
+    restart: unless-stopped
+    depends_on:
+      fiber-node-preflight:
+        condition: service_completed_successfully
+    environment:
+      FIBER_SECRET_KEY_PASSWORD: ${FIBER_SECRET_KEY_PASSWORD}
+      RUST_LOG: info
+    volumes:
+      - ./docker/fiber-node:/fiber
+    networks:
+      fibergate-net:
+        ipv4_address: 172.28.0.10
+    ports:
+      - "127.0.0.1:8227:8227"
+    healthcheck:
+      test: ["CMD", "fnn-cli", "-u", "http://172.28.0.10:8227", "info"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  fibergate-core:
+    # Published image (issues #21 + #41), not build: — this is the only
+    # real difference from docker-compose.yml's fibergate-core service.
+    # GHCR_NAMESPACE/FIBERGATE_CORE_TAG: see .env.release.example.
+    image: ghcr.io/${GHCR_NAMESPACE}/fibergate-core:${FIBERGATE_CORE_TAG:-latest}
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      fiber-node:
+        condition: service_healthy
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      ADMIN_PASSWORD_HASH_B64: ${ADMIN_PASSWORD_HASH_B64}
+      DASHBOARD_SESSION_SECRET: ${DASHBOARD_SESSION_SECRET}
+      FIBERGATE_INTERNAL_SECRET: ${FIBERGATE_INTERNAL_SECRET}
+      FIBER_NODE_URL: ${FIBER_NODE_URL}
+      FIBER_NODE_RPC_AUTH_TOKEN: ${FIBER_NODE_RPC_AUTH_TOKEN}
+      WEBHOOK_SECRET_ENCRYPTION_KEY: ${WEBHOOK_SECRET_ENCRYPTION_KEY}
+      CRON_SECRET: ${CRON_SECRET}
+    ports:
+      - "127.0.0.1:3000:3000"
+    networks:
+      - fibergate-net
+
+  nginx-certs-preflight:
+    image: alpine:3.20
+    volumes:
+      - certbot-conf:/etc/letsencrypt
+    networks:
+      - fibergate-net
+    command:
+      - sh
+      - -c
+      - |
+        CERT_DIR="/etc/letsencrypt/live/${DOMAIN}"
+        if [ ! -f "$$CERT_DIR/fullchain.pem" ]; then
+          apk add --no-cache openssl >/dev/null
+          mkdir -p "$$CERT_DIR"
+          openssl req -x509 -nodes -newkey rsa:2048 -days 1 \
+            -keyout "$$CERT_DIR/privkey.pem" \
+            -out "$$CERT_DIR/fullchain.pem" \
+            -subj "/CN=${DOMAIN}"
+          echo "nginx-certs-preflight: generated a temporary self-signed cert for ${DOMAIN} so nginx can start."
+          echo "Run the certbot command in README.md 'Public HTTPS deploy' to get a real one, then: docker compose -f docker-compose.release.yml exec nginx nginx -s reload"
+        else
+          echo "nginx-certs-preflight OK: cert already exists for ${DOMAIN}"
+        fi
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    depends_on:
+      nginx-certs-preflight:
+        condition: service_completed_successfully
+      fibergate-core:
+        condition: service_started
+      fiber-node:
+        condition: service_healthy
+    environment:
+      DOMAIN: ${DOMAIN}
+    volumes:
+      - ./docker/nginx/nginx.conf.template:/etc/nginx/nginx.conf.template:ro
+      - certbot-conf:/etc/letsencrypt:ro
+      - certbot-www:/var/www/certbot:ro
+    command:
+      - sh
+      - -c
+      - |
+        envsubst '$$DOMAIN' < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf
+        nginx -g 'daemon off;' &
+        NGINX_PID=$$!
+        while true; do
+          sleep 6h
+          nginx -s reload
+        done &
+        wait $$NGINX_PID
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8228:8228"
+    networks:
+      - fibergate-net
+
+  certbot:
+    image: certbot/certbot:latest
+    restart: unless-stopped
+    volumes:
+      - certbot-conf:/etc/letsencrypt
+      - certbot-www:/var/www/certbot
+    entrypoint: sh -c "trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot --quiet; sleep 12h & wait $$!; done"
+
+networks:
+  fibergate-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/24
+
+volumes:
+  postgres-data:
+  certbot-conf:
+  certbot-www:
