@@ -92,6 +92,18 @@ export const webhookDeliveries = pgTable("webhook_deliveries", {
 
 export type WebhookDeliveryRow = typeof webhookDeliveries.$inferSelect;
 
+// Generic key-value app config (issue #30). First consumer: "admin_password_hash"
+// (lib/services/settings.ts) — replaces ADMIN_PASSWORD_HASH_B64-only auth with a
+// DB-backed value the admin can change from the Dashboard. The env var still seeds
+// the initial value; once a row exists here for a given key, the DB value wins.
+export const settings = pgTable("settings", {
+  key: text("key").primaryKey(),
+  value: text("value").notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+});
+
+export type SettingRow = typeof settings.$inferSelect;
+
 export const nodeSnapshots = pgTable("node_snapshots", {
   id: uuid("id").primaryKey().defaultRandom(),
   nodePubkey: text("node_pubkey").notNull(),

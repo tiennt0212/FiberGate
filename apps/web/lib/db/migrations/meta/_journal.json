@@ -8,6 +8,13 @@
       "when": 1783066368902,
       "tag": "0000_naive_maverick",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1783755638046,
+      "tag": "0001_normal_ego",
+      "breakpoints": true
     }
   ]
 }
