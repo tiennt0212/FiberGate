@@ -6,17 +6,18 @@
 const VAR_LINE = /^([A-Z0-9_]+)=(.*)$/;
 
 // Every var the wizard collects a value for — [FIXED VALUE]/optional vars
-// (FIBER_NODE_URL, FIBER_NODE_RPC_AUTH_TOKEN, CRON_SECRET,
+// (FIBER_NODE_URL, FIBER_NODE_RPC_AUTH_TOKEN, CRON_SECRET, CERTBOT_EMAIL,
 // FIBERGATE_CORE_TAG) are deliberately excluded here: they're left exactly
 // as .env.release.example already has them (fixed default, or blank with an
-// explanatory comment).
+// explanatory comment). CERTBOT_EMAIL specifically isn't consumed by
+// `docker compose up -d` at all — only by the one-time real-cert step a
+// merchant runs manually later.
 export const REQUIRED_ENV_VARS = [
   "POSTGRES_USER",
   "POSTGRES_DB",
   "POSTGRES_PASSWORD",
   "FIBER_SECRET_KEY_PASSWORD",
   "DOMAIN",
-  "CERTBOT_EMAIL",
   "ADMIN_PASSWORD_HASH_B64",
   "DASHBOARD_SESSION_SECRET",
   "FIBERGATE_INTERNAL_SECRET",

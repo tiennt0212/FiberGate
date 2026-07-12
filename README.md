@@ -91,8 +91,10 @@ npx create-fibergate@latest fibergate-deploy
 It prompts for Postgres credentials, your dashboard admin password (hashed locally),
 your CKB testnet key (either a fresh raw-hex key, or an already-encrypted key reused
 from a prior deploy — the passphrase is validated offline before anything is
-written), and `DOMAIN`/`CERTBOT_EMAIL`/`GHCR_NAMESPACE`; it auto-generates the other 3
-secrets. Then:
+written), and `DOMAIN`/`GHCR_NAMESPACE`; it auto-generates the other 3 secrets.
+(`CERTBOT_EMAIL` isn't prompted for — it's optional, only needed for the one-time
+real-cert step in "Public HTTPS deploy" below; add it to `.env` yourself when
+you get there.) Then:
 
 ```bash
 cd fibergate-deploy
@@ -163,11 +165,12 @@ anywhere but this host until you complete that section.
 
 ### Generating secrets
 
-`.env.example` leaves 8 vars blank on purpose — they're required, no safe default
+`.env.example` leaves 7 vars blank because they're required — no safe default
 exists, and `docker compose up -d` will fail (postgres/fibergate-core/fiber-node/nginx
-erroring on an empty credential) if you skip them. `DOMAIN` and `CERTBOT_EMAIL` are
-real-world values (not generated secrets) — see "Public HTTPS deploy" below for those
-two. The rest:
+erroring on an empty credential) if you skip them — plus 1 more, `CERTBOT_EMAIL`,
+that's blank but genuinely optional (not read by `up -d` at all, only by the
+one-time real-cert step further below). `DOMAIN` is a real-world value (not a
+generated secret) — see "Public HTTPS deploy" below. The rest:
 
 ```bash
 # POSTGRES_PASSWORD, FIBERGATE_INTERNAL_SECRET, WEBHOOK_SECRET_ENCRYPTION_KEY,
@@ -206,8 +209,8 @@ actually use the new Settings page — the env var keeps working exactly as befo
 **Prerequisites — do these before your first `docker compose up -d`:**
 
 1. Copy the root env file and fill in real values (see "Generating secrets"
-   above for the 6 generated ones, and "Public HTTPS deploy" below for `DOMAIN` /
-   `CERTBOT_EMAIL`):
+   above for the 6 generated ones, and "Public HTTPS deploy" below for `DOMAIN`
+   — `CERTBOT_EMAIL` is optional, only needed once you get a real cert):
    ```bash
    cp .env.example .env
    ```

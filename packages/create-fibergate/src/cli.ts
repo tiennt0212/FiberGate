@@ -25,7 +25,6 @@ import {
 } from "./lib/scaffold";
 
 const TEMPLATES_DIR = join(dirname(fileURLToPath(import.meta.url)), "..", "templates");
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const HOSTNAME_RE = /^(localhost|(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?\.)+[a-zA-Z]{2,})$/;
 
 /** Unwraps a clack prompt result, exiting cleanly if the user cancelled (Ctrl+C). */
@@ -216,7 +215,7 @@ async function promptCkbKey(): Promise<CkbKeyResult> {
   return flow === "fresh" ? promptFreshKey() : promptReusedKey();
 }
 
-async function promptDeployValues(): Promise<{ domain: string; email: string; ghcrNamespace: string }> {
+async function promptDeployValues(): Promise<{ domain: string; ghcrNamespace: string }> {
   const domain = await ask(
     text({
       message:
@@ -227,20 +226,13 @@ async function promptDeployValues(): Promise<{ domain: string; email: string; gh
         HOSTNAME_RE.test((value ?? "").trim()) ? undefined : "Not a valid hostname (no port, no protocol).",
     }),
   );
-  const email = await ask(
-    text({
-      message: "Email for Let's Encrypt certificate expiry notices:",
-      validate: (value) =>
-        EMAIL_RE.test((value ?? "").trim()) ? undefined : "Not a valid email.",
-    }),
-  );
   const ghcrNamespace = await ask(
     text({
       message: "GitHub org/user the fibergate-core image was published under (GHCR_NAMESPACE):",
       validate: (value) => ((value ?? "").trim() ? undefined : "Required."),
     }),
   );
-  return { domain: domain.trim(), email: email.trim(), ghcrNamespace: ghcrNamespace.trim() };
+  return { domain: domain.trim(), ghcrNamespace: ghcrNamespace.trim() };
 }
 
 async function main() {
@@ -258,7 +250,6 @@ async function main() {
     POSTGRES_PASSWORD: postgres.password,
     FIBER_SECRET_KEY_PASSWORD: ckbKey.passphrase,
     DOMAIN: deployValues.domain,
-    CERTBOT_EMAIL: deployValues.email,
     ADMIN_PASSWORD_HASH_B64: adminPasswordHashB64,
     DASHBOARD_SESSION_SECRET: randomHex32(),
     FIBERGATE_INTERNAL_SECRET: randomHex32(),

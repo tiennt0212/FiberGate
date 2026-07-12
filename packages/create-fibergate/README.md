@@ -22,7 +22,9 @@ merchant deploy needs, then writes a ready-to-run directory:
   already exported via `ckb-cli`, or one already encrypted from a prior
   deploy (the passphrase is verified **offline**, before anything is written,
   so a typo doesn't surface later as a cryptic container crash)
-- `DOMAIN` / `CERTBOT_EMAIL` / `GHCR_NAMESPACE` for the public HTTPS deploy
+- `DOMAIN` (defaults to `localhost`) / `GHCR_NAMESPACE` for the public HTTPS deploy —
+  `CERTBOT_EMAIL` isn't prompted for, it's optional and only needed once you get a
+  real TLS cert later
 - 3 secrets generated automatically (`DASHBOARD_SESSION_SECRET`,
   `FIBERGATE_INTERNAL_SECRET`, `WEBHOOK_SECRET_ENCRYPTION_KEY`)
 
