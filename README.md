@@ -128,9 +128,14 @@ pnpm --filter web db:migrate # or run migrations another way — see below
 `docker-compose.release.yml` mirrors root `docker-compose.yml`'s 6 services (same
 TLS/WSS setup via nginx+certbot) — it just references the published image instead of
 building `fibergate-core` from source, and drops `fiber-node-payer`
-(local-testing-only). Everything below this section — "Generating secrets",
-"Prerequisites", "Public HTTPS deploy" — applies the same way to this path; substitute
-`-f docker-compose.release.yml` into any `docker compose` command you see.
+(local-testing-only).
+
+"Public HTTPS deploy" below (DNS, port-forwarding, getting a real TLS cert) applies
+the same way regardless of which option you used — substitute `-f
+docker-compose.release.yml` into any `docker compose` command you see there. "Generating
+secrets" and "Prerequisites" below are written for the manual path (Option B, and the
+from-source contributor path further down) — **skip them if you used Option A**, the
+CLI already did all of that for you.
 
 **Operational note:** GHCR packages default to private on first publish — until the
 package is made public once via GitHub's UI, `docker compose pull` will fail with an
