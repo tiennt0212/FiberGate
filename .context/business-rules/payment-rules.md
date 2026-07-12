@@ -137,6 +137,15 @@ issue #8, implement tại `apps/web/lib/webhooks/deliver.ts`):
 > `bcrypt.compare()`. Chi tiết đầy đủ xem `decisions-log.md` 2026-07-05 và
 > `system-design.md`'s "Dashboard auth: session cookie + middleware guard".
 
+> **Cập nhật 2026-07-11 (issue #30)**: Hash giờ **DB-backed** — bảng `settings`
+> (`lib/services/settings.ts`), key `admin_password_hash`. Read-order: có row trong
+> `settings` → dùng row đó; chưa có (chưa từng đổi password qua Dashboard → Settings) →
+> fallback đọc `ADMIN_PASSWORD_HASH_B64` y hệt logic cũ. Đổi password qua Dashboard bắt
+> buộc nhập lại current password trước (xác nhận qua `bcrypt.compare`), password mới
+> tối thiểu 8 ký tự (assumption, không có BR nào set rule phức tạp hơn — có thể đổi nếu
+> cần). Từ lúc có row trong DB, env var không bao giờ được đọc lại nữa cho instance đó.
+> Vẫn không bao giờ lưu plaintext — chỉ đổi *nơi lưu* bcrypt hash, không đổi cách hash.
+
 **BR-SEC-003:** Webhook secret phải random, tối thiểu 32 bytes.
 
 **BR-SEC-004:** Dashboard session dùng httpOnly cookie ký bằng secret riêng (không phải `FIBERGATE_INTERNAL_SECRET`).

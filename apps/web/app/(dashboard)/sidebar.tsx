@@ -46,7 +46,12 @@ export function Sidebar({ step4Done, step5Done }: { step4Done: boolean; step5Don
       key: "setup-group",
       type: "group",
       label: "Setup",
-      children: SETUP_NAV_ITEMS.map((item) => navItemToMenuItem(item, `${completedSteps}/${totalSteps}`)),
+      // Progress badge only belongs on items opted in via showsProgress
+      // (nav-items.tsx) — issue #30 added a Settings item to this same
+      // "Setup" group, which isn't a step-progress page.
+      children: SETUP_NAV_ITEMS.map((item) =>
+        navItemToMenuItem(item, item.showsProgress ? `${completedSteps}/${totalSteps}` : undefined),
+      ),
     },
   ];
 

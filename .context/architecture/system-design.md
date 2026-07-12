@@ -420,6 +420,28 @@ xem `api/rest-api-spec.md`).
   trực tiếp ra host nữa, `nginx` là entry point công khai duy nhất, tránh ai đó gọi
   thẳng `http://host:3000` bỏ qua nginx để tự set header giả đánh lừa cookie.
 
+### Admin password: DB-backed with env-var seed (issue #30)
+
+Login itself (`app/login/actions.ts`'s `login()`) không đổi hành vi — vẫn `bcrypt.compare`
+password nhập vào với 1 hash duy nhất. Cái đổi là **hash đó lấy từ đâu**:
+`getAdminPasswordHash()` (`lib/services/settings.ts`) đọc bảng `settings` (key
+`admin_password_hash`) trước; nếu chưa có row nào (deployment mới, hoặc chưa từng đổi
+password qua Dashboard) → fallback đọc `ADMIN_PASSWORD_HASH_B64` y hệt logic cũ (decode
+base64). Nói cách khác, env var giờ chỉ **seed giá trị ban đầu** — ngay khi admin đổi
+password lần đầu qua `/settings` (`setAdminPassword()`, bcrypt cost 10 — khớp README's
+`htpasswd -nbBC 10`), 1 row được upsert vào `settings` và **từ đó DB luôn thắng**, env
+var không bao giờ được đọc lại nữa cho deployment đó (không có cơ chế nào xoá row để
+"quay lại" đọc env var — nếu cần reset, phải `DELETE FROM settings WHERE key =
+'admin_password_hash'` thủ công qua psql).
+
+`/settings` (route mới, `app/(dashboard)/settings/`) nằm sau cùng 1 session-cookie guard
+với mọi route `(dashboard)` khác (`middleware.ts`'s `config.matcher`, đã thêm
+`/settings/:path*`) — đổi password bắt buộc đang có session hợp lệ (đã login), và Server
+Action `changePassword()` (`app/(dashboard)/settings/actions.ts`) bắt buộc nhập đúng
+current password trước khi cho đổi (so sánh qua `getAdminPasswordHash()` +
+`bcrypt.compare`), tránh 1 session bị chiếm (tab quên đăng xuất, máy không khoá) đổi
+password mà admin thật không hay biết.
+
 ### TLS/WSS reverse proxy (nginx + certbot) — issue #17
 
 `docker-compose.yml` có thêm 3 service: `nginx-certs-preflight` (one-shot, sinh cert
@@ -492,3 +514,39 @@ chỉ cần `docker compose up -d`, không cần domain" đã ngầm định tr�
   verify hàng ngày (Postgres/Drizzle không quan tâm ký tự `$`), chỉ còn lại đúng 1 lần lúc
   seed dữ liệu ban đầu cần thiết kế riêng (không nên tái dùng nguyên si cơ chế env-var này
   cho bước seed).
+
+  > **Cập nhật 2026-07-11**: issue #30 đã triển khai đúng như dự đoán ở trên — xem
+  > "Admin password: DB-backed with env-var seed" phía trên.
+
+## Published image + release compose (issues #21, #41)
+
+`fibergate-core` giờ có 2 đường build/deploy song song, không thay thế nhau:
+
+- **`docker-compose.yml` (root)**: build từ source (`build:` block), dành cho
+  contributor/dev — cần clone monorepo.
+- **`docker-compose.release.yml` (mới)**: `fibergate-core` dùng
+  `image: ghcr.io/${GHCR_NAMESPACE}/fibergate-core:${FIBERGATE_CORE_TAG:-latest}` thay
+  cho `build:` — merchant chỉ cần file này + `docker/fiber-node/config.yml` +
+  `docker/nginx/nginx.conf.template` + `.env` (từ `.env.release.example`), không cần
+  clone repo. Cùng 6 service như bản gốc (không có `fiber-node-payer`, dev-only) — xem
+  README.md "Deploy from a published image".
+
+**Registry: GHCR (`ghcr.io`), không phải Docker Hub** — lệch với gợi ý ban đầu trong
+issue #41's body, đổi theo quyết định trực tiếp với human khi implement (xem
+`decisions-log.md` 2026-07-11): không cần tài khoản bên thứ 3, `GITHUB_TOKEN` có sẵn
+trong GitHub Actions dùng được luôn, không cần tự tạo secret nào.
+
+**Tagging: git commit SHA** (`sha-<short-sha>`, issue #21's "reproducible deploys" —
+merchant có thể pin `FIBERGATE_CORE_TAG` về 1 build cụ thể thay vì luôn theo
+`latest`), cộng 1 tag `latest` nổi theo HEAD của `canary`. Build + push tự động qua
+`.github/workflows/docker-publish.yml` — trigger `push` vào `canary` + `workflow_dispatch`
+(test thủ công trước khi tin tưởng trigger tự động). Không dùng semver — không có quy
+trình version-bump/changelog nào đi kèm ở scope hackathon hiện tại, SHA đã đủ để truy
+ngược đúng commit.
+
+**Chưa live-verify**: package GHCR mặc định private lúc publish lần đầu — cần vào
+GitHub UI (repo → Packages → fibergate-core → Package settings) đổi sang public thủ
+công 1 lần, workflow không tự làm được việc này (cần quyền org-level cao hơn
+`GITHUB_TOKEN` mặc định cấp). Chưa test `docker compose -f docker-compose.release.yml
+up -d` với image thật đã publish (chỉ mới validate `docker compose config` cú pháp
+đúng cục bộ) — xem `decisions-log.md` 2026-07-11.

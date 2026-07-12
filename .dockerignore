@@ -29,8 +29,13 @@
 !/.env
 !/apps/web/.env.local
 
-# Fiber node runtime data / keys — irrelevant to the fibergate-core build
+# Fiber node runtime data / keys — irrelevant to the fibergate-core build.
+# fiber-node-payer's runtime dir can end up root-owned once that container
+# has run locally (its `fiber` subdir is written by the container's own
+# process), which makes the build context tar fail with a permission error
+# if this pattern is missing — always exclude both, not just fiber-node/.
 docker/fiber-node/
+docker/fiber-node-payer/
 
 # Docs — pure markdown, never read by the Dockerfile/build
 .context/

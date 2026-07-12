@@ -58,6 +58,7 @@ export async function middleware(request: NextRequest) {
 // silently ships that page unprotected.
 // Issue #40: (dashboard)/dashboard/ was renamed to (dashboard)/overview/, and
 // two new routes were added (channels, peers).
+// Issue #30: (dashboard)/settings/ added (change-password page).
 export const config = {
   matcher: [
     "/overview/:path*",
@@ -68,5 +69,6 @@ export const config = {
     "/webhooks/:path*",
     "/activity/:path*",
     "/quick-start/:path*",
+    "/settings/:path*",
   ],
 };

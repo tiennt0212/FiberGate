@@ -1,0 +1,77 @@
+# Builds and publishes fibergate-core to GitHub Container Registry (issues
+# #21 + #41). Tags by git commit SHA (reproducible, pin-able deploys per
+# #21) plus a floating `latest` tracking canary's HEAD. Uses the built-in
+# GITHUB_TOKEN — no third-party registry account/secret to configure.
+#
+# Operational note: GHCR packages default to private on first publish. After
+# the first successful run, make the package public once via GitHub's UI
+# (repo -> Packages -> fibergate-core -> Package settings) — a workflow can't
+# do this on its own without extra org-level permissions.
+name: Publish fibergate-core image
+
+on:
+  push:
+    branches: [canary]
+    # Skip pure docs/context changes — nothing that affects the built image.
+    paths-ignore:
+      - "**.md"
+      - ".context/**"
+  workflow_dispatch: {}
+
+concurrency:
+  group: docker-publish-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository_owner }}/fibergate-core
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # ${GITHUB_SHA:0:7} (bash substring on the env var Actions already sets)
+      # instead of `git rev-parse --short HEAD` — same short-SHA value,
+      # without spawning git as a subprocess for it.
+      #
+      # The floating `:latest` tag only gets pushed when the ref is canary —
+      # workflow_dispatch lets the invoker pick any branch/tag to run
+      # against, and without this guard a manual run against a feature
+      # branch would silently overwrite `:latest` (the default
+      # docker-compose.release.yml pulls) with unreviewed code.
+      - name: Compute image tags
+        id: vars
+        run: |
+          IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
+          TAGS="$IMAGE:sha-${GITHUB_SHA:0:7}"
+          if [ "${{ github.ref }}" = "refs/heads/canary" ]; then
+            TAGS="$(printf '%s\n%s' "$TAGS" "$IMAGE:latest")"
+          fi
+          {
+            echo "tags<<TAGS_EOF"
+            echo "$TAGS"
+            echo "TAGS_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/fibergate-core/Dockerfile
+          push: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          tags: ${{ steps.vars.outputs.tags }}

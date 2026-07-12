@@ -9,6 +9,7 @@ import {
 } from "@/lib/services/webhooks";
 import { WebhookEvent } from "@/lib/webhooks/events";
 
+import type { SimpleResult } from "../action-result";
 import { toDeliveryView, type DeliveryView } from "../delivery-view";
 
 import { toEndpointView, type EndpointView } from "./view-types";
@@ -66,11 +67,6 @@ export async function createEndpoint(url: string, events: string[]): Promise<Cre
     console.error("Webhooks: createWebhookEndpoint failed:", error);
     return { ok: false, error: "Could not create the endpoint." };
   }
-}
-
-export interface SimpleResult {
-  ok: boolean;
-  error?: string;
 }
 
 /**

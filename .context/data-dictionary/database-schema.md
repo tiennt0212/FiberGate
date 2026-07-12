@@ -1,15 +1,18 @@
 ---
 type: data_dictionary
-version: 1.2
-last_updated: 2026-07-03
+version: 1.3
+last_updated: 2026-07-11
 tags: [postgresql, drizzle, schema, self-hosted]
 ---
 
 # Database Schema — PostgreSQL (self-hosted, Drizzle ORM)
 
 > Single-tenant: mỗi deployment chỉ phục vụ 1 merchant. Không có bảng users/accounts,
-> không có Auth — dashboard bảo vệ bằng single-admin password gate (xem `ADMIN_PASSWORD_HASH_B64`
-> trong `architecture/system-design.md`), không lưu trong DB.
+> không có Auth multi-user — dashboard vẫn là single-admin password gate, nhưng từ
+> issue #30, bcrypt hash của password này **có thể lưu trong bảng `settings` bên dưới**
+> (DB-backed, thay đổi được qua Dashboard → Settings) thay vì chỉ đọc từ
+> `ADMIN_PASSWORD_HASH_B64` (env var) như trước — env var giờ chỉ seed giá trị ban đầu,
+> xem bảng `settings` và `architecture/system-design.md`'s "Dashboard auth".
 
 ## Bảng: `invoices`
 
@@ -67,6 +70,24 @@ tags: [postgresql, drizzle, schema, self-hosted]
 | next_retry_at | timestamptz | | Null nếu không retry |
 | delivered_at | timestamptz | | Khi thành công |
 | created_at | timestamptz | DEFAULT now() | |
+
+## Bảng: `settings`
+
+Generic key-value config, thêm ở issue #30. Consumer đầu tiên (và duy nhất tính tới
+lúc này): key `admin_password_hash` — thay thế phần env-only cũ của `ADMIN_PASSWORD_HASH_B64`.
+
+| Column | Type | Constraints | Mô tả |
+|--------|------|-------------|-------|
+| key | text | PK | vd `"admin_password_hash"` |
+| value | text | NOT NULL | Với `admin_password_hash`: raw bcrypt hash (không base64 — base64-encoding chỉ cần cho `.env`/Docker Compose interpolation, không áp dụng khi lưu thẳng trong DB) |
+| updated_at | timestamptz | DEFAULT now() | |
+
+> **Read-order cho `admin_password_hash`** (`lib/services/settings.ts`): nếu có row →
+> dùng giá trị đó; nếu chưa có row nào (chưa từng đổi password qua Dashboard) → fallback
+> đọc `ADMIN_PASSWORD_HASH_B64` (env var, giải mã base64 giống hệt logic cũ). Nói cách
+> khác: env var chỉ seed giá trị ban đầu, ngay khi admin đổi password lần đầu qua
+> Dashboard → Settings, 1 row được ghi vào đây và **từ đó về sau DB luôn thắng** — env
+> var không còn được đọc tới nữa cho tới khi row đó bị xoá thủ công.
 
 ## Bảng: `node_snapshots`
 
