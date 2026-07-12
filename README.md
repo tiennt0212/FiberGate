@@ -76,7 +76,33 @@ pnpm --filter web db:migrate    # apply pending migrations to POSTGRES_* (run ma
 
 No monorepo clone needed — `fibergate-core` is published to GHCR on every push to
 `canary` (tagged by git commit SHA, plus a floating `latest`; see
-`.github/workflows/docker-publish.yml`). Grab just 3 files:
+`.github/workflows/docker-publish.yml`).
+
+### Option A: scaffolding CLI (recommended)
+
+`npx create-fibergate@latest` (issue #48, `packages/create-fibergate`) walks you
+through an interactive wizard and writes everything below for you — no manual
+`openssl rand`/`docker run ... htpasswd` steps, and no hand-editing `.env`:
+
+```bash
+npx create-fibergate@latest fibergate-deploy
+```
+
+It prompts for Postgres credentials, your dashboard admin password (hashed locally),
+your CKB testnet key (either a fresh raw-hex key, or an already-encrypted key reused
+from a prior deploy — the passphrase is validated offline before anything is
+written), and `DOMAIN`/`CERTBOT_EMAIL`/`GHCR_NAMESPACE`; it auto-generates the other 3
+secrets. Then:
+
+```bash
+cd fibergate-deploy
+docker compose -f docker-compose.release.yml up -d
+pnpm --filter web db:migrate # or run migrations another way — see below
+```
+
+### Option B: manual (no Node.js required, or if you prefer full control)
+
+Grab just 3 files:
 
 ```bash
 mkdir fibergate-deploy && cd fibergate-deploy
@@ -96,6 +122,8 @@ still applies, only the compose file and the fibergate-core build step differ), 
 docker compose -f docker-compose.release.yml up -d
 pnpm --filter web db:migrate # or run migrations another way — see below
 ```
+
+### Both options
 
 `docker-compose.release.yml` mirrors root `docker-compose.yml`'s 6 services (same
 TLS/WSS setup via nginx+certbot) — it just references the published image instead of

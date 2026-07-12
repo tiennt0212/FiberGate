@@ -36,6 +36,24 @@ apps/demo-storefront/ — Reference merchant app (issue #12) — app hoàn toàn
   docker-compose.demo.yml riêng ngay trong thư mục này (không nằm ở docker/ gốc —
   tự chứa hoàn toàn). Xem README.md "Demo storefront".
 packages/sdk/      — npm package @fibergate/sdk (TypeScript, tsup)
+packages/create-fibergate/ — npm package `create-fibergate` (issue #48):
+                     `npx create-fibergate@latest` — interactive wizard
+                     (@clack/prompts) scaffolding a merchant deploy directory
+                     from docker-compose.release.yml, generating `.env`
+                     (secrets via Node's crypto, admin password bcrypt-hashed
+                     via bcryptjs) and placing the CKB testnet key, so a
+                     merchant never hand-edits `.env`/hand-runs
+                     `openssl rand`/`htpasswd` per README's "Generating
+                     secrets". Also validates a passphrase against an
+                     already-encrypted key reused from a prior deploy
+                     (offline, mirroring fnn's own scrypt+AES-256-GCM key
+                     file format — see lib/ckb-key-crypto.ts) before writing
+                     anything. `templates/` (gitignored) is auto-copied at
+                     build time from docker-compose.release.yml,
+                     docker/fiber-node/config.yml,
+                     docker/nginx/nginx.conf.template, and
+                     .env.release.example — see scripts/copy-templates.mjs —
+                     so it can never drift from those files.
 docker-compose.yml — Fiber node + PostgreSQL + fibergate-core + nginx/certbot (TLS/WSS
                      reverse proxy, issue #17 — xem CKB/Fiber References bên dưới),
                      build fibergate-core từ source — dùng cho contributor/dev, không
@@ -82,6 +100,7 @@ pnpm build                      # build tất cả
 pnpm lint                       # lint toàn bộ
 pnpm --filter web typecheck     # TypeScript strict check cho web app
 pnpm --filter sdk build         # build chỉ sdk package
+pnpm --filter create-fibergate build  # build CLI (chạy scripts/copy-templates.mjs trước tsup)
 pnpm --filter web dev           # chạy chỉ web app
 pnpm docker:dev                 # chạy dev mode: chỉ postgres + fiber-node (không có fibergate-core)
 pnpm docker:dev:down            # dừng postgres + fiber-node ở dev mode
