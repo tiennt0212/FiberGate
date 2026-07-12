@@ -21,6 +21,19 @@ describe("ckb-key-crypto", () => {
     );
   });
 
+  it("preserves the original AES-GCM error via cause instead of discarding it", () => {
+    const plaintext = randomBytes(32);
+    const encrypted = encryptKeyFile(plaintext, "correct horse battery staple");
+
+    try {
+      decryptKeyFile(encrypted, "wrong passphrase");
+      expect.unreachable("should have thrown");
+    } catch (err) {
+      expect(err).toBeInstanceOf(KeyFileDecryptionError);
+      expect((err as Error).cause).toBeInstanceOf(Error);
+    }
+  });
+
   it("rejects a file with an unsupported version byte", () => {
     const encrypted = encryptKeyFile(randomBytes(32), "password");
     encrypted[0] = 1;

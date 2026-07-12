@@ -59,8 +59,12 @@ export function decryptKeyFile(fileBytes: Buffer, password: string): Buffer {
 
   try {
     return Buffer.concat([decipher.update(ciphertext), decipher.final()]);
-  } catch {
-    throw new KeyFileDecryptionError("passphrase does not match this key file");
+  } catch (cause) {
+    // AES-GCM auth failure is by far the most likely cause (wrong
+    // passphrase), but preserve the original error via `cause` rather than
+    // discarding it — a corrupted file or a bug in this reimplementation
+    // would otherwise be indistinguishable from a simple wrong passphrase.
+    throw new KeyFileDecryptionError("passphrase does not match this key file", { cause });
   }
 }
 
