@@ -1,0 +1,27 @@
+{
+  "name": "create-fibergate",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "create-fibergate": "./dist/cli.js"
+  },
+  "files": ["dist"],
+  "scripts": {
+    "prebuild": "node scripts/copy-templates.mjs",
+    "build": "pnpm run prebuild && tsup",
+    "typecheck": "tsc --noEmit",
+    "test:unit": "vitest run",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@clack/prompts": "^1.7.0",
+    "bcryptjs": "^3.0.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.43",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.9"
+  }
+}
