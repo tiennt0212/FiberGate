@@ -229,6 +229,10 @@ async function promptDeployValues(): Promise<{ domain: string; ghcrNamespace: st
   const ghcrNamespace = await ask(
     text({
       message: "GitHub org/user the fibergate-core image was published under (GHCR_NAMESPACE):",
+      // Matches .github/workflows/docker-publish.yml's IMAGE_NAME
+      // (${{ github.repository_owner }}/fibergate-core) for this repo's own
+      // canary builds. A fork publishing its own image should override this.
+      initialValue: "tiennt0212",
       validate: (value) => ((value ?? "").trim() ? undefined : "Required."),
     }),
   );
