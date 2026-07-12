@@ -544,16 +544,36 @@ merchant có thể pin `FIBERGATE_CORE_TAG` về 1 build cụ thể thay vì lu�
 trình version-bump/changelog nào đi kèm ở scope hackathon hiện tại, SHA đã đủ để truy
 ngược đúng commit.
 
-**Chưa live-verify**: package GHCR mặc định private lúc publish lần đầu — cần vào
-GitHub UI (repo → Packages → fibergate-core → Package settings) đổi sang public thủ
-công 1 lần, workflow không tự làm được việc này (cần quyền org-level cao hơn
-`GITHUB_TOKEN` mặc định cấp). Chưa test `docker compose -f docker-compose.release.yml
-up -d` với image thật đã publish (chỉ mới validate `docker compose config` cú pháp
-đúng cục bộ) — xem `decisions-log.md` 2026-07-11.
-
 > **Cập nhật 2026-07-12**: lần chạy CI thật đầu tiên fail 2 lần liên tiếp, cả 2 đều là
 > gotcha về build image Docker trong CI (khác hẳn build local, vốn luôn có sẵn
 > `.env`/`apps/web/.env.local` của người chạy) — đã fix cả 2, chi tiết đầy đủ + cách
-> verify xem `decisions-log.md` 2026-07-12. Vẫn **chưa có lần chạy CI nào pass hoàn
-> toàn** tính tới thời điểm này — cần trigger lại `workflow_dispatch` sau khi các fix
-> này merge để xác nhận thật.
+> verify xem `decisions-log.md` 2026-07-12. **Live-verify xong**: `gh run list
+> --workflow=docker-publish.yml` xác nhận 2 lần chạy gần nhất trên `canary` đều
+> `success`; human tự tay `docker compose -f docker-compose.release.yml up -d` với
+> image thật đã pull được từ GHCR và chạy thành công (issue #48 testing) — package
+> visibility gotcha có thật, đã gặp: đổi repo GitHub sang public **không** tự động
+> đổi visibility của package GHCR theo, phải vào riêng repo → Packages →
+> `fibergate-core` → Package settings → Public.
+>
+> **create-fibergate CLI (issue #48)** giờ là đường khuyến nghị để lấy 4 file này
+> (`docker-compose.release.yml`, `docker/fiber-node/config.yml`,
+> `docker/nginx/nginx.conf.template`, `.env.release.example` → `.env`) thay vì tự
+> `curl` từng file thủ công — xem `packages/create-fibergate/`, README.md "Deploy
+> from a published image" Option A. Manual curl (Option B) vẫn giữ làm fallback cho
+> ai không có Node.js.
+>
+> **Auto-migrate lúc `fibergate-core` khởi động** (cùng issue #48 follow-up):
+> `docker/fibergate-core/Dockerfile`'s `CMD` giờ chạy
+> `apps/web/scripts/migrate.mjs` (drizzle-orm's programmatic migrator, không phải
+> `drizzle-kit` CLI — nhẹ hơn, không kéo theo devDependency toolchain) trước khi
+> start server — merchant không cần chạy `pnpm --filter web db:migrate` thủ công
+> nữa cho cả 2 đường deploy Docker, kể cả lần update version sau này (idempotent
+> qua bảng `__drizzle_migrations`). Chi tiết đầy đủ + cách verify:
+> `decisions-log.md` 2026-07-12.
+>
+> **Gotcha đã biết, chưa giải quyết** (issue #49): `fibergate-net`'s subnet
+> `172.28.0.0/24` bị hardcode giống hệt nhau ở cả `docker-compose.yml` và
+> `docker-compose.release.yml` (cần thiết vì `fiber-node` phải có IP tĩnh
+> `172.28.0.10` — `fnn` từ chối bind `0.0.0.0` nếu chưa cấu hình Biscuit auth) — chạy
+> 2 stack FiberGate cùng lúc trên 1 máy (ví dụ dev stack + 1 scaffolded deploy test)
+> sẽ bị Docker từ chối tạo network thứ 2 với lỗi "Pool overlaps".
