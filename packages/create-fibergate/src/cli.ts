@@ -219,9 +219,12 @@ async function promptCkbKey(): Promise<CkbKeyResult> {
 async function promptDeployValues(): Promise<{ domain: string; email: string; ghcrNamespace: string }> {
   const domain = await ask(
     text({
-      message: "Public domain for this deploy (DNS must point at this host):",
+      message:
+        "Domain for this deploy — e.g. localhost (local testing, self-signed cert), or " +
+        "deploy.example.com (DNS must point at this host for a real TLS cert):",
+      initialValue: "localhost",
       validate: (value) =>
-        HOSTNAME_RE.test((value ?? "").trim()) ? undefined : "Not a valid hostname.",
+        HOSTNAME_RE.test((value ?? "").trim()) ? undefined : "Not a valid hostname (no port, no protocol).",
     }),
   );
   const email = await ask(
