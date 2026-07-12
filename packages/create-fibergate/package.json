@@ -1,12 +1,35 @@
 {
   "name": "create-fibergate",
   "version": "0.1.0",
-  "private": true,
-  "type": "module",
-  "bin": {
-    "create-fibergate": "./dist/cli.js"
+  "description": "Scaffold a FiberGate merchant deploy directory (.env, CKB key, docker-compose.release.yml) with one interactive command.",
+  "keywords": [
+    "fibergate",
+    "fiber-network",
+    "ckb",
+    "payment-gateway",
+    "scaffolding",
+    "cli"
+  ],
+  "license": "MIT",
+  "author": "tiennt0212",
+  "homepage": "https://github.com/tiennt0212/FiberGate/tree/canary/packages/create-fibergate#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tiennt0212/FiberGate.git",
+    "directory": "packages/create-fibergate"
   },
-  "files": ["dist", "templates"],
+  "bugs": "https://github.com/tiennt0212/FiberGate/issues",
+  "type": "module",
+  "engines": {
+    "node": ">=18.17"
+  },
+  "bin": {
+    "create-fibergate": "dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "templates"
+  ],
   "scripts": {
     "prebuild": "node scripts/copy-templates.mjs",
     "build": "pnpm run prebuild && tsup",
