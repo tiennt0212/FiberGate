@@ -13,14 +13,14 @@ import {
   select,
   text,
 } from "@clack/prompts";
-import { hashAdminPassword, MAX_PASSWORD_BYTES, passwordByteLength } from "./lib/admin-password";
+import { hashAdminPassword, MAX_PASSWORD_BYTES } from "./lib/admin-password";
 import { decryptKeyFile, KeyFileDecryptionError } from "./lib/ckb-key-crypto";
 import { buildEnvFile, REQUIRED_ENV_VARS } from "./lib/env-file";
+import { InvalidHexKeyError, parseHexKeyFile } from "./lib/hex-key";
 import { randomHex32 } from "./lib/secrets";
 import { directoryIsEmptyOrMissing, writeScaffold } from "./lib/scaffold";
 
 const TEMPLATES_DIR = join(dirname(fileURLToPath(import.meta.url)), "..", "templates");
-const HEX_KEY_RE = /^[0-9a-fA-F]{64}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const HOSTNAME_RE = /^(localhost|(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?\.)+[a-zA-Z]{2,})$/;
 
@@ -104,7 +104,7 @@ async function promptAdminPassword(): Promise<string> {
       message: "Choose the initial dashboard admin password (changeable later from Settings):",
       validate: (value) => {
         if (!value) return "Required.";
-        if (passwordByteLength(value) > MAX_PASSWORD_BYTES) {
+        if (Buffer.byteLength(value, "utf-8") > MAX_PASSWORD_BYTES) {
           return `Must be at most ${MAX_PASSWORD_BYTES} bytes (bcrypt silently truncates beyond that).`;
         }
         return undefined;
@@ -124,40 +124,44 @@ interface CkbKeyResult {
   passphrase: string;
 }
 
-async function promptFreshKey(): Promise<CkbKeyResult> {
-  const keyPath = await ask(
+/** Prompts for a path to an existing, readable file and resolves it to an absolute path. */
+async function promptKeyPath(message: string): Promise<string> {
+  const input = await ask(
     text({
-      message:
-        "Path to your CKB testnet key file (raw hex, exported via `ckb-cli account export`):",
+      message,
       validate: (value) =>
         existsSync(resolve((value ?? "").trim())) ? undefined : "File not found.",
     }),
   );
-  const raw = readFileSync(resolve(keyPath.trim()), "utf-8").trim();
-  if (raw.startsWith("0x") || raw.startsWith("0X")) {
-    log.error('Key file has an unsupported "0x" prefix — remove it and try again.');
-    return promptFreshKey();
-  }
-  if (!HEX_KEY_RE.test(raw)) {
-    log.error("Key file must be exactly one line of 64 raw hex characters.");
-    return promptFreshKey();
+  return resolve(input.trim());
+}
+
+async function promptFreshKey(): Promise<CkbKeyResult> {
+  const keyPath = await promptKeyPath(
+    "Path to your CKB testnet key file (raw hex, exported via `ckb-cli account export`):",
+  );
+  let keyBytes: Buffer;
+  try {
+    keyBytes = parseHexKeyFile(readFileSync(keyPath, "utf-8"));
+  } catch (err) {
+    if (err instanceof InvalidHexKeyError) {
+      log.error(err.message);
+      return promptFreshKey();
+    }
+    throw err;
   }
   const passphrase = await askSecretValue(
     "Passphrase to encrypt this key with",
     "FIBER_SECRET_KEY_PASSWORD",
   );
-  return { keyBytes: Buffer.from(`${raw}\n`, "utf-8"), passphrase };
+  return { keyBytes, passphrase };
 }
 
 async function promptReusedKey(): Promise<CkbKeyResult> {
-  const keyPath = await ask(
-    text({
-      message: "Path to the already-encrypted CKB key file from your prior deploy:",
-      validate: (value) =>
-        existsSync(resolve((value ?? "").trim())) ? undefined : "File not found.",
-    }),
+  const keyPath = await promptKeyPath(
+    "Path to the already-encrypted CKB key file from your prior deploy:",
   );
-  const fileBytes = readFileSync(resolve(keyPath.trim()));
+  const fileBytes = readFileSync(keyPath);
 
   for (;;) {
     const passphrase = await ask(

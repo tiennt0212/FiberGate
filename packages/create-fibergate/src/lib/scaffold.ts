@@ -7,6 +7,31 @@ import { fileURLToPath } from "node:url";
 // into — see scripts/copy-templates.mjs for how templates/ gets populated.
 const DEFAULT_TEMPLATES_DIR = join(dirname(fileURLToPath(import.meta.url)), "..", "templates");
 
+// .env.release.example isn't copied as-is — cli.ts reads it separately to
+// build the generated .env content (see buildEnvFile in lib/env-file.ts).
+const SKIP_TEMPLATE_FILES = new Set([".env.release.example"]);
+
+/**
+ * Recursively copies every file under `srcDir` into `destDir` (skipping
+ * `SKIP_TEMPLATE_FILES`), preserving relative paths. Deliberately doesn't
+ * hardcode the list of deploy files a second time — `templatesDir` already
+ * holds exactly the files `scripts/copy-templates.mjs` decided to sync from
+ * the repo root, so mirroring its output here can never drift out of sync
+ * with that list.
+ */
+function copyTemplateTree(srcDir: string, destDir: string, relDir = ""): void {
+  for (const entry of readdirSync(join(srcDir, relDir), { withFileTypes: true })) {
+    const relPath = join(relDir, entry.name);
+    if (entry.isDirectory()) {
+      copyTemplateTree(srcDir, destDir, relPath);
+      continue;
+    }
+    if (SKIP_TEMPLATE_FILES.has(relPath)) continue;
+    mkdirSync(join(destDir, relDir), { recursive: true });
+    copyFileSync(join(srcDir, relPath), join(destDir, relPath));
+  }
+}
+
 export interface ScaffoldInput {
   targetDir: string;
   envContent: string;
@@ -28,20 +53,8 @@ export function writeScaffold({
 }: ScaffoldInput): void {
   mkdirSync(targetDir, { recursive: true });
   mkdirSync(join(targetDir, "docker", "fiber-node", "ckb"), { recursive: true });
-  mkdirSync(join(targetDir, "docker", "nginx"), { recursive: true });
 
-  copyFileSync(
-    join(templatesDir, "docker-compose.release.yml"),
-    join(targetDir, "docker-compose.release.yml"),
-  );
-  copyFileSync(
-    join(templatesDir, "docker", "fiber-node", "config.yml"),
-    join(targetDir, "docker", "fiber-node", "config.yml"),
-  );
-  copyFileSync(
-    join(templatesDir, "docker", "nginx", "nginx.conf.template"),
-    join(targetDir, "docker", "nginx", "nginx.conf.template"),
-  );
+  copyTemplateTree(templatesDir, targetDir);
 
   // .env holds every generated secret — restrict to owner-read/write, same
   // as the CKB key file below.

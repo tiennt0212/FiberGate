@@ -7,10 +7,6 @@ import bcrypt from "bcryptjs";
 export const MAX_PASSWORD_BYTES = 72;
 const BCRYPT_COST_FACTOR = 10;
 
-export function passwordByteLength(password: string): number {
-  return Buffer.byteLength(password, "utf-8");
-}
-
 /**
  * Hashes the initial admin dashboard password and base64-encodes it, ready
  * to paste into ADMIN_PASSWORD_HASH_B64 — base64, not the raw "$2b$10$..."

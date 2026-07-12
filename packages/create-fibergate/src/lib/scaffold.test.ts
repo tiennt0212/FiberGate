@@ -1,4 +1,12 @@
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdtempSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -54,6 +62,20 @@ describe("scaffold", () => {
     expect(
       statSync(join(targetDir, "docker", "fiber-node", "ckb", "key")).mode & 0o777,
     ).toBe(0o600);
+  });
+
+  it("doesn't copy .env.release.example — cli.ts reads it separately to build .env", () => {
+    writeFileSync(join(fakeTemplatesDir, ".env.release.example"), "SOME_VAR=\n");
+    const targetDir = join(workDir, "deploy");
+
+    writeScaffold({
+      targetDir,
+      envContent: "FOO=bar\n",
+      ckbKeyBytes: Buffer.from("deadbeef"),
+      templatesDir: fakeTemplatesDir,
+    });
+
+    expect(existsSync(join(targetDir, ".env.release.example"))).toBe(false);
   });
 
   describe("directoryIsEmptyOrMissing", () => {
