@@ -1,5 +1,6 @@
 import bcrypt from "bcryptjs";
-import { eq } from "drizzle-orm";
+import { DrizzleQueryError, eq } from "drizzle-orm";
+import postgres from "postgres";
 
 import { db } from "@/lib/db";
 import { settings } from "@/lib/db/schema";
@@ -12,6 +13,21 @@ import { requireEnv } from "@/lib/env";
 const ADMIN_PASSWORD_HASH_KEY = "admin_password_hash";
 const BCRYPT_COST_FACTOR = 10; // matches README's `htpasswd -nbBC 10` seed instructions
 
+// PostgreSQL's SQLSTATE code for "undefined_table" — stable across Postgres
+// versions/locales, unlike matching on the error message text. Confirmed by
+// reproducing the error directly: querying `settings` before migrations have
+// run throws a DrizzleQueryError whose `.cause` is a `postgres.PostgresError`
+// with this code.
+const UNDEFINED_TABLE = "42P01";
+
+function isMissingTableError(err: unknown): boolean {
+  return (
+    err instanceof DrizzleQueryError &&
+    err.cause instanceof postgres.PostgresError &&
+    err.cause.code === UNDEFINED_TABLE
+  );
+}
+
 /**
  * Returns the current admin password's bcrypt hash. A `settings` row wins if
  * one exists (the admin has changed their password at least once via the
@@ -20,9 +36,23 @@ const BCRYPT_COST_FACTOR = 10; // matches README's `htpasswd -nbBC 10` seed inst
  * Docker Compose .env interpolation and dotenv-expand both mangle a raw
  * bcrypt hash's "$" characters, base64 has none). The env var only ever seeds
  * the *initial* value — once a DB row exists, it is never read again.
+ *
+ * Also falls back the same way if the `settings` table doesn't exist yet
+ * (migrations haven't run) — without this, the initial admin password set
+ * via create-fibergate/htpaswd would be unusable until the first migration,
+ * surfacing as a generic "Could not verify the password right now" instead
+ * of actually logging in. Any other DB error (connection failure, etc.)
+ * still propagates — this only swallows the specific "table doesn't exist"
+ * case.
  */
 export async function getAdminPasswordHash(): Promise<string> {
-  const rows = await db.select().from(settings).where(eq(settings.key, ADMIN_PASSWORD_HASH_KEY)).limit(1);
+  let rows: (typeof settings.$inferSelect)[];
+  try {
+    rows = await db.select().from(settings).where(eq(settings.key, ADMIN_PASSWORD_HASH_KEY)).limit(1);
+  } catch (err) {
+    if (!isMissingTableError(err)) throw err;
+    rows = [];
+  }
   if (rows[0]) {
     return rows[0].value;
   }

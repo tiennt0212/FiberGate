@@ -62,3 +62,19 @@ export function createQueryChain<T = InvoiceRow>(rows: T[]): QueryChain<T> {
   chain.onConflictDoUpdate = vi.fn(() => chain);
   return chain;
 }
+
+/** Same as createQueryChain, but the terminal await rejects with `error` — for testing DB-error handling paths (e.g. settings.ts's missing-table fallback). */
+export function createRejectingQueryChain<T = InvoiceRow>(error: unknown): QueryChain<T> {
+  const chain = Promise.reject(error) as QueryChain<T>;
+  chain.from = vi.fn(() => chain);
+  chain.where = vi.fn(() => chain);
+  chain.orderBy = vi.fn(() => chain);
+  chain.limit = vi.fn(() => chain);
+  chain.values = vi.fn(() => chain);
+  chain.set = vi.fn(() => chain);
+  chain.returning = vi.fn(() => chain);
+  chain.leftJoin = vi.fn(() => chain);
+  chain.$dynamic = vi.fn(() => chain);
+  chain.onConflictDoUpdate = vi.fn(() => chain);
+  return chain;
+}

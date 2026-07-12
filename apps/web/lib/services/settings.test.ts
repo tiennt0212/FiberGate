@@ -1,6 +1,8 @@
+import { DrizzleQueryError } from "drizzle-orm";
+import postgres from "postgres";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { createQueryChain } from "@/lib/db/test-fixtures";
+import { createQueryChain, createRejectingQueryChain } from "@/lib/db/test-fixtures";
 
 // Mock at the module boundary, same convention as webhooks.test.ts.
 vi.mock("@/lib/db", () => ({
@@ -50,6 +52,45 @@ describe("getAdminPasswordHash", () => {
     vi.mocked(db.select).mockReturnValue(createQueryChain([]) as unknown as ReturnType<typeof db.select>);
 
     await expect(getAdminPasswordHash()).rejects.toThrow("Missing required env var: ADMIN_PASSWORD_HASH_B64");
+  });
+
+  describe("when the settings table doesn't exist yet (unmigrated DB)", () => {
+    beforeEach(() => {
+      process.env.ADMIN_PASSWORD_HASH_B64 = Buffer.from("$2b$10$env-seeded-hash", "utf-8").toString("base64");
+    });
+
+    afterEach(() => {
+      delete process.env.ADMIN_PASSWORD_HASH_B64;
+    });
+
+    // Real shape reproduced against a schema-less Postgres, not guessed:
+    // querying a table that doesn't exist throws a DrizzleQueryError whose
+    // .cause is a postgres.PostgresError with SQLSTATE 42P01
+    // ("undefined_table").
+    function undefinedTableError() {
+      const cause = new postgres.PostgresError({
+        message: 'relation "settings" does not exist',
+        code: "42P01",
+      });
+      return new DrizzleQueryError("select ...", [], cause);
+    }
+
+    it("falls back to ADMIN_PASSWORD_HASH_B64 instead of throwing", async () => {
+      vi.mocked(db.select).mockReturnValue(
+        createRejectingQueryChain(undefinedTableError()) as unknown as ReturnType<typeof db.select>,
+      );
+
+      await expect(getAdminPasswordHash()).resolves.toBe("$2b$10$env-seeded-hash");
+    });
+
+    it("still throws for any other DB error (e.g. connection failure)", async () => {
+      const connectionError = new DrizzleQueryError("select ...", [], new Error("connection refused"));
+      vi.mocked(db.select).mockReturnValue(
+        createRejectingQueryChain(connectionError) as unknown as ReturnType<typeof db.select>,
+      );
+
+      await expect(getAdminPasswordHash()).rejects.toThrow(connectionError);
+    });
   });
 });
 
