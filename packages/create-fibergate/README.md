@@ -30,7 +30,7 @@ Output directory:
 
 ```
 my-fibergate-deploy/
-  docker-compose.release.yml
+  docker-compose.yml
   .env
   docker/fiber-node/config.yml
   docker/fiber-node/ckb/key
@@ -41,7 +41,7 @@ Then:
 
 ```bash
 cd my-fibergate-deploy
-docker compose -f docker-compose.release.yml up -d
+docker compose up -d
 ```
 
 See the [main repo](https://github.com/tiennt0212/FiberGate) for what

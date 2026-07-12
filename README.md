@@ -96,9 +96,14 @@ secrets. Then:
 
 ```bash
 cd fibergate-deploy
-docker compose -f docker-compose.release.yml up -d
+docker compose up -d
 pnpm --filter web db:migrate # or run migrations another way — see below
 ```
+
+The CLI writes the compose file as plain `docker-compose.yml` (not
+`docker-compose.release.yml`) since a scaffolded deploy directory has no other
+compose file to disambiguate from — no `-f` flag needed for any `docker compose`
+command below.
 
 ### Option B: manual (no Node.js required, or if you prefer full control)
 
@@ -131,11 +136,13 @@ building `fibergate-core` from source, and drops `fiber-node-payer`
 (local-testing-only).
 
 "Public HTTPS deploy" below (DNS, port-forwarding, getting a real TLS cert) applies
-the same way regardless of which option you used — substitute `-f
-docker-compose.release.yml` into any `docker compose` command you see there. "Generating
-secrets" and "Prerequisites" below are written for the manual path (Option B, and the
-from-source contributor path further down) — **skip them if you used Option A**, the
-CLI already did all of that for you.
+the same way regardless of which option you used — Option A's compose file is
+plain `docker-compose.yml` (no `-f` flag needed), Option B's keeps the
+`docker-compose.release.yml` name it was curled as (substitute `-f
+docker-compose.release.yml` into any `docker compose` command you see below).
+"Generating secrets" and "Prerequisites" below are written for the manual path
+(Option B, and the from-source contributor path further down) — **skip them if
+you used Option A**, the CLI already did all of that for you.
 
 **Operational note:** GHCR packages default to private on first publish — until the
 package is made public once via GitHub's UI, `docker compose pull` will fail with an

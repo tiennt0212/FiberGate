@@ -43,9 +43,13 @@ describe("scaffold", () => {
       templatesDir: fakeTemplatesDir,
     });
 
-    expect(readFileSync(join(targetDir, "docker-compose.release.yml"), "utf-8")).toBe(
+    // Written out as docker-compose.yml, not docker-compose.release.yml — a
+    // scaffolded deploy dir has no other compose file to disambiguate from,
+    // so `docker compose up -d` works with no `-f` flag.
+    expect(readFileSync(join(targetDir, "docker-compose.yml"), "utf-8")).toBe(
       "compose: fixture\n",
     );
+    expect(existsSync(join(targetDir, "docker-compose.release.yml"))).toBe(false);
     expect(readFileSync(join(targetDir, "docker", "fiber-node", "config.yml"), "utf-8")).toBe(
       "config: fixture\n",
     );

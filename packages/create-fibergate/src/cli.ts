@@ -276,7 +276,7 @@ async function main() {
   note(
     [
       `cd ${targetDir}`,
-      "docker compose -f docker-compose.release.yml up -d",
+      "docker compose up -d",
       "",
       "Then run DB migrations once (fibergate-core serves requests before this",
       "runs, but every DB-backed route fails until it does). This currently",

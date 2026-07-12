@@ -16,7 +16,13 @@ const DEFAULT_TEMPLATES_DIR = join(dirname(fileURLToPath(import.meta.url)), ".."
 
 // .env.release.example isn't copied as-is — cli.ts reads it separately to
 // build the generated .env content (see buildEnvFile in lib/env-file.ts).
-const SKIP_TEMPLATE_FILES = new Set([".env.release.example"]);
+// docker-compose.release.yml isn't copied under its own name either — a
+// scaffolded deploy directory has no other compose file to disambiguate
+// from, so it's written out as the plain `docker-compose.yml` Docker looks
+// for by default (no `-f` flag needed).
+const SKIP_TEMPLATE_FILES = new Set([".env.release.example", "docker-compose.release.yml"]);
+const COMPOSE_TEMPLATE_NAME = "docker-compose.release.yml";
+const COMPOSE_OUTPUT_NAME = "docker-compose.yml";
 
 /**
  * Recursively copies every file under `srcDir` into `destDir` (skipping
@@ -68,6 +74,7 @@ export function writeScaffold({
   mkdirSync(join(targetDir, "docker", "fiber-node", "ckb"), { recursive: true });
 
   copyTemplateTree(templatesDir, targetDir);
+  copyFileSync(join(templatesDir, COMPOSE_TEMPLATE_NAME), join(targetDir, COMPOSE_OUTPUT_NAME));
 
   // .env holds every generated secret — restrict to owner-read/write, same
   // as the CKB key file below.
