@@ -99,8 +99,11 @@ you get there.) Then:
 ```bash
 cd fibergate-deploy
 docker compose up -d
-pnpm --filter web db:migrate # or run migrations another way — see below
 ```
+
+`fibergate-core` runs pending DB migrations automatically before it starts serving
+(`docker/fibergate-core/Dockerfile`'s CMD) — no manual migrate step, on first install
+or any later version upgrade.
 
 The CLI writes the compose file as plain `docker-compose.yml` (not
 `docker-compose.release.yml`) since a scaffolded deploy directory has no other
@@ -127,8 +130,9 @@ still applies, only the compose file and the fibergate-core build step differ), 
 
 ```bash
 docker compose -f docker-compose.release.yml up -d
-pnpm --filter web db:migrate # or run migrations another way — see below
 ```
+
+Same auto-migrate-on-boot as Option A — no manual migrate step here either.
 
 ### Both options
 
@@ -238,16 +242,14 @@ actually use the new Settings page — the env var keeps working exactly as befo
    docker compose ps   # wait for postgres, fiber-node, and nginx-certs-preflight
                         # ("Exited (0)") to report healthy/done
    ```
-5. Run database migrations once — this is a manual step, not automatic on container
-   boot (`fibergate-core` will start and serve requests even before this runs, but any
-   DB-backed route will fail until the tables exist):
-   ```bash
-   pnpm --filter web db:migrate
-   ```
-   Re-run this any time you pull changes that touch `apps/web/lib/db/schema.ts` /
-   `apps/web/lib/db/migrations/`.
-6. Get a real TLS cert (one-time, after DNS/port-forwarding in step 3 are actually
+5. Get a real TLS cert (one-time, after DNS/port-forwarding in step 3 are actually
    live) — see "Public HTTPS deploy" below.
+
+`fibergate-core` runs pending DB migrations automatically before it starts serving
+(`docker/fibergate-core/Dockerfile`'s CMD) — no manual step needed here, on first
+install or any later version upgrade (pulling new code that adds migration files).
+If you're iterating on `apps/web/lib/db/schema.ts` outside Docker (`pnpm dev`), use
+`pnpm --filter web db:migrate` directly instead — see "Commands" above.
 
 **Troubleshooting**
 

@@ -46,6 +46,9 @@ cd my-fibergate-deploy
 docker compose up -d
 ```
 
+That's it — `fibergate-core` runs pending DB migrations automatically before it
+starts serving, on first install or any later version upgrade.
+
 See the [main repo](https://github.com/tiennt0212/FiberGate) for what
 FiberGate is and the full deploy guide.
 

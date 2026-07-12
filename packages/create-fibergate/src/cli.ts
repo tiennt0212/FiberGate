@@ -276,11 +276,8 @@ async function main() {
       `cd ${targetDir}`,
       "docker compose up -d",
       "",
-      "Then run DB migrations once (fibergate-core serves requests before this",
-      "runs, but every DB-backed route fails until it does). This currently",
-      "requires a clone of https://github.com/tiennt0212/FiberGate — there's no",
-      "no-clone migration path yet:",
-      "  pnpm --filter web db:migrate",
+      "fibergate-core runs pending DB migrations automatically before it starts",
+      "serving — no manual migrate step, on first install or a later version upgrade.",
     ].join("\n"),
     "Next steps",
   );
