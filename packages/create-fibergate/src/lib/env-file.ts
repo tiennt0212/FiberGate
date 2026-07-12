@@ -24,23 +24,47 @@ export const REQUIRED_ENV_VARS = [
   "GHCR_NAMESPACE",
 ] as const;
 
+// Walks backward from a VAR= line through its immediately preceding block of
+// "#"-comment lines, looking for a "[REQUIRED]" marker (see
+// .env.release.example's own comment convention) — stops at the first
+// non-comment line.
+function isMarkedRequired(lines: string[], varLineIndex: number): boolean {
+  for (let i = varLineIndex - 1; i >= 0 && lines[i].startsWith("#"); i--) {
+    if (lines[i].includes("[REQUIRED]")) return true;
+  }
+  return false;
+}
+
 export function buildEnvFile(template: string, values: Record<string, string>): string {
   const lines = template.split("\n");
   const remaining = new Set(Object.keys(values));
+  const missingRequired: string[] = [];
 
-  const result = lines.map((line) => {
+  const result = lines.map((line, i) => {
     const match = line.match(VAR_LINE);
     if (!match) return line;
     const [, name] = match;
-    if (!(name in values)) return line;
+    if (!(name in values)) {
+      // Two-directional drift guard: catches not just "the wizard expects a
+      // var the template doesn't have" (below) but also the reverse — a var
+      // the template marks [REQUIRED] that the wizard forgot to supply,
+      // which would otherwise pass through silently blank.
+      if (isMarkedRequired(lines, i)) missingRequired.push(name);
+      return line;
+    }
     remaining.delete(name);
     return `${name}=${values[name]}`;
   });
 
+  const errors: string[] = [];
   if (remaining.size > 0) {
-    throw new Error(
-      `.env.release.example template is missing expected var(s): ${[...remaining].join(", ")}`,
-    );
+    errors.push(`wizard supplied var(s) missing from the template: ${[...remaining].join(", ")}`);
+  }
+  if (missingRequired.length > 0) {
+    errors.push(`template marks var(s) [REQUIRED] with no value supplied: ${missingRequired.join(", ")}`);
+  }
+  if (errors.length > 0) {
+    throw new Error(`.env.release.example and the wizard are out of sync — ${errors.join("; ")}`);
   }
 
   return result.join("\n");
