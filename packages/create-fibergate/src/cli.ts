@@ -262,7 +262,12 @@ async function main() {
     [
       `cd ${targetDir}`,
       "docker compose -f docker-compose.release.yml up -d",
-      "pnpm --filter web db:migrate   # or see README.md for running migrations without a repo clone",
+      "",
+      "Then run DB migrations once (fibergate-core serves requests before this",
+      "runs, but every DB-backed route fails until it does). This currently",
+      "requires a clone of https://github.com/tiennt0212/FiberGate — there's no",
+      "no-clone migration path yet:",
+      "  pnpm --filter web db:migrate",
     ].join("\n"),
     "Next steps",
   );
