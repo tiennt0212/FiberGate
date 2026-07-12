@@ -21,7 +21,7 @@
   "bugs": "https://github.com/tiennt0212/FiberGate/issues",
   "type": "module",
   "engines": {
-    "node": ">=18.17"
+    "node": ">=20.12.0"
   },
   "bin": {
     "create-fibergate": "dist/cli.js"
