@@ -6,7 +6,7 @@
   "bin": {
     "create-fibergate": "./dist/cli.js"
   },
-  "files": ["dist"],
+  "files": ["dist", "templates"],
   "scripts": {
     "prebuild": "node scripts/copy-templates.mjs",
     "build": "pnpm run prebuild && tsup",
