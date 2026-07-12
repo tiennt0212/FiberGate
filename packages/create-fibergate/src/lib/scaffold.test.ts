@@ -10,7 +10,7 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { directoryIsEmptyOrMissing, writeScaffold } from "./scaffold";
+import { directoryIsEmptyOrMissing, TargetPathNotADirectoryError, writeScaffold } from "./scaffold";
 
 describe("scaffold", () => {
   let workDir: string;
@@ -92,6 +92,12 @@ describe("scaffold", () => {
     it("is false for a directory with at least one entry", () => {
       writeFileSync(join(fakeTemplatesDir, "docker-compose.release.yml"), "x");
       expect(directoryIsEmptyOrMissing(fakeTemplatesDir)).toBe(false);
+    });
+
+    it("throws TargetPathNotADirectoryError instead of crashing when the path is an existing file", () => {
+      const filePath = join(workDir, "not-a-dir");
+      writeFileSync(filePath, "x");
+      expect(() => directoryIsEmptyOrMissing(filePath)).toThrow(TargetPathNotADirectoryError);
     });
   });
 });

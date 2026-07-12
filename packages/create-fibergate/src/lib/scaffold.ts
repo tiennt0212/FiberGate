@@ -1,4 +1,11 @@
-import { copyFileSync, existsSync, mkdirSync, readdirSync, writeFileSync } from "node:fs";
+import {
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -40,8 +47,14 @@ export interface ScaffoldInput {
   templatesDir?: string;
 }
 
+export class TargetPathNotADirectoryError extends Error {}
+
+/** Throws `TargetPathNotADirectoryError` if `path` exists but isn't a directory. */
 export function directoryIsEmptyOrMissing(path: string): boolean {
   if (!existsSync(path)) return true;
+  if (!statSync(path).isDirectory()) {
+    throw new TargetPathNotADirectoryError(`${path} exists and is not a directory.`);
+  }
   return readdirSync(path).length === 0;
 }
 

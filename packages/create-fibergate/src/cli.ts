@@ -18,7 +18,11 @@ import { decryptKeyFile, KeyFileDecryptionError } from "./lib/ckb-key-crypto";
 import { buildEnvFile, REQUIRED_ENV_VARS } from "./lib/env-file";
 import { InvalidHexKeyError, parseHexKeyFile } from "./lib/hex-key";
 import { randomHex32 } from "./lib/secrets";
-import { directoryIsEmptyOrMissing, writeScaffold } from "./lib/scaffold";
+import {
+  directoryIsEmptyOrMissing,
+  TargetPathNotADirectoryError,
+  writeScaffold,
+} from "./lib/scaffold";
 
 const TEMPLATES_DIR = join(dirname(fileURLToPath(import.meta.url)), "..", "templates");
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -76,7 +80,18 @@ async function promptTargetDir(): Promise<string> {
   );
   const targetDir = resolve(dirInput.trim());
 
-  if (!directoryIsEmptyOrMissing(targetDir)) {
+  let isEmptyOrMissing: boolean;
+  try {
+    isEmptyOrMissing = directoryIsEmptyOrMissing(targetDir);
+  } catch (err) {
+    if (err instanceof TargetPathNotADirectoryError) {
+      log.error(`${targetDir} exists and isn't a directory — pick a different path.`);
+      return promptTargetDir();
+    }
+    throw err;
+  }
+
+  if (!isEmptyOrMissing) {
     const proceed = await ask(
       confirm({
         message: `${targetDir} already exists and isn't empty. Continue and overwrite files in it?`,
