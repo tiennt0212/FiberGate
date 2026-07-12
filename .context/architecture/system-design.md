@@ -550,3 +550,10 @@ công 1 lần, workflow không tự làm được việc này (cần quyền org
 `GITHUB_TOKEN` mặc định cấp). Chưa test `docker compose -f docker-compose.release.yml
 up -d` với image thật đã publish (chỉ mới validate `docker compose config` cú pháp
 đúng cục bộ) — xem `decisions-log.md` 2026-07-11.
+
+> **Cập nhật 2026-07-12**: lần chạy CI thật đầu tiên fail 2 lần liên tiếp, cả 2 đều là
+> gotcha về build image Docker trong CI (khác hẳn build local, vốn luôn có sẵn
+> `.env`/`apps/web/.env.local` của người chạy) — đã fix cả 2, chi tiết đầy đủ + cách
+> verify xem `decisions-log.md` 2026-07-12. Vẫn **chưa có lần chạy CI nào pass hoàn
+> toàn** tính tới thời điểm này — cần trigger lại `workflow_dispatch` sau khi các fix
+> này merge để xác nhận thật.

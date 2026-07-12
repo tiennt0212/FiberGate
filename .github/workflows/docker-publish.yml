@@ -43,6 +43,16 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # Required for cache-from/cache-to: type=gha below — the runner's
+      # default builder uses the "docker" driver, which doesn't support
+      # exporting a build cache at all ("Cache export is not supported for
+      # the docker driver"). The docker-container driver (BuildKit-in-a-
+      # container) does.
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver: docker-container
+
       # ${GITHUB_SHA:0:7} (bash substring on the env var Actions already sets)
       # instead of `git rev-parse --short HEAD` — same short-SHA value,
       # without spawning git as a subprocess for it.

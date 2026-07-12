@@ -29,6 +29,36 @@ COPY --from=deps /repo/apps/web/node_modules ./apps/web/node_modules
 COPY --from=deps /repo/packages/sdk/node_modules ./packages/sdk/node_modules
 COPY . .
 
+# next build's "Collecting page data" step evaluates lib/db/index.ts and
+# lib/fiber/client.ts at module load time (both build a connection
+# string/client eagerly, per their own "singleton built at import time"
+# comments) -- requireEnv() throws if these aren't set, even though no real
+# DB/Fiber connection is ever made during build. Real values only matter at
+# container *runtime*: docker-compose's environment: block re-evaluates
+# these modules fresh the moment `node apps/web/server.js` actually starts,
+# completely independent of whatever was used here. These ARG defaults are
+# never shipped in the final image (the runner stage below only copies
+# .next/standalone, .next/static, and public/) -- they exist purely to
+# satisfy the build-time import.
+#
+# Note: dotenv-cli (invoked by `pnpm build` below) does not override an
+# already-set process.env value, so these ENV defaults intentionally take
+# precedence over a real .env file present in the build context (e.g. a
+# contributor's local `docker compose build`) -- harmless, since the build
+# never uses the value for anything beyond satisfying requireEnv().
+ARG POSTGRES_USER=build
+ARG POSTGRES_PASSWORD=build
+ARG POSTGRES_HOST=build
+ARG POSTGRES_PORT=5432
+ARG POSTGRES_DB=build
+ARG FIBER_NODE_URL=http://build:8227
+ENV POSTGRES_USER=$POSTGRES_USER \
+    POSTGRES_PASSWORD=$POSTGRES_PASSWORD \
+    POSTGRES_HOST=$POSTGRES_HOST \
+    POSTGRES_PORT=$POSTGRES_PORT \
+    POSTGRES_DB=$POSTGRES_DB \
+    FIBER_NODE_URL=$FIBER_NODE_URL
+
 RUN pnpm --filter web build
 
 # ---- runner: minimal image, Next.js standalone output only ----
