@@ -24,6 +24,12 @@ const SKIP_TEMPLATE_FILES = new Set([".env.release.example", "docker-compose.rel
 const COMPOSE_TEMPLATE_NAME = "docker-compose.release.yml";
 const COMPOSE_OUTPUT_NAME = "docker-compose.yml";
 
+// Written into every scaffolded deploy directory so a merchant who `git
+// init`s it (to track their deploy config in their own private repo, a
+// reasonable thing to want) doesn't accidentally commit .env or the CKB
+// signing key alongside it.
+const GITIGNORE_CONTENT = [".env", "docker/fiber-node/ckb/", ""].join("\n");
+
 /**
  * Recursively copies every file under `srcDir` into `destDir` (skipping
  * `SKIP_TEMPLATE_FILES`), preserving relative paths. Deliberately doesn't
@@ -82,4 +88,5 @@ export function writeScaffold({
   writeFileSync(join(targetDir, "docker", "fiber-node", "ckb", "key"), ckbKeyBytes, {
     mode: 0o600,
   });
+  writeFileSync(join(targetDir, ".gitignore"), GITIGNORE_CONTENT);
 }

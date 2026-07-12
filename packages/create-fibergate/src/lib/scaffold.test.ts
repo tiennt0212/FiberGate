@@ -61,6 +61,12 @@ describe("scaffold", () => {
       Buffer.from("deadbeef"),
     );
 
+    // Protects a merchant who `git init`s the scaffolded directory from
+    // accidentally committing .env or the CKB key.
+    const gitignore = readFileSync(join(targetDir, ".gitignore"), "utf-8");
+    expect(gitignore).toContain(".env");
+    expect(gitignore).toContain("docker/fiber-node/ckb/");
+
     // 0o600 == owner read/write only
     expect(statSync(join(targetDir, ".env")).mode & 0o777).toBe(0o600);
     expect(
