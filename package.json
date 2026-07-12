@@ -1,6 +1,7 @@
 {
   "name": "fibergate",
   "private": true,
+  "license": "MIT",
   "packageManager": "pnpm@9.15.9",
   "scripts": {
     "dev": "pnpm --filter web dev",
