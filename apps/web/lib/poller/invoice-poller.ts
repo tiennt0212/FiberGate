@@ -188,8 +188,8 @@ export async function runPollCycle(now: Date = new Date()): Promise<void> {
   // to a permanently empty table read as broken during an idle period
   // (nothing pending, buffer reset by the last restart), even though the
   // poller was alive and polling the whole time. A visible "checked 0" line
-  // every 10s is the confirmation an admin actually wants here; MAX_ENTRIES
-  // (200, ~33min at this cadence) already bounds how much buffer this can
+  // every 30s is the confirmation an admin actually wants here; MAX_ENTRIES
+  // (200, ~100min at this cadence) already bounds how much buffer this can
   // consume.
   logActivity("info", "poller", `poll cycle: checked ${checked} pending invoice(s), ${expired.length} clock-expired`);
 }

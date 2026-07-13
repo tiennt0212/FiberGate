@@ -15,7 +15,7 @@ import { runPollCycle } from "./invoice-poller";
 const POLL_INTERVAL_MS = 30_000; // BR-POL-001, Phase 2 fallback rate
 
 let intervalHandle: ReturnType<typeof setInterval> | null = null;
-// Re-entrancy guard: a single poll cycle can take longer than 10s (up to 50
+// Re-entrancy guard: a single poll cycle can take longer than 30s (up to 50
 // invoices, each with a 5s Fiber RPC timeout — BR-POL-004), and setInterval
 // fires on a wall-clock schedule regardless of whether the previous tick's
 // callback finished. Without this flag, a slow/unresponsive Fiber node would

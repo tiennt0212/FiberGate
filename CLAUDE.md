@@ -147,7 +147,7 @@ Mọi call đến Fiber node đi qua `lib/fiber/client.ts`. Không call Fiber RP
 
 ### Poller và cron endpoint
 
-Nguồn chính (Phase 1) là in-process interval worker chạy trong container `fibergate-core` mỗi 10s (BR-POL-001). `/api/cron/poll-invoices` chỉ là endpoint optional để trigger poll thủ công — vẫn phải check `Authorization: Bearer ${CRON_SECRET}` trước khi xử lý.
+Phase 2 (issue #13): nguồn chính là real-time WebSocket listener (`subscribe_store_changes`, xem `lib/poller/invoice-listener.ts`); in-process interval worker (`lib/poller/worker.ts`) chạy trong container `fibergate-core` mỗi 30s (BR-POL-001) giờ chỉ là fallback, không tắt hẳn. `/api/cron/poll-invoices` chỉ là endpoint optional để trigger poll thủ công — vẫn phải check `Authorization: Bearer ${CRON_SECRET}` trước khi xử lý.
 
 ### Response format
 
