@@ -1,4 +1,4 @@
-import { and, eq, gt, lt } from "drizzle-orm";
+import { and, eq, gt, lt, type SQL } from "drizzle-orm";
 
 import { logActivity } from "@/lib/activity-log";
 import { db } from "@/lib/db";
@@ -89,7 +89,7 @@ async function pollOneInvoice(invoice: InvoiceRow, now: Date): Promise<void> {
   }
 
   try {
-    await applyNodeStatus(invoice, nodeStatus, now);
+    await applyNodeStatus(eq(invoices.id, invoice.id), nodeStatus, now, "poller");
   } catch (error) {
     // Same isolation guarantee as the getInvoiceStatus() catch above — a
     // failure applying the status update (DB error, or a future webhook
@@ -117,14 +117,21 @@ const TERMINAL_TRANSITIONS: Partial<
 };
 
 /**
- * Maps node status onto invoices.status. The UPDATE re-checks
- * status='pending' in its WHERE clause (BR-STS-001: forward-only, no
- * re-processing terminal rows).
+ * Maps node status onto invoices.status via a single UPDATE keyed on
+ * `matchInvoice` (id for the poller, payment_hash for the listener — see the
+ * two callers below), re-checking status='pending' in the same WHERE clause
+ * (BR-STS-001: forward-only, no re-processing terminal rows). `source` only
+ * affects the log line's tag ("poller" vs "listener") — both callers
+ * otherwise share the exact same transition/webhook logic, and the DB's
+ * WHERE-status-pending check is what actually makes it safe for both to race
+ * the same invoice (whichever writer gets there first wins; the loser's
+ * UPDATE just affects 0 rows).
  */
 async function applyNodeStatus(
-  invoice: InvoiceRow,
+  matchInvoice: SQL,
   nodeStatus: InvoiceStatus,
   now: Date,
+  source: "poller" | "listener",
 ): Promise<void> {
   const transition = TERMINAL_TRANSITIONS[nodeStatus];
   if (!transition) {
@@ -134,13 +141,36 @@ async function applyNodeStatus(
   const [updated] = await db
     .update(invoices)
     .set({ status: transition.status, ...(transition.setPaidAt ? { paidAt: now } : {}) })
-    .where(and(eq(invoices.id, invoice.id), eq(invoices.status, "pending")))
+    .where(and(matchInvoice, eq(invoices.status, "pending")))
     .returning();
 
   if (updated) {
-    logActivity("info", "poller", `invoice ${updated.id} pending → ${transition.status} (node status: ${nodeStatus})`);
+    logActivity("info", source, `invoice ${updated.id} pending → ${transition.status} (node status: ${nodeStatus})`);
     await triggerWebhook(updated, transition.event);
   }
+}
+
+/**
+ * Entry point for lib/poller/invoice-listener.ts's WebSocket event handler
+ * (issue #13, Phase 2) — applies the same terminal-state transition
+ * applyNodeStatus() uses for the RPC-polled batch above, so both paths share
+ * one place that decides what a node status maps onto and whether a webhook
+ * fires. Unlike the poller (which already has the invoice row in hand from
+ * its batch SELECT), the WS event only carries payment_hash, so this matches
+ * the UPDATE directly on invoices.paymentHash (unique column) instead of
+ * spending a separate SELECT round-trip to look the row up first. A
+ * payment_hash with no matching row (or nodeStatus not terminal in the first
+ * place) leaves the UPDATE affecting 0 rows and is silently ignored
+ * (BR-POL-005: the store_changes stream is unfiltered by FNN — only
+ * payment_hash values that exist in our own invoices table are ours to act
+ * on).
+ */
+export async function applyInvoiceStatusUpdate(
+  paymentHash: string,
+  nodeStatus: InvoiceStatus,
+  now: Date = new Date(),
+): Promise<void> {
+  await applyNodeStatus(eq(invoices.paymentHash, paymentHash), nodeStatus, now, "listener");
 }
 
 /**
@@ -158,8 +188,8 @@ export async function runPollCycle(now: Date = new Date()): Promise<void> {
   // to a permanently empty table read as broken during an idle period
   // (nothing pending, buffer reset by the last restart), even though the
   // poller was alive and polling the whole time. A visible "checked 0" line
-  // every 10s is the confirmation an admin actually wants here; MAX_ENTRIES
-  // (200, ~33min at this cadence) already bounds how much buffer this can
+  // every 30s is the confirmation an admin actually wants here; MAX_ENTRIES
+  // (200, ~100min at this cadence) already bounds how much buffer this can
   // consume.
   logActivity("info", "poller", `poll cycle: checked ${checked} pending invoice(s), ${expired.length} clock-expired`);
 }

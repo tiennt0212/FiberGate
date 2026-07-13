@@ -108,6 +108,23 @@ rpc:
   # auth, while staying unreachable from outside the docker network (the
   # host-side port mapping in docker-compose.yml is loopback-only).
   listening_addr: "172.28.0.10:8227"
+  # Phase 2 (issue #13): "pubsub" is NOT in FNN's default rpc.enabled_modules
+  # (verified against crates/fiber-lib/src/rpc/config.rs at the pinned image
+  # tag: DEFAULT_ENABLED_MODULES = "cch,channel,graph,payment,info,invoice,peer")
+  # — without adding it here, subscribe_store_changes doesn't exist on this
+  # node at all. Setting enabled_modules in config.yml REPLACES the default
+  # list entirely rather than adding to it, so every default module has to be
+  # re-listed alongside pubsub. watchtower is deliberately left out — this
+  # image isn't built with the watchtower feature.
+  enabled_modules:
+    - cch
+    - channel
+    - graph
+    - payment
+    - info
+    - invoice
+    - peer
+    - pubsub
 
 ckb:
   rpc_url: "https://testnet.ckbapp.dev/"

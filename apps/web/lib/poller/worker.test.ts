@@ -18,14 +18,14 @@ afterEach(() => {
 });
 
 describe("startInvoicePoller", () => {
-  it("runs a poll cycle every 10s", async () => {
+  it("runs a poll cycle every 30s", async () => {
     vi.mocked(runPollCycle).mockResolvedValue(undefined);
     startInvoicePoller();
 
-    await vi.advanceTimersByTimeAsync(10_000);
+    await vi.advanceTimersByTimeAsync(30_000);
     expect(runPollCycle).toHaveBeenCalledTimes(1);
 
-    await vi.advanceTimersByTimeAsync(10_000);
+    await vi.advanceTimersByTimeAsync(30_000);
     expect(runPollCycle).toHaveBeenCalledTimes(2);
   });
 
@@ -34,7 +34,7 @@ describe("startInvoicePoller", () => {
     startInvoicePoller();
     startInvoicePoller();
 
-    await vi.advanceTimersByTimeAsync(10_000);
+    await vi.advanceTimersByTimeAsync(30_000);
     expect(runPollCycle).toHaveBeenCalledTimes(1);
   });
 
@@ -48,14 +48,14 @@ describe("startInvoicePoller", () => {
     );
     startInvoicePoller();
 
-    await vi.advanceTimersByTimeAsync(10_000); // cycle 1 starts, never resolves yet
-    await vi.advanceTimersByTimeAsync(10_000); // tick 2 fires while cycle 1 still in flight
+    await vi.advanceTimersByTimeAsync(30_000); // cycle 1 starts, never resolves yet
+    await vi.advanceTimersByTimeAsync(30_000); // tick 2 fires while cycle 1 still in flight
     expect(runPollCycle).toHaveBeenCalledTimes(1); // re-entrancy guard held tick 2 back
 
     resolvers[0]?.();
     await Promise.resolve(); // flush cycle 1's .catch/.finally microtasks
     await Promise.resolve();
-    await vi.advanceTimersByTimeAsync(10_000);
+    await vi.advanceTimersByTimeAsync(30_000);
     expect(runPollCycle).toHaveBeenCalledTimes(2); // free to run again once cycle 1 finished
 
     resolvers[1]?.(); // don't leave a dangling pending promise behind for the next test
@@ -66,7 +66,7 @@ describe("startInvoicePoller", () => {
     vi.mocked(runPollCycle).mockRejectedValueOnce(new Error("db down"));
 
     startInvoicePoller();
-    await vi.advanceTimersByTimeAsync(10_000);
+    await vi.advanceTimersByTimeAsync(30_000);
     // vi.waitFor polls with real timers under the hood, so it reliably
     // flushes the rejection's .catch/.finally microtask chain regardless of
     // how many hops it takes — unlike guessing a fixed number of
