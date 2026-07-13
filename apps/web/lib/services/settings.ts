@@ -64,14 +64,33 @@ export async function getAdminPasswordHash(): Promise<string> {
   return Buffer.from(passwordHashBase64, "base64").toString("utf-8");
 }
 
-/** Hashes `newPlaintextPassword` and upserts it as the admin password hash. */
+/**
+ * Hashes `newPlaintextPassword` and upserts it as the admin password hash.
+ * Unlike getAdminPasswordHash() above, there's no env-var fallback to write
+ * to — a missing `settings` table means this genuinely cannot succeed, so
+ * it throws a specific, actionable error (server-side log only; the
+ * Settings page's Server Action still shows the caller a generic message,
+ * same as any other error — see app/(dashboard)/settings/actions.ts).
+ */
 export async function setAdminPassword(newPlaintextPassword: string): Promise<void> {
   const hash = await bcrypt.hash(newPlaintextPassword, BCRYPT_COST_FACTOR);
-  await db
-    .insert(settings)
-    .values({ key: ADMIN_PASSWORD_HASH_KEY, value: hash, updatedAt: new Date() })
-    .onConflictDoUpdate({
-      target: settings.key,
-      set: { value: hash, updatedAt: new Date() },
-    });
+  try {
+    await db
+      .insert(settings)
+      .values({ key: ADMIN_PASSWORD_HASH_KEY, value: hash, updatedAt: new Date() })
+      .onConflictDoUpdate({
+        target: settings.key,
+        set: { value: hash, updatedAt: new Date() },
+      });
+  } catch (err) {
+    if (isMissingTableError(err)) {
+      throw new Error(
+        "Cannot set the admin password: the settings table doesn't exist yet. Run database " +
+          "migrations first (`pnpm --filter web db:migrate` for local dev — the Docker image " +
+          "runs this automatically on boot).",
+        { cause: err },
+      );
+    }
+    throw err;
+  }
 }
