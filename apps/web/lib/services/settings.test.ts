@@ -68,8 +68,11 @@ describe("getAdminPasswordHash", () => {
     // .cause is a postgres.PostgresError with SQLSTATE 42P01
     // ("undefined_table").
     function undefinedTableError() {
-      const cause = new postgres.PostgresError({
-        message: 'relation "settings" does not exist',
+      // postgres.PostgresError's real constructor (Object.assign(this, x))
+      // accepts a full options object at runtime, but its .d.ts only types
+      // a string message — construct via the typed signature, then assign
+      // `code` after, to match the real shape without an `as any` escape.
+      const cause = Object.assign(new postgres.PostgresError('relation "settings" does not exist'), {
         code: "42P01",
       });
       return new DrizzleQueryError("select ...", [], cause);
