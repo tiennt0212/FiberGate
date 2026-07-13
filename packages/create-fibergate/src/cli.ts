@@ -23,6 +23,7 @@ import {
   TargetPathNotADirectoryError,
   writeScaffold,
 } from "./lib/scaffold";
+import { validateSecretChars } from "./lib/validate-secret";
 
 const TEMPLATES_DIR = join(dirname(fileURLToPath(import.meta.url)), "..", "templates");
 const HOSTNAME_RE = /^(localhost|(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?\.)+[a-zA-Z]{2,})$/;
@@ -37,20 +38,6 @@ async function ask<T>(promise: Promise<T | symbol>): Promise<T> {
   // isCancel()'s `value is symbol` guard doesn't narrow an unconstrained
   // generic T back down for TS — the symbol case has already exited above.
   return result as T;
-}
-
-// Shared by every secret written verbatim into .env: "$"/newline break
-// Docker Compose's .env interpolation (mangles "$..." as a variable
-// reference). Used by both askSecretValue's custom-entry path and
-// promptReusedKey's passphrase prompt below — a value that fails Docker
-// Compose interpolation breaks fiber-node's own decryption of the exact key
-// this CLI just told the merchant "verified" successfully.
-function validateSecretChars(value: string | undefined): string | undefined {
-  if (!value) return "Required.";
-  if (value.includes("$") || value.includes("\n")) {
-    return 'Avoid "$" or newlines — Docker Compose .env interpolation mangles them.';
-  }
-  return undefined;
 }
 
 async function askSecretValue(label: string, envVarName: string): Promise<string> {
