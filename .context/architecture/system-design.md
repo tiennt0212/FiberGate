@@ -64,7 +64,7 @@ qua `@fibergate/sdk` đúng như 1 merchant thứ ba thật sẽ làm, dùng `FI
 update qua Server-Sent Events cho browser — không polling. Deploy tách biệt qua overlay
 `apps/demo-storefront/docker-compose.demo.yml` (Dockerfile + compose overlay nằm ngay
 trong thư mục app, tự chứa hoàn toàn — không thuộc bundle 3-container merchant-facing
-gốc ở `docker-compose.yml`/`docker/`). Xem README.md "Demo storefront" để biết cách
+gốc ở `docker-compose.yml`/`docker/`). Xem `docs/merchants/demo-storefront.md` để biết cách
 chạy local.
 
 ## Data Flow — Tạo Invoice
@@ -226,8 +226,9 @@ const databaseUrl = `postgres://${process.env.POSTGRES_USER}:${process.env.POSTG
 
 **Chỉ 1 file chứa secret thật** — root `.env` (copy từ `.env.example`), dùng chung
 cho cả `docker compose up -d` lẫn `pnpm dev`. 6 biến required để trống có chủ đích
-(không có default an toàn nào) — cách generate từng biến xem `README.md`
-"Generating secrets":
+(không có default an toàn nào) — `create-fibergate` generate các biến này hộ (xem
+`docs/merchants/quickstart.md`); cho local dev từ source, xem
+`docs/maintainers/getting-started.md`'s "Generating a real `.env`":
 
 ```bash
 # .env.example (root) — rút gọn, xem file thật cho comment đầy đủ
@@ -258,7 +259,9 @@ WEBHOOK_SECRET_ENCRYPTION_KEY=   # 64-char hex (32-byte AES-256 key) encrypting
                                   # env var only protects that per-endpoint
                                   # secret at rest. See
                                   # apps/web/lib/webhooks/secret-crypto.ts.
-                                  # Generate via: openssl rand -hex 32
+                                  # create-fibergate generates this for you
+                                  # (docs/merchants/quickstart.md); for local
+                                  # dev see docs/maintainers/getting-started.md
 ```
 
 > **Cập nhật 2026-07-03 (issue #5, verified khi implement `lib/fiber/client.ts`)**:
@@ -280,7 +283,7 @@ CRON_SECRET=                     # optional
 > `DOMAIN`/`CERTBOT_EMAIL` — dùng bởi `nginx`/`certbot` (mục "TLS/WSS reverse proxy"
 > ở trên), không phải secret sinh ngẫu nhiên như các biến khác mà là giá trị
 > real-world (domain thật + email thật). Không có default an toàn nào (nginx không
-> start ra config dùng được nếu thiếu `DOMAIN`) — xem README.md "Public HTTPS deploy".
+> start ra config dùng được nếu thiếu `DOMAIN`) — xem `docs/merchants/public-https-deploy.md`.
 > ```bash
 > DOMAIN=                          # public domain, cần DNS trỏ vào host này +
 >                                   # port 80/443/8228 mở ra internet
@@ -291,7 +294,7 @@ Không có preflight/service nào tự động kiểm tra các biến bcrypt/sec
 fibergate-core tự fail rõ ràng nếu thiếu) — riêng `DOMAIN` có `nginx-certs-preflight`
 sinh cert self-signed tạm nếu thiếu cert thật, nên `nginx`/`docker compose up -d` vẫn
 start được kể cả khi `DOMAIN` chưa trỏ đi đâu thật, chỉ là không dùng được qua HTTPS
-đáng tin cậy cho tới khi hoàn tất README.md "Public HTTPS deploy".
+đáng tin cậy cho tới khi hoàn tất `docs/merchants/public-https-deploy.md`.
 
 > **Cập nhật 2026-07-08 (issue #12, demo storefront)**: `apps/demo-storefront` là 1
 > app hoàn toàn riêng (xem "Merchant's storefront app cụ thể hoá" ở mục kiến trúc
@@ -449,8 +452,9 @@ password nhập vào với 1 hash duy nhất. Cái đổi là **hash đó lấy 
 `admin_password_hash`) trước; nếu chưa có row nào (deployment mới, hoặc chưa từng đổi
 password qua Dashboard) → fallback đọc `ADMIN_PASSWORD_HASH_B64` y hệt logic cũ (decode
 base64). Nói cách khác, env var giờ chỉ **seed giá trị ban đầu** — ngay khi admin đổi
-password lần đầu qua `/settings` (`setAdminPassword()`, bcrypt cost 10 — khớp README's
-`htpasswd -nbBC 10`), 1 row được upsert vào `settings` và **từ đó DB luôn thắng**, env
+password lần đầu qua `/settings` (`setAdminPassword()`, bcrypt cost 10 — cùng cost
+factor `create-fibergate` dùng nội bộ qua `bcryptjs` lúc scaffold), 1 row được upsert
+vào `settings` và **từ đó DB luôn thắng**, env
 var không bao giờ được đọc lại nữa cho deployment đó (không có cơ chế nào xoá row để
 "quay lại" đọc env var — nếu cần reset, phải `DELETE FROM settings WHERE key =
 'admin_password_hash'` thủ công qua psql).
@@ -470,7 +474,7 @@ self-signed tạm nếu chưa có cert thật, để `nginx` start được lầ
 với `fiber-node-preflight`), `nginx` (`nginx:1.27-alpine` bản chính thức, **không cần
 custom build** — đã verify `nginx -V` có sẵn `--with-stream`/`--with-stream_ssl_module`/
 `--with-stream_ssl_preread_module` compiled tĩnh), và `certbot` (renew loop, issuance
-lần đầu là lệnh thủ công 1 lần — xem README.md "Public HTTPS deploy"). `nginx` là
+lần đầu là lệnh thủ công 1 lần — xem `docs/merchants/public-https-deploy.md`). `nginx` là
 service DUY NHẤT publish host port công khai thật (`80`, `443`, `8228`) — `postgres`/
 `fiber-node`/`fibergate-core` đều giữ nguyên loopback-only.
 
@@ -550,7 +554,7 @@ chỉ cần `docker compose up -d`, không cần domain" đã ngầm định tr�
   cho `build:` — merchant chỉ cần file này + `docker/fiber-node/config.yml` +
   `docker/nginx/nginx.conf.template` + `.env` (từ `.env.release.example`), không cần
   clone repo. Cùng 6 service như bản gốc (không có `fiber-node-payer`, dev-only) — xem
-  README.md "Deploy from a published image".
+  `docs/merchants/quickstart.md` (CLI) / `docs/merchants/deployment.md` (manual).
 
 **Registry: GHCR (`ghcr.io`), không phải Docker Hub** — lệch với gợi ý ban đầu trong
 issue #41's body, đổi theo quyết định trực tiếp với human khi implement (xem
@@ -579,9 +583,10 @@ ngược đúng commit.
 > **create-fibergate CLI (issue #48)** giờ là đường khuyến nghị để lấy 4 file này
 > (`docker-compose.release.yml`, `docker/fiber-node/config.yml`,
 > `docker/nginx/nginx.conf.template`, `.env.release.example` → `.env`) thay vì tự
-> `curl` từng file thủ công — xem `packages/create-fibergate/`, README.md "Deploy
-> from a published image" Option A. Manual curl (Option B) vẫn giữ làm fallback cho
-> ai không có Node.js.
+> `curl` từng file thủ công — xem `packages/create-fibergate/`,
+> `docs/merchants/quickstart.md`. `docs/merchants/deployment.md` giữ lại đường thủ
+> công (hand-edit file CLI sinh ra, hoặc chạy CLI ở máy khác rồi `scp` sang host
+> không có Node.js) — không còn 1 flow curl-3-file độc lập không cần CLI nữa.
 >
 > **Auto-migrate lúc `fibergate-core` khởi động** (cùng issue #48 follow-up):
 > `docker/fibergate-core/Dockerfile`'s `CMD` giờ chạy
