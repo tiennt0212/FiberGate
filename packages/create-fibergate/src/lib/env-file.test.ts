@@ -2,10 +2,11 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { buildEnvFile, REQUIRED_ENV_VARS } from "./env-file";
+import { buildEnvFile, LOCAL_REQUIRED_ENV_VARS, REQUIRED_ENV_VARS } from "./env-file";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "..");
 const realTemplate = readFileSync(join(repoRoot, ".env.release.example"), "utf-8");
+const realLocalTemplate = readFileSync(join(repoRoot, ".env.example"), "utf-8");
 
 describe("buildEnvFile", () => {
   it("fills only the named vars, leaving comments and other lines untouched", () => {
@@ -88,5 +89,34 @@ describe("buildEnvFile", () => {
     // Comments and [FIXED VALUE]/[OPTIONAL] lines survive verbatim.
     expect(result).toContain("FIBER_NODE_URL=http://fiber-node:8227");
     expect(result).toContain("[REQUIRED] GitHub org/user the fibergate-core image was published under");
+  });
+
+  it("every [REQUIRED] var in the real .env.example is covered by LOCAL_REQUIRED_ENV_VARS", () => {
+    let thrown: Error | undefined;
+    try {
+      buildEnvFile(realLocalTemplate, {});
+    } catch (err) {
+      thrown = err as Error;
+    }
+
+    expect(thrown).toBeDefined();
+    const missing = thrown!.message.match(/\[REQUIRED\] with no value supplied: (.+)$/)?.[1];
+    for (const name of missing?.split(", ") ?? []) {
+      expect(LOCAL_REQUIRED_ENV_VARS).toContain(name);
+    }
+  });
+
+  it("fills every LOCAL_REQUIRED_ENV_VARS entry non-empty against the real .env.example", () => {
+    const values = Object.fromEntries(LOCAL_REQUIRED_ENV_VARS.map((name) => [name, `test-${name}`]));
+
+    const result = buildEnvFile(realLocalTemplate, values);
+
+    for (const name of LOCAL_REQUIRED_ENV_VARS) {
+      expect(result).toMatch(new RegExp(`^${name}=test-${name}$`, "m"));
+    }
+    // Comments and [FIXED VALUE]/[OPTIONAL] lines survive verbatim, including
+    // the non-required FIBER_PAYER_SECRET_KEY_PASSWORD left blank.
+    expect(result).toContain("FIBER_NODE_URL=http://fiber-node:8227");
+    expect(result).toContain("FIBER_PAYER_SECRET_KEY_PASSWORD=");
   });
 });

@@ -25,6 +25,25 @@ export const REQUIRED_ENV_VARS = [
   "GHCR_NAMESPACE",
 ] as const;
 
+// Same list as REQUIRED_ENV_VARS, minus GHCR_NAMESPACE — used against the
+// root `.env.example` template (from-source/contributor path, issue #55)
+// instead of `.env.release.example`. That template has no published-image
+// vars (GHCR_NAMESPACE, FIBERGATE_CORE_TAG) to fill in. FIBER_PAYER_SECRET_KEY_PASSWORD
+// is deliberately left out too — its comment there is "[REQUIRED only for
+// fiber-node-payer]", not a bare "[REQUIRED]", so isMarkedRequired() below
+// already treats it as optional.
+export const LOCAL_REQUIRED_ENV_VARS = [
+  "POSTGRES_USER",
+  "POSTGRES_DB",
+  "POSTGRES_PASSWORD",
+  "FIBER_SECRET_KEY_PASSWORD",
+  "DOMAIN",
+  "ADMIN_PASSWORD_HASH_B64",
+  "DASHBOARD_SESSION_SECRET",
+  "FIBERGATE_INTERNAL_SECRET",
+  "WEBHOOK_SECRET_ENCRYPTION_KEY",
+] as const;
+
 // Walks backward from a VAR= line through its immediately preceding block of
 // "#"-comment lines (tolerating blank lines within that block — a stray
 // blank line between a [REQUIRED] comment and its VAR= line shouldn't
