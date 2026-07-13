@@ -1,6 +1,8 @@
+import { DrizzleQueryError } from "drizzle-orm";
+import postgres from "postgres";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { createQueryChain } from "@/lib/db/test-fixtures";
+import { createQueryChain, createRejectingQueryChain } from "@/lib/db/test-fixtures";
 
 // Mock at the module boundary, same convention as webhooks.test.ts.
 vi.mock("@/lib/db", () => ({
@@ -16,6 +18,21 @@ const { getAdminPasswordHash, setAdminPassword } = await import("./settings");
 afterEach(() => {
   vi.clearAllMocks();
 });
+
+// Real shape reproduced against a schema-less Postgres, not guessed:
+// querying/writing a table that doesn't exist throws a DrizzleQueryError
+// whose .cause is a postgres.PostgresError with SQLSTATE 42P01
+// ("undefined_table").
+function undefinedTableError() {
+  // postgres.PostgresError's real constructor (Object.assign(this, x))
+  // accepts a full options object at runtime, but its .d.ts only types a
+  // string message — construct via the typed signature, then assign `code`
+  // after, to match the real shape without an `as any` escape.
+  const cause = Object.assign(new postgres.PostgresError('relation "settings" does not exist'), {
+    code: "42P01",
+  });
+  return new DrizzleQueryError("query ...", [], cause);
+}
 
 describe("getAdminPasswordHash", () => {
   it("returns the settings row's value when one exists, ignoring the env var", () => {
@@ -51,6 +68,33 @@ describe("getAdminPasswordHash", () => {
 
     await expect(getAdminPasswordHash()).rejects.toThrow("Missing required env var: ADMIN_PASSWORD_HASH_B64");
   });
+
+  describe("when the settings table doesn't exist yet (unmigrated DB)", () => {
+    beforeEach(() => {
+      process.env.ADMIN_PASSWORD_HASH_B64 = Buffer.from("$2b$10$env-seeded-hash", "utf-8").toString("base64");
+    });
+
+    afterEach(() => {
+      delete process.env.ADMIN_PASSWORD_HASH_B64;
+    });
+
+    it("falls back to ADMIN_PASSWORD_HASH_B64 instead of throwing", async () => {
+      vi.mocked(db.select).mockReturnValue(
+        createRejectingQueryChain(undefinedTableError()) as unknown as ReturnType<typeof db.select>,
+      );
+
+      await expect(getAdminPasswordHash()).resolves.toBe("$2b$10$env-seeded-hash");
+    });
+
+    it("still throws for any other DB error (e.g. connection failure)", async () => {
+      const connectionError = new DrizzleQueryError("select ...", [], new Error("connection refused"));
+      vi.mocked(db.select).mockReturnValue(
+        createRejectingQueryChain(connectionError) as unknown as ReturnType<typeof db.select>,
+      );
+
+      await expect(getAdminPasswordHash()).rejects.toThrow(connectionError);
+    });
+  });
 });
 
 describe("setAdminPassword", () => {
@@ -70,5 +114,24 @@ describe("setAdminPassword", () => {
         set: expect.objectContaining({ value: expect.stringMatching(/^\$2[aby]\$10\$/) }),
       }),
     );
+  });
+
+  it("throws a specific, actionable error if the settings table doesn't exist yet", async () => {
+    vi.mocked(db.insert).mockReturnValue(
+      createRejectingQueryChain(undefinedTableError()) as unknown as ReturnType<typeof db.insert>,
+    );
+
+    await expect(setAdminPassword("a-new-strong-password")).rejects.toThrow(
+      /settings table doesn't exist yet.*db:migrate/s,
+    );
+  });
+
+  it("still throws the original error for any other DB error (e.g. connection failure)", async () => {
+    const connectionError = new DrizzleQueryError("insert ...", [], new Error("connection refused"));
+    vi.mocked(db.insert).mockReturnValue(
+      createRejectingQueryChain(connectionError) as unknown as ReturnType<typeof db.insert>,
+    );
+
+    await expect(setAdminPassword("a-new-strong-password")).rejects.toThrow(connectionError);
   });
 });

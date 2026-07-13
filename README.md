@@ -76,7 +76,43 @@ pnpm --filter web db:migrate    # apply pending migrations to POSTGRES_* (run ma
 
 No monorepo clone needed — `fibergate-core` is published to GHCR on every push to
 `canary` (tagged by git commit SHA, plus a floating `latest`; see
-`.github/workflows/docker-publish.yml`). Grab just 3 files:
+`.github/workflows/docker-publish.yml`).
+
+### Option A: scaffolding CLI (recommended)
+
+`npx create-fibergate@latest` (issue #48, `packages/create-fibergate`) walks you
+through an interactive wizard and writes everything below for you — no manual
+`openssl rand`/`docker run ... htpasswd` steps, and no hand-editing `.env`:
+
+```bash
+npx create-fibergate@latest fibergate-deploy
+```
+
+It prompts for Postgres credentials, your dashboard admin password (hashed locally),
+your CKB testnet key (either a fresh raw-hex key, or an already-encrypted key reused
+from a prior deploy — the passphrase is validated offline before anything is
+written), and `DOMAIN`/`GHCR_NAMESPACE`; it auto-generates the other 3 secrets.
+(`CERTBOT_EMAIL` isn't prompted for — it's optional, only needed for the one-time
+real-cert step in "Public HTTPS deploy" below; add it to `.env` yourself when
+you get there.) Then:
+
+```bash
+cd fibergate-deploy
+docker compose up -d
+```
+
+`fibergate-core` runs pending DB migrations automatically before it starts serving
+(`docker/fibergate-core/Dockerfile`'s CMD) — no manual migrate step, on first install
+or any later version upgrade.
+
+The CLI writes the compose file as plain `docker-compose.yml` (not
+`docker-compose.release.yml`) since a scaffolded deploy directory has no other
+compose file to disambiguate from — no `-f` flag needed for any `docker compose`
+command below.
+
+### Option B: manual (no Node.js required, or if you prefer full control)
+
+Grab just 3 files:
 
 ```bash
 mkdir fibergate-deploy && cd fibergate-deploy
@@ -94,15 +130,25 @@ still applies, only the compose file and the fibergate-core build step differ), 
 
 ```bash
 docker compose -f docker-compose.release.yml up -d
-pnpm --filter web db:migrate # or run migrations another way — see below
 ```
+
+Same auto-migrate-on-boot as Option A — no manual migrate step here either.
+
+### Both options
 
 `docker-compose.release.yml` mirrors root `docker-compose.yml`'s 6 services (same
 TLS/WSS setup via nginx+certbot) — it just references the published image instead of
 building `fibergate-core` from source, and drops `fiber-node-payer`
-(local-testing-only). Everything below this section — "Generating secrets",
-"Prerequisites", "Public HTTPS deploy" — applies the same way to this path; substitute
-`-f docker-compose.release.yml` into any `docker compose` command you see.
+(local-testing-only).
+
+"Public HTTPS deploy" below (DNS, port-forwarding, getting a real TLS cert) applies
+the same way regardless of which option you used — Option A's compose file is
+plain `docker-compose.yml` (no `-f` flag needed), Option B's keeps the
+`docker-compose.release.yml` name it was curled as (substitute `-f
+docker-compose.release.yml` into any `docker compose` command you see below).
+"Generating secrets" and "Prerequisites" below are written for the manual path
+(Option B, and the from-source contributor path further down) — **skip them if
+you used Option A**, the CLI already did all of that for you.
 
 **Operational note:** GHCR packages default to private on first publish — until the
 package is made public once via GitHub's UI, `docker compose pull` will fail with an
@@ -123,11 +169,12 @@ anywhere but this host until you complete that section.
 
 ### Generating secrets
 
-`.env.example` leaves 8 vars blank on purpose — they're required, no safe default
+`.env.example` leaves 7 vars blank because they're required — no safe default
 exists, and `docker compose up -d` will fail (postgres/fibergate-core/fiber-node/nginx
-erroring on an empty credential) if you skip them. `DOMAIN` and `CERTBOT_EMAIL` are
-real-world values (not generated secrets) — see "Public HTTPS deploy" below for those
-two. The rest:
+erroring on an empty credential) if you skip them — plus 1 more, `CERTBOT_EMAIL`,
+that's blank but genuinely optional (not read by `up -d` at all, only by the
+one-time real-cert step further below). `DOMAIN` is a real-world value (not a
+generated secret) — see "Public HTTPS deploy" below. The rest:
 
 ```bash
 # POSTGRES_PASSWORD, FIBERGATE_INTERNAL_SECRET, WEBHOOK_SECRET_ENCRYPTION_KEY,
@@ -166,8 +213,8 @@ actually use the new Settings page — the env var keeps working exactly as befo
 **Prerequisites — do these before your first `docker compose up -d`:**
 
 1. Copy the root env file and fill in real values (see "Generating secrets"
-   above for the 6 generated ones, and "Public HTTPS deploy" below for `DOMAIN` /
-   `CERTBOT_EMAIL`):
+   above for the 6 generated ones, and "Public HTTPS deploy" below for `DOMAIN`
+   — `CERTBOT_EMAIL` is optional, only needed once you get a real cert):
    ```bash
    cp .env.example .env
    ```
@@ -195,16 +242,14 @@ actually use the new Settings page — the env var keeps working exactly as befo
    docker compose ps   # wait for postgres, fiber-node, and nginx-certs-preflight
                         # ("Exited (0)") to report healthy/done
    ```
-5. Run database migrations once — this is a manual step, not automatic on container
-   boot (`fibergate-core` will start and serve requests even before this runs, but any
-   DB-backed route will fail until the tables exist):
-   ```bash
-   pnpm --filter web db:migrate
-   ```
-   Re-run this any time you pull changes that touch `apps/web/lib/db/schema.ts` /
-   `apps/web/lib/db/migrations/`.
-6. Get a real TLS cert (one-time, after DNS/port-forwarding in step 3 are actually
+5. Get a real TLS cert (one-time, after DNS/port-forwarding in step 3 are actually
    live) — see "Public HTTPS deploy" below.
+
+`fibergate-core` runs pending DB migrations automatically before it starts serving
+(`docker/fibergate-core/Dockerfile`'s CMD) — no manual step needed here, on first
+install or any later version upgrade (pulling new code that adds migration files).
+If you're iterating on `apps/web/lib/db/schema.ts` outside Docker (`pnpm dev`), use
+`pnpm --filter web db:migrate` directly instead — see "Commands" above.
 
 **Troubleshooting**
 

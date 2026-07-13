@@ -175,6 +175,23 @@ services:
       - "127.0.0.1:3000:3000"
     networks:
       - fibergate-net
+    # No curl/wget on node:20-alpine — Node 20 has a built-in fetch, so a
+    # one-line `node -e` avoids adding a package just for this. /login is
+    # public (no auth needed) and only renders once the auto-migrate step
+    # (docker/fibergate-core/Dockerfile's CMD) has finished and the server is
+    # actually listening — any non-5xx response counts as healthy.
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/login').then(r=>process.exit(r.status<500?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
 
   # Generates a temporary self-signed cert if a real one doesn't exist yet at
   # ${DOMAIN}'s Let's Encrypt path, so nginx can start on first boot before
@@ -213,7 +230,7 @@ services:
       nginx-certs-preflight:
         condition: service_completed_successfully
       fibergate-core:
-        condition: service_started
+        condition: service_healthy
       fiber-node:
         condition: service_healthy
     environment:

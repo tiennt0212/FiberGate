@@ -48,8 +48,8 @@ export type QueryChain<T = InvoiceRow> = Promise<T[]> & {
   onConflictDoUpdate: (...args: unknown[]) => QueryChain<T>;
 };
 
-export function createQueryChain<T = InvoiceRow>(rows: T[]): QueryChain<T> {
-  const chain = Promise.resolve(rows) as QueryChain<T>;
+function attachChainMethods<T>(promise: Promise<T[]>): QueryChain<T> {
+  const chain = promise as QueryChain<T>;
   chain.from = vi.fn(() => chain);
   chain.where = vi.fn(() => chain);
   chain.orderBy = vi.fn(() => chain);
@@ -60,5 +60,23 @@ export function createQueryChain<T = InvoiceRow>(rows: T[]): QueryChain<T> {
   chain.leftJoin = vi.fn(() => chain);
   chain.$dynamic = vi.fn(() => chain);
   chain.onConflictDoUpdate = vi.fn(() => chain);
+  return chain;
+}
+
+export function createQueryChain<T = InvoiceRow>(rows: T[]): QueryChain<T> {
+  return attachChainMethods(Promise.resolve(rows));
+}
+
+/** Same as createQueryChain, but the terminal await rejects with `error` — for testing DB-error handling paths (e.g. settings.ts's missing-table fallback). */
+export function createRejectingQueryChain<T = InvoiceRow>(error: unknown): QueryChain<T> {
+  const chain = attachChainMethods<T>(Promise.reject(error));
+  // Attaching a reaction here marks `chain` itself as handled for Node's
+  // unhandled-rejection detector — needed because code under test may do
+  // other async work (e.g. bcrypt.hash) before actually awaiting this chain,
+  // and Node's detector fires as soon as one microtask tick passes with no
+  // handler attached yet, not merely "eventually caught". This inert catch
+  // doesn't affect what a later `await chain` sees — each `.catch()` call
+  // returns a derived promise, the original rejection is untouched.
+  chain.catch(() => {});
   return chain;
 }

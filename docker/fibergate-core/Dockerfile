@@ -61,6 +61,20 @@ ENV POSTGRES_USER=$POSTGRES_USER \
 
 RUN pnpm --filter web build
 
+# Stage the 2 packages apps/web/scripts/migrate.mjs needs at runtime
+# (drizzle-orm, postgres — both zero-runtime-dependency packages, ~16MB
+# total) into a plain, non-symlinked directory. The standalone output above
+# does NOT include these: Next's webpack bundler inlines pure-JS deps like
+# these directly into the compiled route bundles rather than keeping them as
+# separate node_modules entries, so they aren't resolvable by a sibling
+# script outside that bundle. `cp -rL` dereferences pnpm's node_modules
+# symlinks so the runner stage below can COPY this without needing pnpm's
+# versioned virtual-store directory names (which change on every version
+# bump / lockfile update).
+RUN mkdir -p /migrator/node_modules && \
+    cp -rL apps/web/node_modules/drizzle-orm /migrator/node_modules/drizzle-orm && \
+    cp -rL apps/web/node_modules/postgres /migrator/node_modules/postgres
+
 # ---- runner: minimal image, Next.js standalone output only ----
 FROM node:20-alpine AS runner
 WORKDIR /app
@@ -78,7 +92,20 @@ COPY --from=builder --chown=nextjs:nodejs /repo/apps/web/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /repo/apps/web/.next/static ./apps/web/.next/static
 COPY --from=builder --chown=nextjs:nodejs /repo/apps/web/public ./apps/web/public
 
+# Auto-migrate on boot (see apps/web/scripts/migrate.mjs) — merchants never
+# run a manual migrate step, on first install or a later version upgrade
+# (drizzle-orm tracks applied migrations, so this is a fast no-op when
+# there's nothing new to apply).
+COPY --from=builder --chown=nextjs:nodejs /migrator/node_modules ./apps/web/node_modules
+COPY --from=builder --chown=nextjs:nodejs /repo/apps/web/lib/db/migrations ./apps/web/lib/db/migrations
+COPY --from=builder --chown=nextjs:nodejs /repo/apps/web/scripts/migrate.mjs ./apps/web/scripts/migrate.mjs
+
 USER nextjs
 EXPOSE 3000
 
-CMD ["node", "apps/web/server.js"]
+# `exec` replaces the shell with the server process so it receives SIGTERM
+# directly (graceful shutdown) instead of the shell swallowing it as PID 1.
+# If migrate.mjs exits non-zero, `&&` short-circuits and the server never
+# starts — a failed migration should be a loud, visible container exit, not
+# a silent boot into a broken schema.
+CMD ["sh", "-c", "node apps/web/scripts/migrate.mjs && exec node apps/web/server.js"]

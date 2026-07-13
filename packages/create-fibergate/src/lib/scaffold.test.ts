@@ -1,0 +1,113 @@
+import {
+  existsSync,
+  mkdtempSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { directoryIsEmptyOrMissing, TargetPathNotADirectoryError, writeScaffold } from "./scaffold";
+
+describe("scaffold", () => {
+  let workDir: string;
+  let fakeTemplatesDir: string;
+
+  beforeEach(() => {
+    workDir = mkdtempSync(join(tmpdir(), "create-fibergate-test-"));
+    fakeTemplatesDir = join(workDir, "fake-templates");
+    mkdirSync(join(fakeTemplatesDir, "docker", "fiber-node"), { recursive: true });
+    mkdirSync(join(fakeTemplatesDir, "docker", "nginx"), { recursive: true });
+    writeFileSync(join(fakeTemplatesDir, "docker-compose.release.yml"), "compose: fixture\n");
+    writeFileSync(join(fakeTemplatesDir, "docker", "fiber-node", "config.yml"), "config: fixture\n");
+    writeFileSync(
+      join(fakeTemplatesDir, "docker", "nginx", "nginx.conf.template"),
+      "nginx: fixture\n",
+    );
+  });
+
+  afterEach(() => {
+    rmSync(workDir, { recursive: true, force: true });
+  });
+
+  it("writes the full deploy directory structure with restrictive file permissions", () => {
+    const targetDir = join(workDir, "deploy");
+
+    writeScaffold({
+      targetDir,
+      envContent: "FOO=bar\n",
+      ckbKeyBytes: Buffer.from("deadbeef"),
+      templatesDir: fakeTemplatesDir,
+    });
+
+    // Written out as docker-compose.yml, not docker-compose.release.yml — a
+    // scaffolded deploy dir has no other compose file to disambiguate from,
+    // so `docker compose up -d` works with no `-f` flag.
+    expect(readFileSync(join(targetDir, "docker-compose.yml"), "utf-8")).toBe(
+      "compose: fixture\n",
+    );
+    expect(existsSync(join(targetDir, "docker-compose.release.yml"))).toBe(false);
+    expect(readFileSync(join(targetDir, "docker", "fiber-node", "config.yml"), "utf-8")).toBe(
+      "config: fixture\n",
+    );
+    expect(
+      readFileSync(join(targetDir, "docker", "nginx", "nginx.conf.template"), "utf-8"),
+    ).toBe("nginx: fixture\n");
+    expect(readFileSync(join(targetDir, ".env"), "utf-8")).toBe("FOO=bar\n");
+    expect(readFileSync(join(targetDir, "docker", "fiber-node", "ckb", "key"))).toEqual(
+      Buffer.from("deadbeef"),
+    );
+
+    // Protects a merchant who `git init`s the scaffolded directory from
+    // accidentally committing .env or the CKB key.
+    const gitignore = readFileSync(join(targetDir, ".gitignore"), "utf-8");
+    expect(gitignore).toContain(".env");
+    expect(gitignore).toContain("docker/fiber-node/ckb/");
+
+    // 0o600 == owner read/write only
+    expect(statSync(join(targetDir, ".env")).mode & 0o777).toBe(0o600);
+    expect(
+      statSync(join(targetDir, "docker", "fiber-node", "ckb", "key")).mode & 0o777,
+    ).toBe(0o600);
+  });
+
+  it("doesn't copy .env.release.example — cli.ts reads it separately to build .env", () => {
+    writeFileSync(join(fakeTemplatesDir, ".env.release.example"), "SOME_VAR=\n");
+    const targetDir = join(workDir, "deploy");
+
+    writeScaffold({
+      targetDir,
+      envContent: "FOO=bar\n",
+      ckbKeyBytes: Buffer.from("deadbeef"),
+      templatesDir: fakeTemplatesDir,
+    });
+
+    expect(existsSync(join(targetDir, ".env.release.example"))).toBe(false);
+  });
+
+  describe("directoryIsEmptyOrMissing", () => {
+    it("is true for a path that doesn't exist yet", () => {
+      expect(directoryIsEmptyOrMissing(join(workDir, "does-not-exist"))).toBe(true);
+    });
+
+    it("is true for an existing empty directory", () => {
+      const emptyDir = join(workDir, "empty");
+      mkdirSync(emptyDir);
+      expect(directoryIsEmptyOrMissing(emptyDir)).toBe(true);
+    });
+
+    it("is false for a directory with at least one entry", () => {
+      writeFileSync(join(fakeTemplatesDir, "docker-compose.release.yml"), "x");
+      expect(directoryIsEmptyOrMissing(fakeTemplatesDir)).toBe(false);
+    });
+
+    it("throws TargetPathNotADirectoryError instead of crashing when the path is an existing file", () => {
+      const filePath = join(workDir, "not-a-dir");
+      writeFileSync(filePath, "x");
+      expect(() => directoryIsEmptyOrMissing(filePath)).toThrow(TargetPathNotADirectoryError);
+    });
+  });
+});
