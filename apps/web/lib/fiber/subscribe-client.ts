@@ -49,7 +49,22 @@ const NOTIFICATION_METHOD = "store_changes";
 // listener with the fallback poller as the only thing still working. `ws`'s
 // own `handshakeTimeout` option surfaces this as a normal "error" event,
 // which the existing handler below already rejects on.
+//
+// This only covers the TCP-connect-through-WS-upgrade phase, though — `ws`
+// clears this timer the moment "open" fires (verified against `ws`'s own
+// source). It does NOT bound the subscribe_store_changes *response* that
+// comes after "open". SUBSCRIBE_RESPONSE_TIMEOUT_MS below covers that
+// separate window.
 const HANDSHAKE_TIMEOUT_MS = 10_000;
+
+// Bounds the wait for FNN's response to the subscribe_store_changes request
+// sent in the "open" handler. Without this, a node that completes the WS
+// upgrade but never replies (or replies so late it's indistinguishable from
+// never) leaves the returned promise pending forever — the same
+// permanently-wedged-listener failure mode HANDSHAKE_TIMEOUT_MS guards
+// against one phase earlier, just past the point that timer stops covering.
+// Matches BR-POL-004's 5s bound on other Fiber RPC calls.
+const SUBSCRIBE_RESPONSE_TIMEOUT_MS = 5_000;
 
 // Detects an already-subscribed connection that goes silent without a clean
 // TCP close — the standard `ws` liveness recipe (ping every interval, if the
@@ -63,8 +78,16 @@ const HANDSHAKE_TIMEOUT_MS = 10_000;
 // landing, silently falling back to the 30s poller with no error logged.
 const HEARTBEAT_INTERVAL_MS = 15_000;
 
+const SUBSCRIBE_REQUEST_ID = 1;
+const UNSUBSCRIBE_REQUEST_ID = 2;
+
 interface JsonRpcMessage {
-  // Present on the handshake response (request id echoed back).
+  // Present on the handshake response (request id echoed back) — checked
+  // against SUBSCRIBE_REQUEST_ID below so a same-shaped message could never
+  // be misattributed as our handshake response (only one request is ever in
+  // flight before subscribing today, so this is currently just defense in
+  // depth, not a live bug).
+  id?: number;
   result?: unknown;
   error?: { code: number; message: string };
   // Present on every subsequent `store_changes` push (jsonrpsee subscription
@@ -111,6 +134,7 @@ export function subscribeToStoreChanges(
 
     let subscriptionId: JsonRpcSubscriptionId | null = null;
     let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
+    let subscribeTimeoutTimer: ReturnType<typeof setTimeout> | null = null;
     let awaitingPong = false;
     // Two distinct flags, not one: promiseSettled just guards against a
     // double resolve()/reject() call; subscribed additionally gates whether
@@ -122,8 +146,26 @@ export function subscribeToStoreChanges(
     let subscribed = false;
     let lastError: Error | undefined;
 
+    function clearSubscribeTimeout(): void {
+      if (subscribeTimeoutTimer) {
+        clearTimeout(subscribeTimeoutTimer);
+        subscribeTimeoutTimer = null;
+      }
+    }
+
     ws.on("open", () => {
-      ws.send(JSON.stringify({ jsonrpc: "2.0", id: 1, method: SUBSCRIBE_METHOD, params: [] }));
+      ws.send(JSON.stringify({ jsonrpc: "2.0", id: SUBSCRIBE_REQUEST_ID, method: SUBSCRIBE_METHOD, params: [] }));
+      // See SUBSCRIBE_RESPONSE_TIMEOUT_MS's doc comment — handshakeTimeout
+      // stops covering the connection the moment "open" fires, so a node
+      // that upgrades the socket but never answers this request needs its
+      // own bound here.
+      subscribeTimeoutTimer = setTimeout(() => {
+        promiseSettled = true;
+        reject(
+          new Error(`${SUBSCRIBE_METHOD} did not respond within ${SUBSCRIBE_RESPONSE_TIMEOUT_MS}ms`),
+        );
+        ws.terminate();
+      }, SUBSCRIBE_RESPONSE_TIMEOUT_MS);
     });
 
     // Starts the heartbeat and resolves the outer promise once the handshake
@@ -131,6 +173,7 @@ export function subscribeToStoreChanges(
     // handler below purely to keep that handler a flat sequence of early
     // returns instead of nesting this ~30-line setup two levels deep.
     function confirmSubscription(id: JsonRpcSubscriptionId): void {
+      clearSubscribeTimeout();
       subscriptionId = id;
       promiseSettled = true;
       subscribed = true;
@@ -158,7 +201,7 @@ export function subscribeToStoreChanges(
             ws.send(
               JSON.stringify({
                 jsonrpc: "2.0",
-                id: 2,
+                id: UNSUBSCRIBE_REQUEST_ID,
                 method: UNSUBSCRIBE_METHOD,
                 params: [subscriptionId],
               }),
@@ -184,7 +227,15 @@ export function subscribeToStoreChanges(
         return;
       }
 
+      // Correlate by id, not just shape — only one request is ever in
+      // flight before subscribing today, so this is currently defense in
+      // depth rather than a fix for a live misattribution.
+      if (parsed.id !== SUBSCRIBE_REQUEST_ID) {
+        return;
+      }
+
       if (parsed.error) {
+        clearSubscribeTimeout();
         promiseSettled = true;
         reject(new Error(`${SUBSCRIBE_METHOD} rejected: ${parsed.error.message}`));
         ws.close();
@@ -212,6 +263,7 @@ export function subscribeToStoreChanges(
     });
 
     ws.on("close", () => {
+      clearSubscribeTimeout();
       if (heartbeatTimer) {
         clearInterval(heartbeatTimer);
         heartbeatTimer = null;

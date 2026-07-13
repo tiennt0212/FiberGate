@@ -104,6 +104,11 @@ export function startInvoiceListener(): void {
     return;
   }
   status = "connecting";
+  // Reset in case a prior run left this maxed out at MAX_BACKOFF_MS — a
+  // restart should behave like a fresh start (first reconnect attempt at
+  // INITIAL_BACKOFF_MS), not inherit whatever backoff a previous session's
+  // repeated failures happened to leave behind.
+  backoffMs = INITIAL_BACKOFF_MS;
   connect();
 }
 

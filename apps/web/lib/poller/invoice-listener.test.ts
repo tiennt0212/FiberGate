@@ -154,6 +154,65 @@ describe("startInvoiceListener", () => {
 
     consoleErrorSpy.mockRestore();
   });
+
+  // Flushes a rejected connect() promise's .catch() microtask without
+  // advancing the fake clock — unlike vi.waitFor(), which internally calls
+  // vi.advanceTimersByTime() on every poll (even the first) and so isn't
+  // safe to use right before an exact-boundary advanceTimersByTimeAsync()
+  // check below (same technique worker.test.ts uses for the same reason).
+  async function flushMicrotasks(): Promise<void> {
+    await Promise.resolve();
+    await Promise.resolve();
+  }
+
+  it("resets backoff to the initial 1s delay on a fresh start, instead of resuming from a prior session's grown backoff", async () => {
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    // Two consecutive failures grow backoffMs 1s -> 2s -> 4s (each
+    // scheduleReconnect() call arms the *current* backoffMs, then doubles it
+    // for next time — see invoice-listener.ts).
+    const first = mockNextConnectAttempt();
+    startInvoiceListener(); // call #1
+    const second = mockNextConnectAttempt();
+    first.reject(new Error("ECONNREFUSED")); // arms a 1s reconnect, backoffMs -> 2s
+    await flushMicrotasks();
+    await vi.advanceTimersByTimeAsync(1_000); // call #2 fires
+    expect(subscribeToStoreChanges).toHaveBeenCalledTimes(2);
+
+    second.reject(new Error("ECONNREFUSED")); // arms a 2s reconnect, backoffMs -> 4s
+    // Let connect()'s .catch() microtask actually run (and see status still
+    // "connecting") before stopping — otherwise stopInvoiceListener() below
+    // would flip status to "stopped" first, and the still-pending .catch()
+    // would then wrongly no-op instead of arming the 2s timer this step is
+    // about to immediately clear, undercounting what stop() actually cancels.
+    await flushMicrotasks();
+
+    // Stop while that 2s reconnect timer is still pending — call #3 (which
+    // would otherwise fire from it) never happens, only #1 and #2 occurred.
+    stopInvoiceListener();
+
+    // Fresh start — connects immediately (call #3), matching
+    // startInvoiceListener()'s existing "connect right away" behavior.
+    const third = mockNextConnectAttempt();
+    startInvoiceListener();
+    expect(subscribeToStoreChanges).toHaveBeenCalledTimes(3);
+
+    // This attempt fails too. Without the backoffMs reset, the next
+    // reconnect would need the stale 4s delay; with it, 1s is enough.
+    const fourth = mockNextConnectAttempt();
+    third.reject(new Error("ECONNREFUSED"));
+    await flushMicrotasks();
+
+    await vi.advanceTimersByTimeAsync(999);
+    expect(subscribeToStoreChanges).toHaveBeenCalledTimes(3);
+
+    await vi.advanceTimersByTimeAsync(1);
+    expect(subscribeToStoreChanges).toHaveBeenCalledTimes(4);
+    fourth.resolve({ close: vi.fn() });
+    await flushMicrotasks();
+
+    consoleErrorSpy.mockRestore();
+  });
 });
 
 describe("stopInvoiceListener", () => {

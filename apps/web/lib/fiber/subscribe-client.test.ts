@@ -219,6 +219,65 @@ describe("subscribeToStoreChanges", () => {
     subscribeToStoreChanges(vi.fn(), vi.fn());
     expect(lastSocket!.options).toMatchObject({ handshakeTimeout: 10_000 });
   });
+
+  it("ignores a handshake-shaped message whose id doesn't match the subscribe request", async () => {
+    const pending = subscribeToStoreChanges(vi.fn(), vi.fn());
+    lastSocket!.emit("open");
+
+    // Same shape as a real handshake response, but id: 99 instead of 1 — must
+    // not be mistaken for our subscribe_store_changes response.
+    lastSocket!.emit("message", Buffer.from(JSON.stringify({ jsonrpc: "2.0", id: 99, result: "sub-wrong" })));
+    lastSocket!.emit("message", Buffer.from(subscribeResponse("sub-1")));
+
+    const subscription = await pending;
+    subscription.close();
+    const unsubscribeCall = lastSocket!.sent
+      .map((raw) => JSON.parse(raw))
+      .find((msg) => msg.method === "unsubscribe_store_changes");
+    // Only "sub-1" (the correctly-id'd response) was ever adopted.
+    expect(unsubscribeCall).toMatchObject({ params: ["sub-1"] });
+  });
+});
+
+// Bug class found by live-testing (2026-07-13): `handshakeTimeout` only
+// bounds the TCP-connect-through-WS-upgrade phase — `ws` clears that timer
+// the instant "open" fires. A node that completes the upgrade but never
+// replies to subscribe_store_changes would otherwise hang this promise
+// forever, the same permanently-wedged-listener failure mode as the
+// connect-phase hang HANDSHAKE_TIMEOUT_MS guards against.
+describe("subscribeToStoreChanges — subscribe response timeout", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("rejects and terminates the connection if no response arrives within the timeout", async () => {
+    const pending = subscribeToStoreChanges(vi.fn(), vi.fn());
+    lastSocket!.emit("open");
+
+    const assertion = expect(pending).rejects.toThrow(/did not respond/);
+    await vi.advanceTimersByTimeAsync(5_000);
+    await assertion;
+
+    expect(lastSocket!.terminated).toBe(true);
+  });
+
+  it("does not reject if the response arrives before the timeout", async () => {
+    const pending = subscribeToStoreChanges(vi.fn(), vi.fn());
+    lastSocket!.emit("open");
+
+    await vi.advanceTimersByTimeAsync(4_000);
+    lastSocket!.emit("message", Buffer.from(subscribeResponse()));
+    await expect(pending).resolves.toBeDefined();
+
+    // The (now-cleared) timeout must not still fire and terminate a healthy,
+    // already-subscribed connection.
+    await vi.advanceTimersByTimeAsync(5_000);
+    expect(lastSocket!.terminated).toBe(false);
+  });
 });
 
 // Bug found by live-testing against a real fiber-node (2026-07-13): after
