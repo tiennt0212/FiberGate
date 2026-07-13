@@ -1,19 +1,21 @@
 import { EventEmitter } from "node:events";
 
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 process.env.FIBER_NODE_URL = "http://test-fiber-node:8227";
 
 // Fake `ws` WebSocket: a real EventEmitter (so ws.on/emit behave exactly
-// like the real client), tracking every send() call for assertions and
-// letting each test drive open/message/error/close by hand — a real socket
-// would need an actual FNN server to exercise the jsonrpsee handshake.
+// like the real client), tracking every send()/ping() call for assertions
+// and letting each test drive open/message/error/close by hand — a real
+// socket would need an actual FNN server to exercise the jsonrpsee handshake.
 class FakeWebSocket extends EventEmitter {
   static OPEN = 1;
   static CLOSED = 3;
 
   readyState = FakeWebSocket.OPEN;
   sent: string[] = [];
+  pingCount = 0;
+  terminated = false;
   url: string;
   options: unknown;
 
@@ -25,6 +27,16 @@ class FakeWebSocket extends EventEmitter {
 
   send(data: string): void {
     this.sent.push(data);
+  }
+
+  ping(): void {
+    this.pingCount += 1;
+  }
+
+  terminate(): void {
+    this.terminated = true;
+    this.readyState = FakeWebSocket.CLOSED;
+    this.emit("close");
   }
 
   close(): void {
@@ -52,6 +64,14 @@ const { subscribeToStoreChanges } = await import("./subscribe-client");
 beforeEach(() => {
   lastSocket = undefined;
   delete process.env.FIBER_NODE_RPC_AUTH_TOKEN;
+});
+
+afterEach(() => {
+  // The heartbeat interval started on a successful subscribe (see
+  // "heartbeat" describe block below) only gets cleared by a "close" event —
+  // without this, a test that subscribes but never explicitly closes would
+  // leak a live setInterval into later tests.
+  lastSocket?.close();
 });
 
 function subscribeResponse(id = "sub-1"): string {
@@ -193,5 +213,59 @@ describe("subscribeToStoreChanges", () => {
     const unsubscribeCall = lastSocket!.sent.map((raw) => JSON.parse(raw)).find((msg) => msg.method === "unsubscribe_store_changes");
     expect(unsubscribeCall).toMatchObject({ params: ["sub-42"] });
     expect(lastSocket!.readyState).toBe(FakeWebSocket.CLOSED);
+  });
+
+  it("passes handshakeTimeout so a stuck connection attempt eventually errors out instead of hanging forever", async () => {
+    subscribeToStoreChanges(vi.fn(), vi.fn());
+    expect(lastSocket!.options).toMatchObject({ handshakeTimeout: 10_000 });
+  });
+});
+
+// Bug found by live-testing against a real fiber-node (2026-07-13): after
+// `docker restart fiber-node`, an already-subscribed connection stayed stuck
+// reporting "connected" forever because the black-holed socket never fired
+// "close" on its own — this heartbeat is what actually detects that and
+// forces a close so invoice-listener.ts's reconnect logic gets a chance to
+// run. Needs fake timers since HEARTBEAT_INTERVAL_MS is 15s real time.
+describe("subscribeToStoreChanges — heartbeat liveness", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("pings on each heartbeat interval and terminates the connection if a pong never arrives", async () => {
+    const onClose = vi.fn();
+    const pending = subscribeToStoreChanges(vi.fn(), onClose);
+    lastSocket!.emit("open");
+    lastSocket!.emit("message", Buffer.from(subscribeResponse("sub-1")));
+    await pending;
+
+    await vi.advanceTimersByTimeAsync(15_000);
+    expect(lastSocket!.pingCount).toBe(1);
+    expect(lastSocket!.terminated).toBe(false); // one missed pong isn't enough yet
+
+    // No "pong" emitted in between — the second interval tick finds the
+    // first ping still unanswered.
+    await vi.advanceTimersByTimeAsync(15_000);
+    expect(lastSocket!.terminated).toBe(true);
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it("does not terminate a connection that answers each ping with a pong", async () => {
+    const pending = subscribeToStoreChanges(vi.fn(), vi.fn());
+    lastSocket!.emit("open");
+    lastSocket!.emit("message", Buffer.from(subscribeResponse("sub-1")));
+    await pending;
+
+    await vi.advanceTimersByTimeAsync(15_000);
+    expect(lastSocket!.pingCount).toBe(1);
+    lastSocket!.emit("pong");
+
+    await vi.advanceTimersByTimeAsync(15_000);
+    expect(lastSocket!.pingCount).toBe(2);
+    expect(lastSocket!.terminated).toBe(false);
   });
 });

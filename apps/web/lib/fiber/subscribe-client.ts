@@ -42,6 +42,27 @@ const SUBSCRIBE_METHOD = "subscribe_store_changes";
 const UNSUBSCRIBE_METHOD = "unsubscribe_store_changes";
 const NOTIFICATION_METHOD = "store_changes";
 
+// Bounds the initial TCP connect + WS upgrade. Without this, a connection
+// attempt that never completes (SYN silently dropped, e.g. mid-`docker
+// restart fiber-node`) leaves the returned promise pending forever — nothing
+// ever calls invoice-listener.ts's reconnect logic, permanently wedging the
+// listener with the fallback poller as the only thing still working. `ws`'s
+// own `handshakeTimeout` option surfaces this as a normal "error" event,
+// which the existing handler below already rejects on.
+const HANDSHAKE_TIMEOUT_MS = 10_000;
+
+// Detects an already-subscribed connection that goes silent without a clean
+// TCP close — the standard `ws` liveness recipe (ping every interval, if the
+// previous ping's pong never arrived, terminate()). This matters here
+// specifically because Docker's NAT/port-forwarding to a restarted container
+// can leave an established connection black-holed with no FIN/RST ever
+// reaching this client, so the "close" event (subscribe-client.ts's only
+// other way of noticing a dead connection) never fires either — confirmed
+// live: after `docker restart fiber-node`, a listener connected before the
+// restart stayed in "connected" status indefinitely while payments kept
+// landing, silently falling back to the 30s poller with no error logged.
+const HEARTBEAT_INTERVAL_MS = 15_000;
+
 interface JsonRpcMessage {
   // Present on the handshake response (request id echoed back).
   result?: unknown;
@@ -85,9 +106,12 @@ export function subscribeToStoreChanges(
     const authToken = getOptionalEnv("FIBER_NODE_RPC_AUTH_TOKEN");
     const ws = new WebSocket(resolveWsUrl(), {
       headers: authToken ? { Authorization: `Bearer ${authToken}` } : undefined,
+      handshakeTimeout: HANDSHAKE_TIMEOUT_MS,
     });
 
     let subscriptionId: JsonRpcSubscriptionId | null = null;
+    let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
+    let awaitingPong = false;
     // Two distinct flags, not one: promiseSettled just guards against a
     // double resolve()/reject() call; subscribed additionally gates whether
     // "close" should notify the caller via onClose at all. A handshake-time
@@ -121,8 +145,27 @@ export function subscribeToStoreChanges(
           subscriptionId = parsed.result;
           promiseSettled = true;
           subscribed = true;
+          heartbeatTimer = setInterval(() => {
+            if (awaitingPong) {
+              // Missed a full interval with no pong — the connection is
+              // dead but never told us. terminate() (not close()) forces
+              // the socket closed immediately without waiting for a
+              // graceful close handshake that a black-holed connection
+              // will never complete; it still synthesizes a "close" event
+              // below, which is what actually notifies invoice-listener.ts
+              // to reconnect.
+              ws.terminate();
+              return;
+            }
+            awaitingPong = true;
+            ws.ping();
+          }, HEARTBEAT_INTERVAL_MS);
           resolve({
             close: () => {
+              if (heartbeatTimer) {
+                clearInterval(heartbeatTimer);
+                heartbeatTimer = null;
+              }
               if (ws.readyState === WebSocket.OPEN) {
                 ws.send(
                   JSON.stringify({
@@ -145,6 +188,10 @@ export function subscribeToStoreChanges(
       }
     });
 
+    ws.on("pong", () => {
+      awaitingPong = false;
+    });
+
     ws.on("error", (error: Error) => {
       lastError = error;
       if (!promiseSettled) {
@@ -157,6 +204,10 @@ export function subscribeToStoreChanges(
     });
 
     ws.on("close", () => {
+      if (heartbeatTimer) {
+        clearInterval(heartbeatTimer);
+        heartbeatTimer = null;
+      }
       if (subscribed) {
         onClose(lastError);
       }
