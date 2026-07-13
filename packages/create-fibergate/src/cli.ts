@@ -39,6 +39,20 @@ async function ask<T>(promise: Promise<T | symbol>): Promise<T> {
   return result as T;
 }
 
+// Shared by every secret written verbatim into .env: "$"/newline break
+// Docker Compose's .env interpolation (mangles "$..." as a variable
+// reference). Used by both askSecretValue's custom-entry path and
+// promptReusedKey's passphrase prompt below — a value that fails Docker
+// Compose interpolation breaks fiber-node's own decryption of the exact key
+// this CLI just told the merchant "verified" successfully.
+function validateSecretChars(value: string | undefined): string | undefined {
+  if (!value) return "Required.";
+  if (value.includes("$") || value.includes("\n")) {
+    return 'Avoid "$" or newlines — Docker Compose .env interpolation mangles them.';
+  }
+  return undefined;
+}
+
 async function askSecretValue(label: string, envVarName: string): Promise<string> {
   const choice = await ask(
     select({
@@ -57,13 +71,7 @@ async function askSecretValue(label: string, envVarName: string): Promise<string
   return ask(
     passwordPrompt({
       message: `Enter ${envVarName}:`,
-      validate: (value) => {
-        if (!value) return "Required.";
-        if (value.includes("$") || value.includes("\n")) {
-          return 'Avoid "$" or newlines — Docker Compose .env interpolation mangles them.';
-        }
-        return undefined;
-      },
+      validate: validateSecretChars,
     }),
   );
 }
@@ -179,7 +187,10 @@ async function promptReusedKey(): Promise<CkbKeyResult> {
 
   for (;;) {
     const passphrase = await ask(
-      passwordPrompt({ message: "Passphrase for this key (FIBER_SECRET_KEY_PASSWORD):" }),
+      passwordPrompt({
+        message: "Passphrase for this key (FIBER_SECRET_KEY_PASSWORD):",
+        validate: validateSecretChars,
+      }),
     );
     try {
       const plaintext = decryptKeyFile(fileBytes, passphrase);
