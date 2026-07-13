@@ -543,8 +543,9 @@ touches `postgres`/`fibergate-core`.
    curl -s -X POST http://localhost:8237 -H 'Content-Type: application/json' \
      --data '{"id":1,"jsonrpc":"2.0","method":"send_payment","params":[{"invoice":"<invoice_address>"}]}'
    ```
-   `fibergate-core`'s poller (10s cycle) picks up the `Paid` status, fires the webhook, and
-   the demo storefront's page updates automatically via SSE.
+   `fibergate-core`'s real-time WebSocket listener (or the 30s fallback poller if the
+   listener isn't connected) picks up the `Paid` status, fires the webhook, and the demo
+   storefront's page updates automatically via SSE.
 
 **Troubleshooting** (see `decisions-log.md` 2026-07-09 for the full investigation of each):
 - **`connect_peer` succeeds but the peer disappears from `list_peers` within ~1s, and

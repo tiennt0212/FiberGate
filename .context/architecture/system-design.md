@@ -17,6 +17,7 @@ tags: [nextjs, postgresql, docker-compose, fiber-node, monorepo, self-hosted]
 | SDK package | TypeScript + tsup | Zero-config bundler, ESM+CJS |
 | Fiber Node | FNN binary | Container riêng trong cùng docker-compose |
 | Fiber client library | `@ckb-ccc/fiber` (official SDK) | Dùng trong `lib/fiber/client.ts` để gọi RPC tới fiber-node — "best starting point for app integrations" theo tài liệu hackathon; không dùng `@fiber-pay/sdk` (community) cho core flow |
+| WebSocket client (Phase 2) | `ws` (dep của `apps/web`, issue #13) | `lib/fiber/subscribe-client.ts` — `@ckb-ccc/fiber` không hỗ trợ subscription (xem trên); Node 20 (base image pinned trong `docker/fibergate-core/Dockerfile`) chưa có global `WebSocket` (chỉ có từ Node 22 trở lên), nên cần package riêng thay vì tự viết RFC6455 hay bump base image — human chốt trực tiếp trong hội thoại giữa 3 lựa chọn |
 | Hosting | Docker Compose | Merchant tự deploy trên VPS của họ (`docker compose up -d`) |
 | Package manager | pnpm workspaces | Monorepo standard |
 | Dev tooling | `dotenv-cli` (dep của `apps/web`) | `pnpm dev`'s script dùng để merge root `.env` + `apps/web/.env.local`, tránh duplicate secret giữa 2 file — xem mục Environment Variables |
@@ -90,11 +91,14 @@ chạy local.
       Phải chạy SAU bước a — chạy trước sẽ có thể đánh dấu "expired" nhầm 1 invoice vừa được trả tiền
       đúng lúc hết hạn (status chỉ chuyển 1 chiều — BR-STS-001 — nên không có đường quay lại "paid").
 
-3'. Background Listener — Phase 2 (thay Background Poller ở trên, đã verify khả thi — xem chi tiết ở
-    "Phase 2 — Real-time Invoice Listener" bên dưới): fibergate-core mở 1 WebSocket client riêng
-    (không dùng @ckb-ccc/fiber cho phần này) subscribe `subscribe_store_changes`, xử lý mỗi
-    notification `store_changes` tương tự bước a-d ở trên nhưng theo event thay vì theo chu kỳ.
-    Vẫn giữ interval poll tần suất thấp (30-60s) làm fallback an toàn.
+3'. Background Listener — Phase 2 (thay Background Poller ở trên — **implemented + live-verified
+    2026-07-13, issue #13**, xem chi tiết ở "Phase 2 — Real-time Invoice Listener" bên dưới):
+    `lib/poller/invoice-listener.ts` mở 1 WebSocket client riêng (`lib/fiber/subscribe-client.ts`,
+    không dùng @ckb-ccc/fiber cho phần này) subscribe `subscribe_store_changes`, xử lý mỗi
+    notification `store_changes` bằng cách gọi thẳng `lib/poller/invoice-poller.ts`'s
+    `applyInvoiceStatusUpdate()` — cùng 1 hàm `applyNodeStatus()`/`TERMINAL_TRANSITIONS` bước a-d ở
+    trên dùng, chỉ khác entry point (theo event thay vì theo chu kỳ). Vẫn giữ interval poll
+    (`lib/poller/worker.ts`) làm fallback, giảm tần suất xuống **30s**.
 ```
 
 ## Phase 2 — Real-time Invoice Listener (đã verify với source code FNN, xem `decisions-log.md`)
@@ -104,6 +108,23 @@ chạy local.
 subscription — xác nhận tồn tại từ bản stable v0.8.1 trở đi, và có document chính thức tại
 `fiber.world/docs/api-reference#websocket-subscriptions`. Node bắn `StoreChange::PutCkbInvoiceStatus
 { payment_hash, invoice_status }` mỗi khi invoice status đổi — đúng event Phase 2 cần.
+
+**2 gotcha phát hiện lúc live-verify (2026-07-13, chạy thật `nervos/fiber:0.9.0-rc6`, xem
+`decisions-log.md`) — không có trong doc chính thức, phải verify bằng cách đọc source thật + connect
+thật:**
+- **`pubsub` KHÔNG nằm trong `rpc.enabled_modules` mặc định của FNN** (default xác nhận qua
+  `crates/fiber-lib/src/rpc/config.rs` tại tag `v0.9.0-rc6`:
+  `cch,channel,graph,payment,info,invoice,peer`) — thiếu bước này thì `subscribe_store_changes` không
+  tồn tại trên node luôn, không phải lỗi auth hay lỗi khác. `docker/fiber-node/config.yml`'s `rpc:`
+  giờ có thêm `enabled_modules:` liệt kê đủ toàn bộ default list + `pubsub` (set field này trong
+  config.yml THAY THẾ hoàn toàn default chứ không cộng dồn, nên phải liệt kê lại từ đầu, không chỉ
+  thêm `pubsub` một dòng).
+- **Subscription id trả về là JSON *number*, không phải string** (vd `2883300409120665`) — mọi ví dụ
+  jsonrpsee subscription tổng quát trên mạng đều minh hoạ bằng string, khiến bản đầu tiên của
+  `lib/fiber/subscribe-client.ts` (chỉ check `typeof result === "string"`) không bao giờ resolve khi
+  chạy thật, dù unit test (tự bịa response string) vẫn pass — phát hiện được nhờ chạy live handshake
+  thật qua `docker run` + script `ws` trước khi coi issue #13 là xong, đúng tinh thần "verify against
+  real infra" của project này. Đã sửa: chấp nhận cả `string | number` cho subscription id.
 
 **Ràng buộc cần biết trước khi implement:**
 - Doc chính thức ghi rõ: *"primarily intended for Cross-Chain Hub integration rather than general
