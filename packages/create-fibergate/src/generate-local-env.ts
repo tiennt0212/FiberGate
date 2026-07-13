@@ -5,7 +5,7 @@
 // instead of a bundled template (see docs/maintainers/getting-started.md's
 // "Generating a real `.env`", issue #55). Doesn't touch the CKB signing key —
 // that step stays the manual `ckb-cli account export` flow documented there.
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { intro, log, note, outro } from "@clack/prompts";
@@ -33,8 +33,12 @@ async function main() {
   const postgres = await promptPostgres();
   const adminPasswordHashB64 = await promptAdminPassword();
   const domain = await promptDomain();
+  const ckbKeyPath = join(REPO_ROOT, "docker", "fiber-node", "ckb", "key");
   const fiberSecretKeyPassword = await askSecretValue(
-    "Passphrase to encrypt your CKB testnet key with",
+    existsSync(ckbKeyPath)
+      ? `${ckbKeyPath} already exists — pick "Enter my own" and reuse its ` +
+        'existing passphrase (a fresh "generate" value won\'t decrypt it). Passphrase to encrypt your CKB testnet key with'
+      : "Passphrase to encrypt your CKB testnet key with",
     "FIBER_SECRET_KEY_PASSWORD",
   );
 
@@ -53,8 +57,12 @@ async function main() {
   const template = readFileSync(join(REPO_ROOT, ".env.example"), "utf-8");
   const envContent = buildEnvFile(template, values);
 
-  // Holds every generated secret — restrict to owner-read/write.
+  // Holds every generated secret — restrict to owner-read/write. `mode` on
+  // writeFileSync only applies to a newly-created file, so chmod explicitly
+  // too — envPath may already exist (the overwrite-confirm above allows it)
+  // with looser permissions from a plain `cp .env.example .env`.
   writeFileSync(envPath, envContent, { mode: 0o600 });
+  chmodSync(envPath, 0o600);
 
   note(
     [
