@@ -1,4 +1,4 @@
-import { and, eq, gt, lt } from "drizzle-orm";
+import { and, eq, gt, lt, type SQL } from "drizzle-orm";
 
 import { logActivity } from "@/lib/activity-log";
 import { db } from "@/lib/db";
@@ -89,7 +89,7 @@ async function pollOneInvoice(invoice: InvoiceRow, now: Date): Promise<void> {
   }
 
   try {
-    await applyNodeStatus(invoice, nodeStatus, now, "poller");
+    await applyNodeStatus(eq(invoices.id, invoice.id), nodeStatus, now, "poller");
   } catch (error) {
     // Same isolation guarantee as the getInvoiceStatus() catch above — a
     // failure applying the status update (DB error, or a future webhook
@@ -117,16 +117,18 @@ const TERMINAL_TRANSITIONS: Partial<
 };
 
 /**
- * Maps node status onto invoices.status. The UPDATE re-checks
- * status='pending' in its WHERE clause (BR-STS-001: forward-only, no
- * re-processing terminal rows). `source` only affects the log line's tag
- * ("poller" vs "listener") — both callers otherwise share the exact same
- * transition/webhook logic, and the DB's WHERE-status-pending check is what
- * actually makes it safe for both to race the same invoice (whichever
- * writer gets there first wins; the loser's UPDATE just affects 0 rows).
+ * Maps node status onto invoices.status via a single UPDATE keyed on
+ * `matchInvoice` (id for the poller, payment_hash for the listener — see the
+ * two callers below), re-checking status='pending' in the same WHERE clause
+ * (BR-STS-001: forward-only, no re-processing terminal rows). `source` only
+ * affects the log line's tag ("poller" vs "listener") — both callers
+ * otherwise share the exact same transition/webhook logic, and the DB's
+ * WHERE-status-pending check is what actually makes it safe for both to race
+ * the same invoice (whichever writer gets there first wins; the loser's
+ * UPDATE just affects 0 rows).
  */
 async function applyNodeStatus(
-  invoice: InvoiceRow,
+  matchInvoice: SQL,
   nodeStatus: InvoiceStatus,
   now: Date,
   source: "poller" | "listener",
@@ -139,7 +141,7 @@ async function applyNodeStatus(
   const [updated] = await db
     .update(invoices)
     .set({ status: transition.status, ...(transition.setPaidAt ? { paidAt: now } : {}) })
-    .where(and(eq(invoices.id, invoice.id), eq(invoices.status, "pending")))
+    .where(and(matchInvoice, eq(invoices.status, "pending")))
     .returning();
 
   if (updated) {
@@ -150,30 +152,25 @@ async function applyNodeStatus(
 
 /**
  * Entry point for lib/poller/invoice-listener.ts's WebSocket event handler
- * (issue #13, Phase 2) — looks up the invoice by payment_hash and, if found,
- * applies the same terminal-state transition applyNodeStatus() uses for the
- * RPC-polled batch above, so both paths share one place that decides what a
- * node status maps onto and whether a webhook fires. A payment_hash with no
- * matching row is silently ignored (BR-POL-005: the store_changes stream is
- * unfiltered by FNN — only payment_hash values that exist in our own
- * invoices table are ours to act on).
+ * (issue #13, Phase 2) — applies the same terminal-state transition
+ * applyNodeStatus() uses for the RPC-polled batch above, so both paths share
+ * one place that decides what a node status maps onto and whether a webhook
+ * fires. Unlike the poller (which already has the invoice row in hand from
+ * its batch SELECT), the WS event only carries payment_hash, so this matches
+ * the UPDATE directly on invoices.paymentHash (unique column) instead of
+ * spending a separate SELECT round-trip to look the row up first. A
+ * payment_hash with no matching row (or nodeStatus not terminal in the first
+ * place) leaves the UPDATE affecting 0 rows and is silently ignored
+ * (BR-POL-005: the store_changes stream is unfiltered by FNN — only
+ * payment_hash values that exist in our own invoices table are ours to act
+ * on).
  */
 export async function applyInvoiceStatusUpdate(
   paymentHash: string,
   nodeStatus: InvoiceStatus,
   now: Date = new Date(),
 ): Promise<void> {
-  const [invoice] = await db
-    .select()
-    .from(invoices)
-    .where(eq(invoices.paymentHash, paymentHash))
-    .limit(1);
-
-  if (!invoice) {
-    return;
-  }
-
-  await applyNodeStatus(invoice, nodeStatus, now, "listener");
+  await applyNodeStatus(eq(invoices.paymentHash, paymentHash), nodeStatus, now, "listener");
 }
 
 /**

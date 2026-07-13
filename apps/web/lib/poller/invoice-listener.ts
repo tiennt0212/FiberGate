@@ -45,8 +45,11 @@ function handleEvent(change: StoreChange): void {
   });
 }
 
-function handleClose(error?: Error): void {
-  subscription = null;
+// Shared by handleClose() and connect()'s rejection handler below — both hit
+// the same "give up if stopInvoiceListener() already ran, otherwise log and
+// schedule the next reconnect attempt" sequence, differing only in the log
+// message's verb and whether an error is always present.
+function logAndReconnect(message: string, error?: unknown): void {
   if (status === "stopped") {
     return; // stopInvoiceListener() already handled shutdown
   }
@@ -54,10 +57,15 @@ function handleClose(error?: Error): void {
   logActivity(
     "error",
     "listener",
-    `Real-time listener connection lost${error ? `: ${String(error)}` : ""}; reconnecting in ${backoffMs}ms`,
+    `${message}${error !== undefined ? `: ${String(error)}` : ""}; reconnecting in ${backoffMs}ms`,
     error,
   );
   scheduleReconnect();
+}
+
+function handleClose(error?: Error): void {
+  subscription = null;
+  logAndReconnect("Real-time listener connection lost", error);
 }
 
 function scheduleReconnect(): void {
@@ -86,16 +94,7 @@ function connect(): void {
       logActivity("info", "listener", "Real-time invoice listener connected (subscribe_store_changes)");
     })
     .catch((error: unknown) => {
-      if (status === "stopped") {
-        return;
-      }
-      logActivity(
-        "error",
-        "listener",
-        `Failed to connect real-time listener: ${String(error)}; retrying in ${backoffMs}ms`,
-        error,
-      );
-      scheduleReconnect();
+      logAndReconnect("Failed to connect real-time listener", error);
     });
 }
 

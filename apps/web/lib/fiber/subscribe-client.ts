@@ -126,6 +126,49 @@ export function subscribeToStoreChanges(
       ws.send(JSON.stringify({ jsonrpc: "2.0", id: 1, method: SUBSCRIBE_METHOD, params: [] }));
     });
 
+    // Starts the heartbeat and resolves the outer promise once the handshake
+    // response confirms the subscription id — pulled out of the "message"
+    // handler below purely to keep that handler a flat sequence of early
+    // returns instead of nesting this ~30-line setup two levels deep.
+    function confirmSubscription(id: JsonRpcSubscriptionId): void {
+      subscriptionId = id;
+      promiseSettled = true;
+      subscribed = true;
+      heartbeatTimer = setInterval(() => {
+        if (awaitingPong) {
+          // Missed a full interval with no pong — the connection is dead but
+          // never told us. terminate() (not close()) forces the socket
+          // closed immediately without waiting for a graceful close
+          // handshake that a black-holed connection will never complete; it
+          // still synthesizes a "close" event below, which is what actually
+          // notifies invoice-listener.ts to reconnect.
+          ws.terminate();
+          return;
+        }
+        awaitingPong = true;
+        ws.ping();
+      }, HEARTBEAT_INTERVAL_MS);
+      resolve({
+        close: () => {
+          if (heartbeatTimer) {
+            clearInterval(heartbeatTimer);
+            heartbeatTimer = null;
+          }
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.send(
+              JSON.stringify({
+                jsonrpc: "2.0",
+                id: 2,
+                method: UNSUBSCRIBE_METHOD,
+                params: [subscriptionId],
+              }),
+            );
+          }
+          ws.close();
+        },
+      });
+    }
+
     ws.on("message", (data: RawData) => {
       let parsed: JsonRpcMessage;
       try {
@@ -134,57 +177,22 @@ export function subscribeToStoreChanges(
         return; // ignore malformed frames rather than crashing the listener
       }
 
-      if (!subscribed) {
-        if (parsed.error) {
-          promiseSettled = true;
-          reject(new Error(`${SUBSCRIBE_METHOD} rejected: ${parsed.error.message}`));
-          ws.close();
-          return;
-        }
-        if (typeof parsed.result === "string" || typeof parsed.result === "number") {
-          subscriptionId = parsed.result;
-          promiseSettled = true;
-          subscribed = true;
-          heartbeatTimer = setInterval(() => {
-            if (awaitingPong) {
-              // Missed a full interval with no pong — the connection is
-              // dead but never told us. terminate() (not close()) forces
-              // the socket closed immediately without waiting for a
-              // graceful close handshake that a black-holed connection
-              // will never complete; it still synthesizes a "close" event
-              // below, which is what actually notifies invoice-listener.ts
-              // to reconnect.
-              ws.terminate();
-              return;
-            }
-            awaitingPong = true;
-            ws.ping();
-          }, HEARTBEAT_INTERVAL_MS);
-          resolve({
-            close: () => {
-              if (heartbeatTimer) {
-                clearInterval(heartbeatTimer);
-                heartbeatTimer = null;
-              }
-              if (ws.readyState === WebSocket.OPEN) {
-                ws.send(
-                  JSON.stringify({
-                    jsonrpc: "2.0",
-                    id: 2,
-                    method: UNSUBSCRIBE_METHOD,
-                    params: [subscriptionId],
-                  }),
-                );
-              }
-              ws.close();
-            },
-          });
+      if (subscribed) {
+        if (parsed.method === NOTIFICATION_METHOD && parsed.params?.subscription === subscriptionId) {
+          onEvent(parsed.params.result as StoreChange);
         }
         return;
       }
 
-      if (parsed.method === NOTIFICATION_METHOD && parsed.params?.subscription === subscriptionId) {
-        onEvent(parsed.params.result as StoreChange);
+      if (parsed.error) {
+        promiseSettled = true;
+        reject(new Error(`${SUBSCRIBE_METHOD} rejected: ${parsed.error.message}`));
+        ws.close();
+        return;
+      }
+
+      if (typeof parsed.result === "string" || typeof parsed.result === "number") {
+        confirmSubscription(parsed.result);
       }
     });
 
