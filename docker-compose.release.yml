@@ -93,6 +93,15 @@ services:
     # real difference from docker-compose.yml's fibergate-core service.
     # GHCR_NAMESPACE/FIBERGATE_CORE_TAG: see .env.release.example.
     image: ghcr.io/${GHCR_NAMESPACE}/fibergate-core:${FIBERGATE_CORE_TAG:-latest}
+    # Without this, `docker compose up -d` only pulls an image the first
+    # time this tag doesn't exist locally at all — a merchant who already
+    # ran this once keeps silently running whatever was cached, even after a
+    # newer image is published under the same `:latest` tag. `always` makes
+    # every `up -d` check the registry first. Tradeoff: `up -d` now needs
+    # network access to GHCR every time (including routine restarts) instead
+    # of falling back to the cached image if offline — intentional, a tag
+    # named "latest" should fail loudly rather than silently serve stale code.
+    pull_policy: always
     restart: unless-stopped
     depends_on:
       postgres:

@@ -592,6 +592,18 @@ ngược đúng commit.
 > qua bảng `__drizzle_migrations`). Chi tiết đầy đủ + cách verify:
 > `decisions-log.md` 2026-07-12.
 >
+> **Cập nhật 2026-07-13**: phát hiện qua test thật — human tự chạy lại
+> `docker compose -f docker-compose.release.yml up -d` sau khi 1 image `:latest`
+> mới đã được publish, nhưng auto-migrate ở trên **không chạy** vì Docker không
+> tự pull lại `:latest` nếu tag đó đã tồn tại sẵn local (hành vi mặc định của
+> Docker — `:latest` chỉ là tên tag, không phải chỉ thị "luôn lấy bản mới nhất").
+> Fix: thêm `pull_policy: always` vào `fibergate-core` trong
+> `docker-compose.release.yml` (chỉ file này — `docker-compose.yml` dùng `build:`
+> từ source, không liên quan) — buộc mọi `docker compose up -d` tự check GHCR
+> trước khi start, verify trực tiếp (`docker compose up` log ra "Pulling"/"Pulled"
+> dù image đã có sẵn local). Đánh đổi: mọi `up -d` (kể cả restart thường) giờ cần
+> mạng tới GHCR — chấp nhận được, tag "latest" nên thật sự luôn là latest.
+>
 > **Gotcha đã biết, chưa giải quyết** (issue #49): `fibergate-net`'s subnet
 > `172.28.0.0/24` bị hardcode giống hệt nhau ở cả `docker-compose.yml` và
 > `docker-compose.release.yml` (cần thiết vì `fiber-node` phải có IP tĩnh

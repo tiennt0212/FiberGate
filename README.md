@@ -141,6 +141,19 @@ TLS/WSS setup via nginx+certbot) — it just references the published image inst
 building `fibergate-core` from source, and drops `fiber-node-payer`
 (local-testing-only).
 
+**Upgrading to a newer `fibergate-core`:** `fibergate-core`'s `pull_policy: always`
+means a plain `docker compose -f docker-compose.release.yml up -d` always checks GHCR
+for a newer image under your configured tag (`:latest` by default) before starting —
+you don't need to run `docker compose pull` separately first. (Without this, Docker
+only pulls an image the first time a tag doesn't exist locally at all — a previously-run
+deploy would otherwise keep silently running whatever was cached, even after a newer
+image is published under the same `:latest` tag.) Combined with auto-migrate-on-boot
+above, upgrading a deployment is just: `docker compose -f docker-compose.release.yml up
+-d`. Trade-off: this now requires network access to GHCR on every `up -d`, including
+routine restarts — if you're pinning `FIBERGATE_CORE_TAG` to a specific `sha-xxx`
+instead of `latest`, this still re-checks every time but never actually changes what's
+running until you edit that pin yourself.
+
 "Public HTTPS deploy" below (DNS, port-forwarding, getting a real TLS cert) applies
 the same way regardless of which option you used — Option A's compose file is
 plain `docker-compose.yml` (no `-f` flag needed), Option B's keeps the
