@@ -23,7 +23,7 @@ vi.mock("@/lib/webhooks/trigger", async (importOriginal) => ({
 const { db } = await import("@/lib/db");
 const { getInvoiceStatus } = await import("@/lib/fiber/client");
 const { triggerWebhook } = await import("@/lib/webhooks/trigger");
-const { runPollCycle } = await import("./invoice-poller");
+const { runPollCycle, applyInvoiceStatusUpdate } = await import("./invoice-poller");
 
 const NOW = new Date("2026-07-01T12:00:00Z");
 
@@ -263,6 +263,38 @@ describe("runPollCycle — RPC-driven batch", () => {
     await runPollCycle(NOW);
 
     expect(db.update).toHaveBeenCalledTimes(1);
+    expect(triggerWebhook).not.toHaveBeenCalled();
+  });
+});
+
+describe("applyInvoiceStatusUpdate — lib/poller/invoice-listener.ts's WebSocket entry point (issue #13)", () => {
+  it("ignores a payment_hash with no matching invoice row (BR-POL-005)", async () => {
+    mockSelectResult([]);
+
+    await applyInvoiceStatusUpdate("0xunknown", "Paid", NOW);
+
+    expect(db.update).not.toHaveBeenCalled();
+    expect(triggerWebhook).not.toHaveBeenCalled();
+  });
+
+  it("applies the same terminal transition as the poller and fires the matching webhook", async () => {
+    const row = buildInvoiceRow({ paymentHash: "0xabc" });
+    const updatedRow = { ...row, status: "paid" as const, paidAt: NOW };
+    mockSelectResult([row]);
+    mockUpdateResults([[updatedRow]]);
+
+    await applyInvoiceStatusUpdate("0xabc", "Paid", NOW);
+
+    expect(triggerWebhook).toHaveBeenCalledWith(updatedRow, "payment.paid");
+  });
+
+  it("is a no-op for a non-terminal node status (e.g. Open)", async () => {
+    const row = buildInvoiceRow({ paymentHash: "0xabc" });
+    mockSelectResult([row]);
+
+    await applyInvoiceStatusUpdate("0xabc", "Open", NOW);
+
+    expect(db.update).not.toHaveBeenCalled();
     expect(triggerWebhook).not.toHaveBeenCalled();
   });
 });

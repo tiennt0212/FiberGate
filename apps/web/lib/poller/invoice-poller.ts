@@ -144,6 +144,34 @@ async function applyNodeStatus(
 }
 
 /**
+ * Entry point for lib/poller/invoice-listener.ts's WebSocket event handler
+ * (issue #13, Phase 2) — looks up the invoice by payment_hash and, if found,
+ * applies the same terminal-state transition applyNodeStatus() uses for the
+ * RPC-polled batch above, so both paths share one place that decides what a
+ * node status maps onto and whether a webhook fires. A payment_hash with no
+ * matching row is silently ignored (BR-POL-005: the store_changes stream is
+ * unfiltered by FNN — only payment_hash values that exist in our own
+ * invoices table are ours to act on).
+ */
+export async function applyInvoiceStatusUpdate(
+  paymentHash: string,
+  nodeStatus: InvoiceStatus,
+  now: Date = new Date(),
+): Promise<void> {
+  const [invoice] = await db
+    .select()
+    .from(invoices)
+    .where(eq(invoices.paymentHash, paymentHash))
+    .limit(1);
+
+  if (!invoice) {
+    return;
+  }
+
+  await applyNodeStatus(invoice, nodeStatus, now);
+}
+
+/**
  * Runs one poll cycle: poll the RPC-eligible pending batch first, then bulk
  * expire whatever is still clock-overdue afterward. Order matters here — see
  * pollPendingBatch()/expireOverdueInvoices()'s doc comments for why
