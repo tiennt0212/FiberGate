@@ -7,8 +7,18 @@
 // defaults that flag to `false`, and node_modules/next/dist/build/index.js
 // only registers this file for detection when it's truthy.
 //
-// BR-POL-001: starts the 10s in-process interval poller exactly once when
-// fibergate-core boots, independent of any inbound request.
+// BR-POL-001: starts the 30s in-process interval poller exactly once when
+// fibergate-core boots, independent of any inbound request — Phase 2 (issue
+// #13) demoted this to a fallback behind the real-time WebSocket listener
+// started right below, so the interval was reduced from the original 10s.
+//
+// Also starts the Phase 2 real-time invoice listener (issue #13):
+// subscribe_store_changes over WebSocket, now the primary path for payment
+// detection, with the poller above kept running as a fallback (see
+// lib/poller/invoice-listener.ts's module doc for why — official FNN docs
+// call this mechanism off-label for a non-CCH client). Like the poller,
+// this must never block or crash server startup — lib/poller/invoice-listener.ts
+// handles its own connection failures with reconnect-with-backoff.
 //
 // Also runs webhook retry recovery exactly once at boot (Resolved Decision
 // #2, issue #8): the retry scheduler is setTimeout-based, in-memory only, so
@@ -24,6 +34,9 @@ export async function register(): Promise<void> {
   if (process.env.NEXT_RUNTIME === "nodejs") {
     const { startInvoicePoller } = await import("./lib/poller/worker");
     startInvoicePoller();
+
+    const { startInvoiceListener } = await import("./lib/poller/invoice-listener");
+    startInvoiceListener();
 
     const { logActivity } = await import("./lib/activity-log");
     const { recoverPendingDeliveries } = await import("./lib/webhooks/retry-scheduler");
