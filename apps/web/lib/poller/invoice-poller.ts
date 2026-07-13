@@ -89,7 +89,7 @@ async function pollOneInvoice(invoice: InvoiceRow, now: Date): Promise<void> {
   }
 
   try {
-    await applyNodeStatus(invoice, nodeStatus, now);
+    await applyNodeStatus(invoice, nodeStatus, now, "poller");
   } catch (error) {
     // Same isolation guarantee as the getInvoiceStatus() catch above — a
     // failure applying the status update (DB error, or a future webhook
@@ -119,12 +119,17 @@ const TERMINAL_TRANSITIONS: Partial<
 /**
  * Maps node status onto invoices.status. The UPDATE re-checks
  * status='pending' in its WHERE clause (BR-STS-001: forward-only, no
- * re-processing terminal rows).
+ * re-processing terminal rows). `source` only affects the log line's tag
+ * ("poller" vs "listener") — both callers otherwise share the exact same
+ * transition/webhook logic, and the DB's WHERE-status-pending check is what
+ * actually makes it safe for both to race the same invoice (whichever
+ * writer gets there first wins; the loser's UPDATE just affects 0 rows).
  */
 async function applyNodeStatus(
   invoice: InvoiceRow,
   nodeStatus: InvoiceStatus,
   now: Date,
+  source: "poller" | "listener",
 ): Promise<void> {
   const transition = TERMINAL_TRANSITIONS[nodeStatus];
   if (!transition) {
@@ -138,7 +143,7 @@ async function applyNodeStatus(
     .returning();
 
   if (updated) {
-    logActivity("info", "poller", `invoice ${updated.id} pending → ${transition.status} (node status: ${nodeStatus})`);
+    logActivity("info", source, `invoice ${updated.id} pending → ${transition.status} (node status: ${nodeStatus})`);
     await triggerWebhook(updated, transition.event);
   }
 }
@@ -168,7 +173,7 @@ export async function applyInvoiceStatusUpdate(
     return;
   }
 
-  await applyNodeStatus(invoice, nodeStatus, now);
+  await applyNodeStatus(invoice, nodeStatus, now, "listener");
 }
 
 /**
