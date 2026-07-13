@@ -27,20 +27,20 @@ since that's the app you're running locally via `pnpm dev` instead). Stop them w
 
 ## Generating a real `.env`
 
-`postgres`/`fiber-node` refuse to start with blank required values in `.env`. There's
-no dedicated generator for this path yet (see the roadmap in
-[`../decisions-and-tradeoffs.md`](../decisions-and-tradeoffs.md)) — the quickest way
-today is to scaffold a throwaway deploy just to get real generated values:
+`postgres`/`fiber-node` refuse to start with blank required values in `.env`. Run
+the generator script instead of filling them in by hand — same shape as
+`create-fibergate`'s wizard, but writes straight to this repo's root `.env`
+(prompts for each value, with a "generate a random value for me" option per
+secret):
 
 ```bash
-npx create-fibergate@latest tmp-fibergate   # answer its prompts, then discard the
-                                             # directory — you only need the .env it wrote
+pnpm generate:env
 ```
 
-Copy the values you need (`POSTGRES_PASSWORD`, `FIBERGATE_INTERNAL_SECRET`,
+This covers `POSTGRES_PASSWORD`, `FIBERGATE_INTERNAL_SECRET`,
 `WEBHOOK_SECRET_ENCRYPTION_KEY`, `DASHBOARD_SESSION_SECRET`,
-`ADMIN_PASSWORD_HASH_B64`, `FIBER_SECRET_KEY_PASSWORD`) into this repo's root `.env`
-— or reuse values from a deploy of your own you already have.
+`ADMIN_PASSWORD_HASH_B64`, `DOMAIN`, and the `FIBER_SECRET_KEY_PASSWORD`
+passphrase — but not the CKB key file itself, which is a separate manual step:
 
 You also need a real CKB testnet signing key at `docker/fiber-node/ckb/key`,
 encrypted with the passphrase you put in `FIBER_SECRET_KEY_PASSWORD` above:

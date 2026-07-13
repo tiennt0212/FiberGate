@@ -358,6 +358,12 @@ Implement: `.github/workflows/docker-publish.yml`, `docker-compose.release.yml` 
 
   Đây là quyết định business rule (có nên giữ nguyên BR-STS-001 khi tiền thật đã về hay không, có cần tín hiệu reconciliation riêng không) nên theo CLAUDE.md dừng lại, không tự fix. Human xác nhận trực tiếp trong hội thoại: log lại làm tài liệu + tạo GitHub issue để bàn hướng xử lý sau, chưa chốt hướng fix nào. Xem issue [#51](https://github.com/tiennt0212/FiberGate/issues/51).
 
+[2026-07-14] **Generator script cho `.env` ở from-source/contributor path (issue #55) — vị trí code + phạm vi chốt trực tiếp với human trong hội thoại**: `create-fibergate` (issue #48) đã thay thế `openssl rand`/`htpasswd` thủ công cho đường merchant deploy chính; đường from-source/contributor (`docs/maintainers/getting-started.md`) vẫn hướng dẫn "scaffold 1 `create-fibergate` deploy bỏ đi rồi copy giá trị" — 1 workaround vòng vo được ghi nhận trong roadmap của `docs/decisions-and-tradeoffs.md`. 2 quyết định kiến trúc hỏi trước khi làm (CLAUDE.md "Hỏi trước khi làm" — nhiều hướng khả thi):
+  1. **Vị trí: bin thứ 2 trong package `packages/create-fibergate` hiện có** (không tạo package/script độc lập mới) — Lý do human chọn: tái dùng nguyên `lib/secrets.ts`/`lib/env-file.ts`/`lib/admin-password.ts`/`lib/validate-secret.ts` đã có sẵn, không cần dependency mới, tránh duplicate logic hashing (rủi ro bảo mật nếu 2 bản logic lệch nhau).
+  2. **Phạm vi: CHỈ generate `.env`, không đụng CKB signing key** — bước `ckb-cli account export` + copy vào `docker/fiber-node/ckb/key` trong `getting-started.md` giữ nguyên thủ công, khớp đúng tiêu đề issue #55 ("Replace manual openssl/htpasswd .env generation").
+
+  Implement: extract `ask`/`askSecretValue`/`promptPostgres`/`promptAdminPassword`/`promptDomain` từ `cli.ts` sang `lib/prompts.ts` (refactor thuần, không đổi hành vi `create-fibergate`); thêm `LOCAL_REQUIRED_ENV_VARS` trong `lib/env-file.ts` (giống `REQUIRED_ENV_VARS` trừ `GHCR_NAMESPACE` — root `.env.example` không có biến published-image) kèm 2 test case mirror; entrypoint mới `src/generate-local-env.ts` đọc `.env.example` sống ở repo root (không copy vào `templates/` như `cli.ts` — script này chỉ chạy from-source nên không có nguy cơ lệch bản), ghi thẳng `REPO_ROOT/.env` mode `0o600`; thêm entry thứ 2 vào `tsup.config.ts`; root script `pnpm generate:env`. Cập nhật `docs/maintainers/getting-started.md`'s "Generating a real `.env`" + xoá bullet tương ứng khỏi roadmap `docs/decisions-and-tradeoffs.md`.
+
 ---
 
 ## Scope

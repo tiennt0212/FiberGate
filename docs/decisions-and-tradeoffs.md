@@ -112,13 +112,6 @@ against a real handshake.
 Beyond the hackathon submission, in roughly the order they'd add the most value:
 
 - **Mainnet support** — everything today targets CKB testnet only.
-- **Automate `.env` generation for the remaining manual/from-source path.**
-  `create-fibergate` already replaced hand-run `openssl rand`/`htpasswd` for the
-  primary merchant deploy path; the contributor/from-source path
-  (`docs/maintainers/getting-started.md`) still expects a human to fill in `.env` by
-  hand. Idea: a lightweight script, same shape as `create-fibergate`, that generates
-  a working `.env` from a template for that path too — retiring manual secret
-  generation from the project entirely, not just from the merchant-facing docs.
 - **CI/CD to publish `create-fibergate` and `@fibergate/sdk` to npm.**
   `fibergate-core`'s Docker image already auto-publishes to GHCR on every push to
   `canary`; neither npm package has an equivalent workflow yet — both are published
