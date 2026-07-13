@@ -26,12 +26,19 @@ export const REQUIRED_ENV_VARS = [
 ] as const;
 
 // Walks backward from a VAR= line through its immediately preceding block of
-// "#"-comment lines, looking for a "[REQUIRED]" marker (see
-// .env.release.example's own comment convention) — stops at the first
-// non-comment line.
+// "#"-comment lines (tolerating blank lines within that block — a stray
+// blank line between a [REQUIRED] comment and its VAR= line shouldn't
+// silently defeat this guard), looking for a "[REQUIRED]" marker (see
+// .env.release.example's own comment convention). Stops at the first line
+// that's neither blank nor a comment — in practice always another VAR= line
+// or a "---- section ----" header, a clear boundary from the previous var's
+// own comment block.
 function isMarkedRequired(lines: string[], varLineIndex: number): boolean {
-  for (let i = varLineIndex - 1; i >= 0 && lines[i].startsWith("#"); i--) {
-    if (lines[i].includes("[REQUIRED]")) return true;
+  for (let i = varLineIndex - 1; i >= 0; i--) {
+    const line = lines[i];
+    if (line.trim() === "") continue;
+    if (!line.startsWith("#")) break;
+    if (line.includes("[REQUIRED]")) return true;
   }
   return false;
 }

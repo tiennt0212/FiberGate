@@ -40,6 +40,12 @@ describe("buildEnvFile", () => {
     expect(() => buildEnvFile(template, {})).toThrow(/NEEDS_VALUE/);
   });
 
+  it("still catches a [REQUIRED] var even with a blank line before its VAR= line", () => {
+    const template = ["# [REQUIRED] needs a value", "", "NEEDS_VALUE="].join("\n");
+
+    expect(() => buildEnvFile(template, {})).toThrow(/NEEDS_VALUE/);
+  });
+
   it("doesn't require a value for vars without a [REQUIRED] marker", () => {
     const template = [
       "# [OPTIONAL] fine to leave blank",
