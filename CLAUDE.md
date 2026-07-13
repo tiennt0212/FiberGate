@@ -34,7 +34,7 @@ apps/demo-storefront/ — Reference merchant app (issue #12) — app hoàn toàn
   demo QR checkout + nhận webhook thật (POST /api/webhook, verify bằng SDK's
   verifyWebhookSignature) đẩy update qua Server-Sent Events. Có Dockerfile +
   docker-compose.demo.yml riêng ngay trong thư mục này (không nằm ở docker/ gốc —
-  tự chứa hoàn toàn). Xem README.md "Demo storefront".
+  tự chứa hoàn toàn). Xem docs/merchants/demo-storefront.md.
 packages/sdk/      — npm package @fibergate/sdk (TypeScript, tsup)
 packages/create-fibergate/ — npm package `create-fibergate` (issue #48):
                      `npx create-fibergate@latest` — interactive wizard
@@ -43,8 +43,10 @@ packages/create-fibergate/ — npm package `create-fibergate` (issue #48):
                      (secrets via Node's crypto, admin password bcrypt-hashed
                      via bcryptjs) and placing the CKB testnet key, so a
                      merchant never hand-edits `.env`/hand-runs
-                     `openssl rand`/`htpasswd` per README's "Generating
-                     secrets". Also validates a passphrase against an
+                     `openssl rand`/`htpasswd` per
+                     docs/merchants/deployment.md's "Generating secrets"
+                     (manual/no-CLI path only — quickstart.md's CLI path
+                     doesn't need this at all). Also validates a passphrase against an
                      already-encrypted key reused from a prior deploy
                      (offline, mirroring fnn's own scrypt+AES-256-GCM key
                      file format — see lib/ckb-key-crypto.ts) before writing
@@ -62,14 +64,22 @@ docker-compose.release.yml — issue #21 + #41: cùng 6 service như docker-comp
                      nhưng fibergate-core dùng image: ghcr.io/<GHCR_NAMESPACE>/
                      fibergate-core (published qua .github/workflows/docker-publish.yml,
                      tag theo git commit SHA + latest) thay vì build: — merchant chỉ cần
-                     file này + .env, không cần clone repo, xem README.md "Deploy from a
-                     published image"
+                     file này + .env, không cần clone repo, xem docs/merchants/deployment.md
 .github/workflows/docker-publish.yml — build + push fibergate-core lên GHCR mỗi lần
                      push canary (+ workflow_dispatch để trigger thủ công)
 docker/            — docker/fibergate-core/Dockerfile, config fiber-node,
                      docker/nginx/nginx.conf.template (nginx + certbot service, TLS
                      cho fibergate-core dashboard/API + WSS cho fiber-node P2P — KHÔNG
-                     front apps/demo-storefront, xem README.md "Public HTTPS deploy")
+                     front apps/demo-storefront, xem docs/merchants/public-https-deploy.md)
+docs/              — Documentation dành cho người (không phải AI), chia theo audience —
+                     xem README.md's bảng "Documentation" để biết file nào cho ai:
+                     docs/merchants/* (deploy/quickstart/demo-storefront), docs/maintainers/*
+                     (local dev/release process), docs/common/troubleshooting.md (lỗi
+                     thường gặp, dùng chung), docs/decisions-and-tradeoffs.md (bản tường
+                     thuật cho giám khảo/reviewer — không thay thế .context/processes/
+                     decisions-log.md, chỉ là bản đọc dễ hơn của nó)
+CONTRIBUTING.md, CODE_OF_CONDUCT.md, MAINTAINER.md — quy ước đóng góp/release, ở root
+                     theo convention GitHub tự nhận diện
 .context/          — Project context files (Single Source of Truth)
 .context/design/   — Mockup UI đầy đủ, commit thẳng vào repo (không chỉ token nữa):
                      - FiberGate.dc.html — mockup dashboard thật (mở trực tiếp bằng browser)

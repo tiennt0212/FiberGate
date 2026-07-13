@@ -58,6 +58,22 @@ FiberGate là một **self-hosted, open-source Fiber payment gateway framework**
 - **Refunds**: Fiber (giống Lightning) là push-payment, không có cơ chế "rút tiền ngược" tự động như thẻ tín dụng — muốn hoàn tiền, merchant phải tự gửi 1 payment mới ngược lại cho payer, đòi hỏi payer chủ động cung cấp trước refund address/invoice, tốn liquidity thật, và cần 1 bảng + luồng `send_payment` riêng. Độ phức tạp không tương xứng với thời gian hackathon, để dành cho phát triển sau.
 - Reconciliation report (đối chiếu `invoices` với `node_snapshots`) — có giá trị nhưng không critical cho core flow, cân nhắc thêm sau nếu Phase 1-3 xong sớm.
 
+## Ý tưởng ghi nhận cho tương lai (chưa scope/quyết định, không phải commitment)
+
+Ghi lại 2026-07-14 để không mất ý tưởng, khi refine documentation cho hackathon —
+xem thêm bản đầy đủ hơn ở `docs/decisions-and-tradeoffs.md`'s "Roadmap":
+
+- **Script tự động sinh `.env` cho đường deploy thủ công/from-source** (tương tự
+  `create-fibergate` nhưng nhắm vào `docs/maintainers/getting-started.md`'s path),
+  thay cho việc merchant/contributor tự chạy `openssl rand`/`htpasswd` tay như hiện
+  tại — mục tiêu là bỏ hẳn hướng dẫn sinh secret thủ công khỏi project, không chỉ
+  khỏi doc merchant-facing (đường đó đã được `create-fibergate` giải quyết).
+- **CI/CD publish `create-fibergate` và `@fibergate/sdk` lên npm.** Hiện tại
+  `fibergate-core`'s Docker image tự publish lên GHCR mỗi lần push `canary`
+  (`.github/workflows/docker-publish.yml`), nhưng 2 npm package chưa có workflow
+  tương đương — `create-fibergate` publish tay (hiện `0.1.2`), `@fibergate/sdk`
+  **chưa publish lên npm** (chỉ dùng qua pnpm workspace linking).
+
 ## Trade-offs đã chấp nhận (phải document rõ trong submission)
 
 **Node vẫn giữ funds trong channel:** Đây là đặc điểm vốn có của bất kỳ LSP/node operator nào (không phải rủi ro riêng của FiberGate) — nhưng vì self-hosted, node key và funds thuộc về chính merchant vận hành, không phải bên thứ ba (FiberGate team) giữ hộ như mô hình custodial SaaS trước đây.
