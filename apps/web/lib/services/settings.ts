@@ -38,12 +38,15 @@ function isMissingTableError(err: unknown): boolean {
  * the *initial* value — once a DB row exists, it is never read again.
  *
  * Also falls back the same way if the `settings` table doesn't exist yet
- * (migrations haven't run) — without this, the initial admin password set
- * via create-fibergate/htpaswd would be unusable until the first migration,
- * surfacing as a generic "Could not verify the password right now" instead
- * of actually logging in. Any other DB error (connection failure, etc.)
- * still propagates — this only swallows the specific "table doesn't exist"
- * case.
+ * (migrations haven't run). In the Docker image this window can't actually
+ * be hit — the container's CMD runs migrate.mjs to completion before the
+ * server starts (see docker/fibergate-core/Dockerfile), so no request ever
+ * reaches this path there. It matters for local `pnpm dev`, where nothing
+ * runs migrations automatically: without this fallback, logging in before a
+ * developer manually runs `db:migrate` would surface as a generic "Could not
+ * verify the password right now" instead of actually logging in. Any other
+ * DB error (connection failure, etc.) still propagates — this only swallows
+ * the specific "table doesn't exist" case.
  */
 export async function getAdminPasswordHash(): Promise<string> {
   let rows: (typeof settings.$inferSelect)[];
