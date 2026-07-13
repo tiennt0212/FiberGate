@@ -119,7 +119,7 @@ rồi sẽ làm Drizzle mất dấu, gây lỗi khó debug.
   thêm mới, không xóa/sửa.
 - Việc chạy `drizzle-kit generate` **không** đụng vào DB thật, chỉ sinh file SQL. Phải
   chạy `drizzle-kit migrate` (qua `pnpm --filter web db:migrate`) thì bảng mới thực sự
-  được tạo/cập nhật trong Postgres — xem "Running the full stack" trong `README.md`.
+  được tạo/cập nhật trong Postgres — xem `docs/maintainers/getting-started.md`.
 
 ## Row Level Security
 

@@ -1,8 +1,9 @@
 # Troubleshooting
 
-Errors you might hit regardless of which path you're on (CLI-scaffolded deploy, manual
-deploy, or running from source). Grouped by area — jump to the one that matches your
-symptom. See also [`docs/merchants/deployment.md`](../merchants/deployment.md) and
+Errors you might hit regardless of which path you're on (a `create-fibergate`-scaffolded
+deploy, hand-editing that output for full manual control, or running from source as a
+contributor). Grouped by area — jump to the one that matches your symptom. See also
+[`docs/merchants/deployment.md`](../merchants/deployment.md) and
 [`docs/merchants/public-https-deploy.md`](../merchants/public-https-deploy.md) for the
 steps these errors are most likely to come up during.
 
@@ -11,14 +12,16 @@ steps these errors are most likely to come up during.
 - **`postgres` or `fibergate-core` fail to start / crash on boot** — almost always a
   blank required var in `.env`. Check `docker compose logs postgres` or
   `docker compose logs fibergate-core` for the specific error, then fill in the
-  missing value (see deployment doc's "Generating secrets").
+  missing value — `create-fibergate` generates these for you (see
+  [`../merchants/quickstart.md`](../merchants/quickstart.md)); if you hand-edited
+  `.env` afterward, double-check you didn't blank one out.
 - **`fibergate-core` never starts, even though `.env` looks complete** — it has
   `depends_on: condition: service_healthy` on both `postgres` and `fiber-node`, so it
   intentionally won't start until both report healthy. Run `docker compose ps` to see
   which one isn't healthy yet, then check that service's logs.
 - **Dashboard login fails even with the right password** — check that
-  `ADMIN_PASSWORD_HASH_B64` in `.env` is the base64-encoded output from "Generating
-  secrets", not the raw `$2y$10$...` hash pasted directly. Decode it locally to
+  `ADMIN_PASSWORD_HASH_B64` in `.env` is the base64-encoded hash `create-fibergate`
+  generated for you, not the raw `$2y$10$...` hash pasted directly. Decode it locally to
   sanity-check: `echo "$ADMIN_PASSWORD_HASH_B64" | base64 -d` should print a string
   starting with `$2y$` or `$2b$`. (Root cause, if you're curious: Docker Compose's
   `.env` interpolation and `dotenv-expand` — used by `pnpm dev`/`build` — each corrupt

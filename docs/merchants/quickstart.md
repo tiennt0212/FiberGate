@@ -57,8 +57,8 @@ changes what's running until you edit that pin yourself.
 
 - **Want a public HTTPS domain for judges/customers to hit?** →
   [`public-https-deploy.md`](public-https-deploy.md)
-- **Want to deploy without Node.js, or without the CLI at all?** →
-  [`deployment.md`](deployment.md) covers the manual (3-file curl) path.
+- **Want full manual control over the generated files, or no Node.js on the deploy
+  host itself?** → [`deployment.md`](deployment.md)
 - **Want to see a real merchant integration end-to-end?** →
   [`demo-storefront.md`](demo-storefront.md)
 - **Something failed during setup?** → [`../common/troubleshooting.md`](../common/troubleshooting.md)

@@ -31,10 +31,11 @@ does and what to do next (creating your first invoice, registering a webhook).
 | For... | Start here |
 |---|---|
 | **Merchants** deploying FiberGate | [docs/merchants/quickstart.md](docs/merchants/quickstart.md) |
-| ...without the CLI / with full manual control | [docs/merchants/deployment.md](docs/merchants/deployment.md) |
+| ...wanting full manual control, or no Node.js on the deploy host | [docs/merchants/deployment.md](docs/merchants/deployment.md) |
 | ...wanting a public HTTPS domain | [docs/merchants/public-https-deploy.md](docs/merchants/public-https-deploy.md) |
 | ...trying the reference integration example | [docs/merchants/demo-storefront.md](docs/merchants/demo-storefront.md) |
 | **Contributors** setting up local dev | [docs/maintainers/getting-started.md](docs/maintainers/getting-started.md) |
+| ...testing a payment locally without a real wallet | [docs/maintainers/local-testing.md](docs/maintainers/local-testing.md) |
 | **Maintainers** publishing a release | [docs/maintainers/release-process.md](docs/maintainers/release-process.md) |
 | Anyone hitting an error | [docs/common/troubleshooting.md](docs/common/troubleshooting.md) |
 | Judges/reviewers — decisions, trade-offs, roadmap | [docs/decisions-and-tradeoffs.md](docs/decisions-and-tradeoffs.md) |

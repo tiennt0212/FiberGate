@@ -15,8 +15,13 @@ tags: [integration, onboarding, webhook, sdk]
 **So that** tôi tự vận hành node và dữ liệu, không phụ thuộc bên thứ ba.
 
 **Acceptance criteria:**
+- Đường khuyến nghị hiện tại: `npx create-fibergate@latest` — wizard tự sinh `.env`
+  (secrets + admin password hash) và xử lý CKB key hộ, xem
+  `docs/merchants/quickstart.md`. Bên dưới là flow thủ công/from-source (contributor,
+  hoặc merchant muốn full control) — xem `docs/merchants/deployment.md` và
+  `docs/maintainers/getting-started.md`.
 - Clone repo, copy `.env.example` → `.env`, set các biến bắt buộc: `POSTGRES_PASSWORD`, `ADMIN_PASSWORD_HASH_B64`, `DASHBOARD_SESSION_SECRET`, `FIBERGATE_INTERNAL_SECRET` (`FIBER_NODE_URL` đã có sẵn giá trị mặc định cho docker network, không cần đổi; `DATABASE_URL` không tự set — derive từ `POSTGRES_*`)
-- Cung cấp CKB testnet key cho fiber-node (`docker/fiber-node/ckb/key` + `FIBER_SECRET_KEY_PASSWORD`) — xem README "Running the full stack"
+- Cung cấp CKB testnet key cho fiber-node (`docker/fiber-node/ckb/key` + `FIBER_SECRET_KEY_PASSWORD`) — xem `docs/maintainers/getting-started.md`'s "Generating a real `.env`"
 - Chạy `docker compose up -d` → khởi động 3 container: fiber-node, postgres, fibergate-core
 - Truy cập dashboard, đăng nhập bằng plaintext password đã dùng để tạo `ADMIN_PASSWORD_HASH_B64` (single-admin, không có sign up)
 - Có thể revoke/rotate `FIBERGATE_INTERNAL_SECRET` bằng cách đổi env var và restart container
