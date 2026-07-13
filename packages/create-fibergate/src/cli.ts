@@ -1,23 +1,14 @@
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import {
-  cancel,
-  confirm,
-  intro,
-  log,
-  note,
-  outro,
-  password as passwordPrompt,
-  select,
-  text,
-} from "@clack/prompts";
+import { intro, log, note, outro, password as passwordPrompt, select, text } from "@clack/prompts";
 import { decryptKeyFile, KeyFileDecryptionError } from "./lib/ckb-key-crypto";
 import { buildEnvFile, REQUIRED_ENV_VARS } from "./lib/env-file";
 import { InvalidHexKeyError, parseHexKeyFile } from "./lib/hex-key";
 import {
   ask,
   askSecretValue,
+  confirmOrExit,
   promptAdminPassword,
   promptDomain,
   promptPostgres,
@@ -55,16 +46,9 @@ async function promptTargetDir(): Promise<string> {
   }
 
   if (!isEmptyOrMissing) {
-    const proceed = await ask(
-      confirm({
-        message: `${targetDir} already exists and isn't empty. Continue and overwrite files in it?`,
-        initialValue: false,
-      }),
+    await confirmOrExit(
+      `${targetDir} already exists and isn't empty. Continue and overwrite files in it?`,
     );
-    if (!proceed) {
-      cancel("Cancelled — nothing was written.");
-      process.exit(0);
-    }
   }
   return targetDir;
 }

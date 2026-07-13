@@ -1,4 +1,4 @@
-import { cancel, isCancel, log, password as passwordPrompt, select, text } from "@clack/prompts";
+import { cancel, confirm, isCancel, log, password as passwordPrompt, select, text } from "@clack/prompts";
 import { hashAdminPassword, MAX_PASSWORD_BYTES } from "./admin-password";
 import { randomHex32 } from "./secrets";
 import { validateSecretChars } from "./validate-secret";
@@ -80,4 +80,13 @@ export async function promptDomain(): Promise<string> {
     }),
   );
   return domain.trim();
+}
+
+/** Asks `message`; if declined, cancels and exits the process (never returns `false`). */
+export async function confirmOrExit(message: string): Promise<void> {
+  const proceed = await ask(confirm({ message, initialValue: false }));
+  if (!proceed) {
+    cancel("Cancelled — nothing was written.");
+    process.exit(0);
+  }
 }

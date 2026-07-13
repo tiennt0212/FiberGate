@@ -8,9 +8,15 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { cancel, confirm, intro, log, note, outro } from "@clack/prompts";
+import { intro, log, note, outro } from "@clack/prompts";
 import { buildEnvFile, LOCAL_REQUIRED_ENV_VARS } from "./lib/env-file";
-import { ask, askSecretValue, promptAdminPassword, promptDomain, promptPostgres } from "./lib/prompts";
+import {
+  askSecretValue,
+  confirmOrExit,
+  promptAdminPassword,
+  promptDomain,
+  promptPostgres,
+} from "./lib/prompts";
 import { randomHex32 } from "./lib/secrets";
 
 // dist/generate-local-env.js -> packages/create-fibergate/dist -> packages/create-fibergate -> packages -> repo root
@@ -21,16 +27,7 @@ async function main() {
 
   const envPath = join(REPO_ROOT, ".env");
   if (existsSync(envPath)) {
-    const proceed = await ask(
-      confirm({
-        message: `${envPath} already exists — overwrite it?`,
-        initialValue: false,
-      }),
-    );
-    if (!proceed) {
-      cancel("Cancelled — nothing was written.");
-      process.exit(0);
-    }
+    await confirmOrExit(`${envPath} already exists — overwrite it?`);
   }
 
   const postgres = await promptPostgres();
