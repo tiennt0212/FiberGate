@@ -8,7 +8,7 @@ when you want to know what a var does, whether it's required, or you're hand-edi
 [`../merchants/deployment.md`](../merchants/deployment.md)).
 
 > AI-facing canonical version (kept in sync with this page):
-> [`.context/architecture/env-vars.md`](../../.context/architecture/env-vars.md).
+> [`.context/architecture/env-vars.md`](https://github.com/tiennt0212/FiberGate/blob/canary/.context/architecture/env-vars.md).
 
 ## Which file do I need?
 
