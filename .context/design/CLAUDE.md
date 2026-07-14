@@ -1,32 +1,32 @@
 # FiberGate Developer Dashboard — Project Context
 
-## Sản phẩm
-**FiberGate** — self-hosted, open-source, single-tenant merchant payment gateway cho Fiber Network (CKB blockchain). Mỗi deployment phục vụ đúng 1 merchant, tự deploy bằng `docker-compose`. Không phải multi-tenant SaaS, không có API key system kiểu Stripe.
+## Product
+**FiberGate** — a self-hosted, open-source, single-tenant merchant payment gateway for Fiber Network (CKB blockchain). Each deployment serves exactly 1 merchant, self-deployed via `docker-compose`. Not a multi-tenant SaaS, no Stripe-style API key system.
 
-## Stack kỹ thuật (production)
+## Tech stack (production)
 - Next.js 14 App Router
-- Tailwind CSS v3 (suffix `!` cho important overrides)
-- Ant Design v5 (component library chính — xem COMPONENTS.dc.html)
-- lucide-react cho icons
+- Tailwind CSS v3 (`!` suffix for important overrides)
+- Ant Design v5 (main component library — see COMPONENTS.dc.html)
+- lucide-react for icons
 - Desktop-first (1280px+)
 
-## Files trong project
-| File | Mô tả |
-|------|-------|
-| `FiberGate.dc.html` | Mockup dashboard đầy đủ — 4 screens: Overview, Webhooks, Transactions, Quick Start |
+## Files in this project
+| File | Description |
+|------|------|
+| `FiberGate.dc.html` | Full dashboard mockup — 4 screens: Overview, Webhooks, Transactions, Quick Start |
 | `DESIGN.md` | Design tokens: color, typography, spacing, border radius, component patterns |
-| `COMPONENTS.dc.html` | Visual catalog — 11 component patterns mapped sang Antd v5 component + override recipe |
+| `COMPONENTS.dc.html` | Visual catalog — 11 component patterns mapped to Antd v5 components + override recipes |
 
-## Screens đã design (FiberGate.dc.html)
-1. **Overview** — 4 metric cards, **Invoice Funnel (30d)** row (Pending → Paid %, Pending → Expired %, Avg. Time to Payment — cho biết invoice có "trôi" hay bị bỏ ngang), Node Status (inbound/outbound capacity bars, pulse dot, Peers count = số peer thật từ Peers), Recent Transactions table
-2. **Channels** *(mới)* — bảng liệt kê từng payment channel: peer (rút gọn), asset (CKB hoặc UDT như RUSD — suy ra từ `fundingUdtTypeScript` có/không), local balance (outbound) / remote balance (inbound, đã làm tròn), trạng thái (Active/Disabled/Closing — cùng ngôn ngữ badge với invoice status). Có mini-diagram tĩnh ở đầu trang (node trung tâm + spokes tới từng peer, tô màu theo state: xanh=active, cam=closing, xám=disabled/no channel). Click 1 row → **Drawer** (Antd Drawer, trượt phải→trái) hiển thị: channel ID đầy đủ, peer pubkey đầy đủ + link "View peer →" nhảy sang Peers, trạng thái chi tiết (state name Fiber vd. `CHANNEL_READY`/`SHUTTING_DOWN` kèm giải thích ngôn ngữ thường), local/remote balance chính xác không làm tròn, TLC in-flight (offered/received) nếu > 0 kèm giải thích tại sao capacity khả dụng thấp hơn balance, public/private, ngày tạo, fee rate (millionths + %), channel outpoint + link funding tx hash sang CKB explorer (pudge.explorer.nervos.org), shutdown tx hash nếu đang đóng.
-3. **Peers** *(mới)* — bảng liệt kê CHỈ 2 cột đúng dữ liệu thật từ `listPeers()`: pubkey + address (multiaddr) — không thêm cột bịa. Click 1 peer → **Drawer** (trượt phải→trái) hiển thị: pubkey/address đầy đủ, tổng capacity (local+remote cộng dồn mọi channel với peer này — con số thanh khoản thật admin cần), danh sách tất cả channel đang mở với peer đó (derive theo pubkey trùng, mỗi channel show trạng thái + balance rút gọn, click → nhảy sang Channel Drawer tương ứng).
-4. **Webhooks** — thêm nhóm stat-card **Delivery Health** ở đầu trang: Delivery Success Rate (24h) + card cảnh báo "Needs Attention" (endpoint có failure rate cao nhất, tên/URL + % fail, style Warning Banner amber, derive động từ rate thấp nhất trong danh sách endpoint) — giúp phát hiện webhook hỏng trước khi mất payment notification. Bên dưới: endpoint list + delivery history panel, Add Endpoint modal (events: payment.paid / invoice.expired / invoice.failed / * all events)
-5. **Activity** *(mới)* — feed log real-time của poller + webhook delivery trong tiến trình fibergate-core (poll mỗi 3s, có countdown "Live · next poll in Ns"). Mỗi dòng: timestamp (giờ:phút:giây, mono), source (poller = dot indigo, webhook = dot purple), message, level (error nổi bật: nền đỏ nhạt + badge ERROR).
-6. **Transactions** — tab Invoices (filter status + asset, Receipt button trên paid rows) + tab Settlement log
-7. **Quick Start** — 5 bước: Deploy → Login → Install SDK → Create Invoice → Configure Webhook
+## Screens already designed (FiberGate.dc.html)
+1. **Overview** — 4 metric cards, an **Invoice Funnel (30d)** row (Pending → Paid %, Pending → Expired %, Avg. Time to Payment — shows whether invoices are "converting" or getting abandoned), Node Status (inbound/outbound capacity bars, pulse dot, Peers count = the real peer count from Peers), Recent Transactions table
+2. **Channels** *(new)* — a table listing each payment channel: peer (truncated), asset (CKB or a UDT like RUSD — inferred from whether `fundingUdtTypeScript` is present), local balance (outbound) / remote balance (inbound, rounded), state (Active/Disabled/Closing — using the same badge language as invoice status). A static mini-diagram sits at the top of the page (a central node + spokes to each peer, colored by state: green=active, orange=closing, gray=disabled/no channel). Clicking a row opens a **Drawer** (Antd Drawer, sliding right-to-left) showing: the full channel ID, the full peer pubkey + a "View peer →" link jumping to Peers, detailed state (the Fiber state name, e.g. `CHANNEL_READY`/`SHUTTING_DOWN`, with a plain-language explanation), exact unrounded local/remote balance, in-flight TLCs (offered/received) if > 0 with an explanation of why available capacity is lower than balance, public/private, creation date, fee rate (millionths + %), the channel outpoint + a link to the funding tx hash on the CKB explorer (pudge.explorer.nervos.org), and the shutdown tx hash if it's closing.
+3. **Peers** *(new)* — a table listing ONLY the 2 columns backed by real data from `listPeers()`: pubkey + address (multiaddr) — no invented columns. Clicking a peer opens a **Drawer** (sliding right-to-left) showing: the full pubkey/address, total capacity (local+remote summed across every channel with this peer — the real liquidity figure an admin needs), and a list of every open channel with that peer (derived by matching pubkey, each channel showing a truncated state + balance, clicking jumps to the corresponding Channel Drawer).
+4. **Webhooks** — added a **Delivery Health** stat-card group at the top of the page: Delivery Success Rate (24h) + a "Needs Attention" warning card (the endpoint with the highest failure rate, name/URL + fail %, amber Warning Banner style, dynamically derived from the lowest-rate endpoint in the list) — helps catch a broken webhook before a payment notification gets lost. Below that: the endpoint list + delivery history panel, an Add Endpoint modal (events: payment.paid / invoice.expired / invoice.failed / * all events)
+5. **Activity** *(new)* — a real-time log feed of the poller + webhook delivery inside the fibergate-core process (polling every 3s, with a "Live · next poll in Ns" countdown). Each line: timestamp (hour:minute:second, monospace), source (poller = indigo dot, webhook = purple dot), message, level (error entries stand out: light red background + ERROR badge).
+6. **Transactions** — an Invoices tab (filter by status + asset, a Receipt button on paid rows) + a Settlement log tab
+7. **Quick Start** — 5 steps: Deploy → Login → Install SDK → Create Invoice → Configure Webhook
 
-## Design tokens chính
+## Key design tokens
 - **Accent**: `#4f46e5` (indigo), hover `#4338ca`
 - **Background**: `#f7f7f8` (page), `#ffffff` (surface)
 - **Border**: `#e4e4e7` (card), `#f3f4f6` (table row divider)
@@ -39,8 +39,8 @@
 - **Asset types**: CKB, RUSD (extensible)
 - **Node status**: online / degraded / offline (pulse-dot animation)
 - **Capacity**: inbound (bar `#4f46e5`) / outbound (bar `#7c3aed`)
-- **Events**: `payment.paid`, `invoice.expired`, `invoice.failed` (không có channel.opened/closed)
-- **Auth**: không có API key UI — `FIBERGATE_INTERNAL_SECRET` set qua env var
+- **Events**: `payment.paid`, `invoice.expired`, `invoice.failed` (no channel.opened/closed)
+- **Auth**: no API key UI — `FIBERGATE_INTERNAL_SECRET` set via an env var
 
 ## SDK snippet (Quick Start)
 ```js
@@ -50,12 +50,12 @@ const gateway = new FiberGate({
 });
 ```
 
-## Đã loại bỏ (không design lại)
-- API Keys screen (list/create/revoke key) — không còn khái niệm này
-- Environment switcher (Live/Test) trong sidebar
+## Removed (not being redesigned)
+- API Keys screen (list/create/revoke key) — this concept no longer exists
+- Environment switcher (Live/Test) in the sidebar
 - Multi-tenant account system (dev@example.com / Free plan)
 
 ## Mood & References
-- Gần giống: Stripe Dashboard, Vercel Dashboard, Supabase Studio
-- Tránh: crypto-themed (dark neon), over-engineered animations, flashy UI
-- Cảm giác: trustworthy, minimal, developer-friendly
+- Close to: Stripe Dashboard, Vercel Dashboard, Supabase Studio
+- Avoid: crypto-themed (dark neon), over-engineered animations, flashy UI
+- Feel: trustworthy, minimal, developer-friendly
