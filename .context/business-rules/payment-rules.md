@@ -62,12 +62,6 @@ stateDiagram-v2
     failed --> [*]
 ```
 
-| BR | Trigger | Terminal? |
-|---|---|---|
-| BR-STS-001 | Quy tắc chung: 1 chiều, không reverse | — |
-| BR-STS-002 | (a) node báo expired, (b) `expires_at < now()` dù chưa poll | Có → `expired` |
-| BR-STS-003 | Fiber node báo invoice bị cancelled | Có → `failed` |
-
 **BR-STS-001:** Status chỉ đi theo một chiều: `pending → paid | expired | failed`. Không thể reverse.
 
 > **Cập nhật 2026-07-04 (issue #7, background poller)**: Node-status → `paid` mapping
