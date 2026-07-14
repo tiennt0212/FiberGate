@@ -29,8 +29,9 @@ funds themselves.
 A recurring theme in this project: several assumptions that looked correct on paper
 turned out to be wrong the first time they were exercised against a real `fnn` node,
 and were only caught because every non-trivial claim was verified live rather than
-assumed from documentation. Four worth highlighting:
+assumed from documentation.
 
+::: warning Four worth highlighting
 1. **`0.0.0.0` counts as a "public" bind, even inside a private Docker network.**
    `fiber-node`'s RPC needed to be reachable from the `fibergate-core` container, so
    it seemed natural to bind `0.0.0.0:8227`. `fnn` refuses to start on any address it
@@ -63,6 +64,7 @@ assumed from documentation. Four worth highlighting:
    redundant `node_info` call before the first lookup resolved (check-then-act race,
    not just a missed cache hit). Fixed by caching the in-flight *promise* instead of
    the resolved value, and invalidating on both RPC failure and "still not found."
+:::
 
 ## Phase 2: real-time invoice detection
 
