@@ -1,8 +1,8 @@
 # create-fibergate
 
 Scaffold a [FiberGate](https://github.com/tiennt0212/FiberGate) merchant deploy
-directory with one interactive command — no manual `openssl rand`, no
-`docker run ... htpasswd`, no hand-editing `.env`.
+directory with one interactive command — no manual secret generation, no
+hand-editing `.env`.
 
 ```bash
 npx create-fibergate@latest my-fibergate-deploy

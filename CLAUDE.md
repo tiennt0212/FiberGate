@@ -46,9 +46,8 @@ packages/create-fibergate/ — npm package `create-fibergate` (issue #48):
                      from docker-compose.release.yml, generating `.env`
                      (secrets via Node's crypto, admin password bcrypt-hashed
                      via bcryptjs) and placing the CKB testnet key, so a
-                     merchant never hand-edits `.env`/hand-runs
-                     `openssl rand`/`htpasswd` by hand (that flow is retired —
-                     see docs/merchants/quickstart.md). Also validates a passphrase against an
+                     merchant never hand-edits `.env` or generates secrets by
+                     hand. Also validates a passphrase against an
                      already-encrypted key reused from a prior deploy
                      (offline, mirroring fnn's own scrypt+AES-256-GCM key
                      file format — see lib/ckb-key-crypto.ts) before writing

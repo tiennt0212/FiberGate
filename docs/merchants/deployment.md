@@ -40,12 +40,3 @@ Only `docker` is needed on the deploy host itself.
 
 Something failed along the way? See
 [`../common/troubleshooting.md`](../common/troubleshooting.md).
-
-> **Note:** the old hand-rolled flow this doc used to describe (curl 3 files
-> individually, run `openssl rand -hex 32` yourself, hand-compute a bcrypt hash for
-> the admin password) is retired in favor of always scaffolding with
-> `create-fibergate` first. There's no fully-manual, no-CLI-at-all path documented
-> right now — see the roadmap in
-> [`../decisions-and-tradeoffs.md`](../decisions-and-tradeoffs.md) for the plan to
-> replace even the remaining from-source/contributor `.env` setup with a similar
-> template-based generator script.

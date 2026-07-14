@@ -3,7 +3,7 @@
 The fastest way to get a FiberGate deployment running is the scaffolding CLI —
 `create-fibergate` on npm. It writes everything a deployment needs (compose file,
 `.env` with generated secrets, admin password hash, CKB key handling) so you never
-hand-edit `.env` or run `openssl rand`/`htpasswd` yourself.
+hand-edit `.env` or generate secrets yourself.
 
 ```bash
 npx create-fibergate@latest fibergate-deploy

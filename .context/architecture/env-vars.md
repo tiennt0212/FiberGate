@@ -32,7 +32,7 @@ tags: [env, config, secrets, ai-agent]
 | `FIBERGATE_INTERNAL_SECRET` | **Required** | — | Shared secret duy nhất cho `/api/v1/*` — storefront app dùng làm Bearer token. |
 | `FIBER_NODE_URL` | Fixed value | `http://fiber-node:8227` | DNS name nội bộ docker-compose, chỉ resolve được trong network đó. Đổi giá trị này thì phải đổi luôn `docker/fiber-node/config.yml`'s `rpc.listening_addr`. |
 | `FIBER_NODE_RPC_AUTH_TOKEN` | Optional | — | Biscuit token — không cần vì `fiber-node` không có public IP. **Lưu ý**: `@ckb-ccc/fiber` bản đang pin chưa có cơ chế gắn token này vào request thật kể cả khi set (xem `decisions-log.md` 2026-07-03). |
-| `WEBHOOK_SECRET_ENCRYPTION_KEY` | **Required** | 64-char hex (`openssl rand -hex 32`) | AES-256-GCM key mã hoá `webhook_endpoints.secret` at rest — không phải signing key (signing key là secret riêng của từng endpoint, BR-SEC-003). |
+| `WEBHOOK_SECRET_ENCRYPTION_KEY` | **Required** | 64-char hex, `create-fibergate`/`pnpm generate:env` tự sinh | AES-256-GCM key mã hoá `webhook_endpoints.secret` at rest — không phải signing key (signing key là secret riêng của từng endpoint, BR-SEC-003). |
 | `CRON_SECRET` | Optional | — | Bảo vệ `/api/cron/poll-invoices` (manual trigger endpoint). |
 | `FIBER_PAYER_SECRET_KEY_PASSWORD` | Required chỉ khi dùng `fiber-node-payer` | — | Mật khẩu key riêng cho `fiber-node-payer` (local-testing only, profile `payer`, không start bằng `docker compose up -d` trần) — key khác hẳn `FIBER_SECRET_KEY_PASSWORD`. |
 

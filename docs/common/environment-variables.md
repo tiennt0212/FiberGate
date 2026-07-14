@@ -34,7 +34,7 @@ gitignored.
 | `ADMIN_PASSWORD_HASH_B64` | **Required** | Your dashboard login, base64-encoded. **Not** the raw bcrypt hash — see the login-troubleshooting note in [`troubleshooting.md`](troubleshooting.md) for why. `create-fibergate` generates this correctly for you. |
 | `DASHBOARD_SESSION_SECRET` | **Required** | Signs your dashboard session cookie. Keep it different from `FIBERGATE_INTERNAL_SECRET` below — they serve different purposes. |
 | `FIBERGATE_INTERNAL_SECRET` | **Required** | The API key your storefront/checkout app uses to call FiberGate's API. Whatever you set here, your storefront's own `.env` must match it exactly. |
-| `WEBHOOK_SECRET_ENCRYPTION_KEY` | **Required** | Protects webhook secrets at rest. Generate with `openssl rand -hex 32`. |
+| `WEBHOOK_SECRET_ENCRYPTION_KEY` | **Required** | Protects webhook secrets at rest (a 64-char hex key). `create-fibergate` generates this for you. |
 | `CRON_SECRET` | Optional | Only needed if you plan to manually trigger the poll endpoint; safe to leave blank otherwise. |
 | `FIBER_NODE_RPC_AUTH_TOKEN` | Optional | Not needed by default — your Fiber node has no public IP in this setup. |
 
@@ -75,8 +75,8 @@ it does not read `apps/web`'s vars or the root `.env` at all.
 ## Generating secrets
 
 - **Merchant deploy**: `create-fibergate` generates every secret for you — see
-  [`../merchants/quickstart.md`](../merchants/quickstart.md). You never run
-  `openssl rand`/`htpasswd` by hand.
+  [`../merchants/quickstart.md`](../merchants/quickstart.md). You never generate
+  secrets by hand.
 - **Contributor / from-source**: `pnpm generate:env` does the same thing for the root
   `.env` — see [`../maintainers/getting-started.md`](../maintainers/getting-started.md)'s
   "Generating a real `.env`".
