@@ -17,9 +17,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 5. `.context/api/rest-api-spec.md` — API spec đầy đủ (request/response/errors)
 6. `.context/business-rules/payment-rules.md` — Logic nghiệp vụ, rate limits, security rules
 7. `.context/processes/decisions-log.md` — Quyết định đã được human chốt
-8. `.context/processes/definition-of-done.md` — DoD và checklist cuối phiên
+8. `.context/processes/gotchas.md` — Infra/protocol gotchas đã tốn công tìm ra
+9. `.context/processes/definition-of-done.md` — DoD và checklist cuối phiên
 
 ## Monorepo layout
+
+> Bản canonical duy nhất — `README.md`/`.context/INDEX.md` chỉ tóm tắt/link về đây.
 
 ```
 apps/web/          — Next.js 14 App Router (fibergate-core: dashboard + API routes)
@@ -131,6 +134,19 @@ Xem `apps/web/CLAUDE.md` — Auth flow cho API routes, Service layer pattern, Da
 - Mọi API route `/api/v1/*` phải validate authentication **trước** khi thực hiện bất kỳ logic nào khác
 - Error handling phải explicit — không dùng `try/catch` rỗng
 - TypeScript strict mode toàn bộ — không dùng `any`
+- Khi tạo git commit cho nhiều thay đổi độc lập nhau (nhiều file/nhiều mục đích khác nhau trong cùng phiên), tách thành nhiều commit nhỏ theo từng đơn vị thay đổi — **không** dồn tất cả vào 1 commit lớn, kể cả khi user chỉ yêu cầu 1 lần "commit giúp tôi"
+
+## Gotchas đã tốn công tìm ra
+
+Chi tiết đầy đủ + cách đã verify: `.context/processes/gotchas.md`. Đừng lặp lại:
+
+- `0.0.0.0` bị `fnn` coi là "public" dù trong Docker network riêng
+- `.env` corrupt ký tự `$` (2 cách khác nhau, tùy reader)
+- `ckb-cli` export key xuất sai format `fnn` cần
+- `pubsub` không nằm trong `enabled_modules` mặc định của FNN
+- `subscribe_store_changes`'s subscription id là JSON number, không phải string
+- RUSD/UDT cache có thể stale-forever / request-storm race
+- Invoice `expired` không reverse được dù payment thật settle sau đó (issue #51)
 
 ## CKB/Fiber References
 
