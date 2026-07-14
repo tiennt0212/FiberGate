@@ -28,6 +28,8 @@ does and what to do next (creating your first invoice, registering a webhook).
 
 ## Documentation
 
+Browse online: **https://tiennt0212.github.io/FiberGate/**
+
 | For... | Start here |
 |---|---|
 | **Merchants** deploying FiberGate | [docs/merchants/quickstart.md](docs/merchants/quickstart.md) |

@@ -69,7 +69,7 @@ automatically if this repo or the `fibergate` npm org gets transferred to anothe
 owner (e.g. handed over to hackathon organizers post-submission):
 
 - **GHCR image name follows the repo owner.** `docker-publish.yml`'s
-  `IMAGE_NAME: ${{ github.repository_owner }}/fibergate-core` resolves at build
+  <code v-pre>IMAGE_NAME: ${{ github.repository_owner }}/fibergate-core</code> resolves at build
   time — a repo transfer flips the published image from
   `ghcr.io/tiennt0212/fibergate-core` to `ghcr.io/<new-owner>/fibergate-core`.
   Every place that references the old name (`docker-compose.release.yml`,
