@@ -1,22 +1,18 @@
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import {
-  cancel,
-  confirm,
-  intro,
-  isCancel,
-  log,
-  note,
-  outro,
-  password as passwordPrompt,
-  select,
-  text,
-} from "@clack/prompts";
-import { hashAdminPassword, MAX_PASSWORD_BYTES } from "./lib/admin-password";
+import { intro, log, note, outro, password as passwordPrompt, select, text } from "@clack/prompts";
 import { decryptKeyFile, KeyFileDecryptionError } from "./lib/ckb-key-crypto";
 import { buildEnvFile, REQUIRED_ENV_VARS } from "./lib/env-file";
 import { InvalidHexKeyError, parseHexKeyFile } from "./lib/hex-key";
+import {
+  ask,
+  askSecretValue,
+  confirmOrExit,
+  promptAdminPassword,
+  promptDomain,
+  promptPostgres,
+} from "./lib/prompts";
 import { randomHex32 } from "./lib/secrets";
 import {
   directoryIsEmptyOrMissing,
@@ -26,42 +22,6 @@ import {
 import { validateSecretChars } from "./lib/validate-secret";
 
 const TEMPLATES_DIR = join(dirname(fileURLToPath(import.meta.url)), "..", "templates");
-const HOSTNAME_RE = /^(localhost|(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?\.)+[a-zA-Z]{2,})$/;
-
-/** Unwraps a clack prompt result, exiting cleanly if the user cancelled (Ctrl+C). */
-async function ask<T>(promise: Promise<T | symbol>): Promise<T> {
-  const result = await promise;
-  if (isCancel(result)) {
-    cancel("Cancelled — nothing was written.");
-    process.exit(0);
-  }
-  // isCancel()'s `value is symbol` guard doesn't narrow an unconstrained
-  // generic T back down for TS — the symbol case has already exited above.
-  return result as T;
-}
-
-async function askSecretValue(label: string, envVarName: string): Promise<string> {
-  const choice = await ask(
-    select({
-      message: `${label}:`,
-      options: [
-        { value: "generate", label: "Generate a random value for me (recommended)" },
-        { value: "custom", label: "Enter my own" },
-      ],
-    }),
-  );
-  if (choice === "generate") {
-    const value = randomHex32();
-    log.success(`${envVarName} generated.`);
-    return value;
-  }
-  return ask(
-    passwordPrompt({
-      message: `Enter ${envVarName}:`,
-      validate: validateSecretChars,
-    }),
-  );
-}
 
 async function promptTargetDir(): Promise<string> {
   const argDir = process.argv[2];
@@ -86,46 +46,11 @@ async function promptTargetDir(): Promise<string> {
   }
 
   if (!isEmptyOrMissing) {
-    const proceed = await ask(
-      confirm({
-        message: `${targetDir} already exists and isn't empty. Continue and overwrite files in it?`,
-        initialValue: false,
-      }),
+    await confirmOrExit(
+      `${targetDir} already exists and isn't empty. Continue and overwrite files in it?`,
     );
-    if (!proceed) {
-      cancel("Cancelled — nothing was written.");
-      process.exit(0);
-    }
   }
   return targetDir;
-}
-
-async function promptPostgres(): Promise<{ user: string; db: string; password: string }> {
-  const user = await ask(text({ message: "Postgres user:", initialValue: "fibergate" }));
-  const db = await ask(text({ message: "Postgres database name:", initialValue: "fibergate" }));
-  const password = await askSecretValue("Postgres password", "POSTGRES_PASSWORD");
-  return { user, db, password };
-}
-
-async function promptAdminPassword(): Promise<string> {
-  const plaintext = await ask(
-    passwordPrompt({
-      message: "Choose the initial dashboard admin password (changeable later from Settings):",
-      validate: (value) => {
-        if (!value) return "Required.";
-        if (Buffer.byteLength(value, "utf-8") > MAX_PASSWORD_BYTES) {
-          return `Must be at most ${MAX_PASSWORD_BYTES} bytes (bcrypt silently truncates beyond that).`;
-        }
-        return undefined;
-      },
-    }),
-  );
-  const confirmation = await ask(passwordPrompt({ message: "Confirm password:" }));
-  if (confirmation !== plaintext) {
-    log.error("Passwords didn't match.");
-    return promptAdminPassword();
-  }
-  return hashAdminPassword(plaintext);
 }
 
 interface CkbKeyResult {
@@ -214,16 +139,7 @@ async function promptCkbKey(): Promise<CkbKeyResult> {
 }
 
 async function promptDeployValues(): Promise<{ domain: string; ghcrNamespace: string }> {
-  const domain = await ask(
-    text({
-      message:
-        "Domain for this deploy — e.g. localhost (local testing, self-signed cert), or " +
-        "deploy.example.com (DNS must point at this host for a real TLS cert):",
-      initialValue: "localhost",
-      validate: (value) =>
-        HOSTNAME_RE.test((value ?? "").trim()) ? undefined : "Not a valid hostname (no port, no protocol).",
-    }),
-  );
+  const domain = await promptDomain();
   const ghcrNamespace = await ask(
     text({
       message: "GitHub org/user the fibergate-core image was published under (GHCR_NAMESPACE):",
@@ -234,7 +150,7 @@ async function promptDeployValues(): Promise<{ domain: string; ghcrNamespace: st
       validate: (value) => ((value ?? "").trim() ? undefined : "Required."),
     }),
   );
-  return { domain: domain.trim(), ghcrNamespace: ghcrNamespace.trim() };
+  return { domain, ghcrNamespace: ghcrNamespace.trim() };
 }
 
 async function main() {

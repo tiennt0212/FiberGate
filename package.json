@@ -12,6 +12,7 @@
     "docker:dev": "docker compose up -d postgres fiber-node",
     "docker:dev:down": "docker compose stop postgres fiber-node fiber-node-preflight",
     "docker:payer": "docker compose up -d fiber-node-payer",
-    "docker:payer:down": "docker compose stop fiber-node-payer fiber-node-payer-preflight"
+    "docker:payer:down": "docker compose stop fiber-node-payer fiber-node-payer-preflight",
+    "generate:env": "pnpm --filter create-fibergate build && node packages/create-fibergate/dist/generate-local-env.js"
   }
 }

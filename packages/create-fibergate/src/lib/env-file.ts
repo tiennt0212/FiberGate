@@ -25,6 +25,19 @@ export const REQUIRED_ENV_VARS = [
   "GHCR_NAMESPACE",
 ] as const;
 
+// Same list as REQUIRED_ENV_VARS, minus GHCR_NAMESPACE — used against the
+// root `.env.example` template (from-source/contributor path, issue #55)
+// instead of `.env.release.example`. That template has no published-image
+// vars (GHCR_NAMESPACE, FIBERGATE_CORE_TAG) to fill in. FIBER_PAYER_SECRET_KEY_PASSWORD
+// is deliberately left out too — its comment there is "[REQUIRED only for
+// fiber-node-payer]", not a bare "[REQUIRED]", so isMarkedRequired() below
+// already treats it as optional. Derived (not hand-copied) so it can never
+// drift from REQUIRED_ENV_VARS.
+export const LOCAL_REQUIRED_ENV_VARS = REQUIRED_ENV_VARS.filter(
+  (name): name is Exclude<(typeof REQUIRED_ENV_VARS)[number], "GHCR_NAMESPACE"> =>
+    name !== "GHCR_NAMESPACE",
+);
+
 // Walks backward from a VAR= line through its immediately preceding block of
 // "#"-comment lines (tolerating blank lines within that block — a stray
 // blank line between a [REQUIRED] comment and its VAR= line shouldn't
@@ -72,7 +85,7 @@ export function buildEnvFile(template: string, values: Record<string, string>): 
     errors.push(`template marks var(s) [REQUIRED] with no value supplied: ${missingRequired.join(", ")}`);
   }
   if (errors.length > 0) {
-    throw new Error(`.env.release.example and the wizard are out of sync — ${errors.join("; ")}`);
+    throw new Error(`template and the wizard are out of sync — ${errors.join("; ")}`);
   }
 
   return result.join("\n");
