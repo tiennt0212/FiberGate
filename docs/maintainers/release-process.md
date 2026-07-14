@@ -17,32 +17,39 @@ to **private** on first publish; someone with org-level access needs to flip the
 package to public once via GitHub's UI (repo → Packages → fibergate-core → Package
 settings) before `docker compose pull` will work for anyone outside the org.
 
-## `create-fibergate` (npm package)
+## `create-fibergate` and `@fibergate/sdk` (npm packages)
 
-Published manually to npm as `create-fibergate` — currently at `0.1.2`. There is
-**no CI/CD workflow that publishes this automatically** on version bump or tag;
-someone runs `npm publish` by hand from `packages/create-fibergate` after bumping
-`package.json`'s `version`. (`npm publish --auth-type=web` if your npm account only
-has passkey/security-key 2FA enrolled — opens a browser approval flow instead of
-prompting for a TOTP code.)
+Published automatically to npm by `.github/workflows/npm-publish.yml` (issue #56)
+on every push to `canary` that touches `packages/create-fibergate/**` or
+`packages/sdk/**` (also runnable manually via `workflow_dispatch` to test before
+trusting the automatic trigger, same as the Docker image). Each package gets its
+own job; a job only runs `npm publish` when that package's `package.json` version
+differs from what's already published — maintainers still bump `version` by hand
+in a PR, CI only handles the `npm publish` step once that change lands on `canary`.
+For `@fibergate/sdk`, also bump the `SDK_VERSION` const in
+`packages/sdk/src/index.ts` to match — it's not derived from `package.json`
+automatically.
 
-Before publishing a new version, make sure `pnpm --filter create-fibergate build`
-has run — its `prebuild` step (`scripts/copy-templates.mjs`) copies
-`docker-compose.release.yml`, `docker/fiber-node/config.yml`,
-`docker/nginx/nginx.conf.template`, and `.env.release.example` from the repo root
-into `templates/` (gitignored) so the scaffolded output can never silently drift
-from those files.
+Auth is npm **Trusted Publishing** (OIDC) — no `NPM_TOKEN` secret stored or
+rotated in this repo, matching `docker-publish.yml`'s "only the built-in
+`GITHUB_TOKEN`" posture. This sidesteps the fact this project's npm account only
+has passkey/security-key 2FA enrolled, which doesn't work non-interactively in CI.
+**One-time manual setup required** (npm account owner only, can't be automated):
+on npmjs.com, for each package's Settings page, add a Trusted Publisher pointing
+at `tiennt0212/FiberGate` and the workflow file `.github/workflows/npm-publish.yml`.
+`@fibergate/sdk` has never been published — if npm doesn't allow configuring a
+Trusted Publisher before a package's first version exists, do one manual
+`npm publish --auth-type=web` (browser approval flow, works around the passkey-only
+2FA) from `packages/sdk` to create the package first, then set up Trusted
+Publishing for every version after that.
 
-## `@fibergate/sdk` (npm package)
-
-**Not currently published to npm at all** — consumed only via pnpm workspace
-linking (e.g. by `apps/demo-storefront`). Anyone wanting to use it from outside this
-monorepo today would need to build it (`pnpm --filter sdk build`) and either publish
-it themselves or vendor the built output.
-
-> Automating both of the above (npm publish on tag/version-bump, for both
-> `create-fibergate` and `@fibergate/sdk`) is a known gap — see the Roadmap section
-> of [`../decisions-and-tradeoffs.md`](../decisions-and-tradeoffs.md).
+Before publishing a new `create-fibergate` version (by hand or via CI), make sure
+`pnpm --filter create-fibergate build` has run — its `prebuild` step
+(`scripts/copy-templates.mjs`) copies `docker-compose.release.yml`,
+`docker/fiber-node/config.yml`, `docker/nginx/nginx.conf.template`, and
+`.env.release.example` from the repo root into `templates/` (gitignored) so the
+scaffolded output can never silently drift from those files. The CI workflow runs
+this automatically as part of its build step.
 
 ## Recording architecture/business decisions
 
