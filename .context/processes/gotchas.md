@@ -41,3 +41,18 @@ tags: [gotchas, infra, fiber, docker, ai-agent]
 - **Invoice `expired` không reverse được ngay cả khi payment thật settle sau đó** —
   Fiber network không enforce `expiry` ở tầng payee; đây là business-rule chưa chốt
   hướng fix, xem issue #51, không tự ý đổi behavior.
+
+- **Docker Compose không tự forward toàn bộ `.env` vào container** — mỗi biến
+  app-level muốn container thấy được phải được liệt kê tường minh trong service đó's
+  `environment:` block; `pnpm dev` không lộ bug này vì nó load thẳng root `.env` qua
+  `dotenv-cli`, bỏ qua hẳn allowlist của Compose. Verify bằng `docker compose config |
+  grep <TÊN_BIẾN>`. Mọi biến mới thêm vào `.env.example` phải đối chiếu lại
+  `docker-compose.yml`'s `environment:` block trong cùng session — 2 nơi không tự
+  đồng bộ.
+
+- **`env_file:` trong 1 override compose file resolve path tương đối theo project
+  directory (thư mục chứa file `-f` đầu tiên), không phải theo thư mục chứa chính
+  file override đó** — cùng hành vi đã ghi nhận cho `build.context`. Dễ gây sai khi
+  thêm 1 service overlay mới (vd `apps/demo-storefront/docker-compose.demo.yml`) mà
+  không test full command `docker compose -f docker-compose.yml -f
+  apps/demo-storefront/docker-compose.demo.yml up -d` từ đúng working directory.

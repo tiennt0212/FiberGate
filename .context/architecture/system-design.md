@@ -216,149 +216,46 @@ fibergate/
 
 ## Environment Variables
 
-Không có `DATABASE_URL` ở bất kỳ đâu — `lib/db/` (chưa viết, thuộc issue khác) luôn
-tự build connection string từ 5 biến `POSTGRES_*` trước khi khởi tạo Drizzle client,
-1 code path duy nhất dùng chung cho cả Docker lẫn local dev:
+Bảng đầy đủ toàn bộ biến (theo từng file `.env.example`): xem
+`.context/architecture/env-vars.md` — mục này chỉ giữ lại các quyết định
+kiến trúc/current-state không tự nhiên nằm gọn trong 1 bảng.
+
+Không có `DATABASE_URL` ở bất kỳ đâu — `lib/db/` luôn tự build connection string từ
+5 biến `POSTGRES_*` trước khi khởi tạo Drizzle client, 1 code path duy nhất dùng
+chung cho cả Docker lẫn local dev:
 
 ```ts
 const databaseUrl = `postgres://${process.env.POSTGRES_USER}:${process.env.POSTGRES_PASSWORD}@${process.env.POSTGRES_HOST}:${process.env.POSTGRES_PORT}/${process.env.POSTGRES_DB}`
 ```
 
 **Chỉ 1 file chứa secret thật** — root `.env` (copy từ `.env.example`), dùng chung
-cho cả `docker compose up -d` lẫn `pnpm dev`. 6 biến required để trống có chủ đích
-(không có default an toàn nào) — `create-fibergate` generate các biến này hộ (xem
-`docs/merchants/quickstart.md`); cho local dev từ source, xem
-`docs/maintainers/getting-started.md`'s "Generating a real `.env`":
-
-```bash
-# .env.example (root) — rút gọn, xem file thật cho comment đầy đủ
-POSTGRES_USER=fibergate
-POSTGRES_DB=fibergate
-POSTGRES_PASSWORD=
-FIBER_SECRET_KEY_PASSWORD=       # không thuộc 8 biến app-level bên dưới — chỉ
-                                  # fiber-node đọc, xem section "fiber-node
-                                  # container" bên dưới — nhưng vẫn để trong
-                                  # .env.example (section riêng) để merchant
-                                  # thấy đủ giá trị required trong 1 lần cp
-ADMIN_PASSWORD_HASH_B64=         # base64-encoded bcrypt hash — KHÔNG phải
-                                  # raw "$2y$10$..." — xem "Dashboard auth"
-                                  # bên dưới để biết lý do
-DASHBOARD_SESSION_SECRET=        # ký session cookie (JWT, qua jose) cho
-                                  # app/(dashboard)/** — cố ý tách biệt với
-                                  # FIBERGATE_INTERNAL_SECRET (BR-SEC-004), xem
-                                  # apps/web/lib/auth/session.ts + middleware.ts
-FIBERGATE_INTERNAL_SECRET=
-FIBER_NODE_URL=http://fiber-node:8227  # fixed value, docker internal network
-FIBER_NODE_RPC_AUTH_TOKEN=       # optional
-WEBHOOK_SECRET_ENCRYPTION_KEY=   # 64-char hex (32-byte AES-256 key) encrypting
-                                  # webhook_endpoints.secret at rest — NOT a
-                                  # signing key itself. Each endpoint's own
-                                  # secret (webhook_endpoints.secret, random
-                                  # >=32 bytes per BR-SEC-003) is what signs
-                                  # that endpoint's payloads (BR-WHK-004); this
-                                  # env var only protects that per-endpoint
-                                  # secret at rest. See
-                                  # apps/web/lib/webhooks/secret-crypto.ts.
-                                  # create-fibergate generates this for you
-                                  # (docs/merchants/quickstart.md); for local
-                                  # dev see docs/maintainers/getting-started.md
-```
-
-> **Cập nhật 2026-07-03 (issue #5, verified khi implement `lib/fiber/client.ts`)**:
-> `client.ts` đọc `FIBER_NODE_RPC_AUTH_TOKEN` trực tiếp từ `process.env` như mô
-> tả ở trên, nhưng bản `@ckb-ccc/fiber@0.0.0-canary-20260505020844` đang pin
-> **chưa có cơ chế nào để gắn token này vào request thật** — SDK's HTTP
-> transport hard-code duy nhất header `content-type: application/json`, không
-> có chỗ nào đọc `Authorization`/Biscuit. Xem chi tiết ở `decisions-log.md`
-> 2026-07-03. Không ảnh hưởng chức năng hiện tại vì Biscuit auth đang tắt
-> hoàn toàn theo thiết kế mặc định (mục "fiber-node container" bên dưới) —
-> chỉ cần lưu ý nếu sau này có ai bật Biscuit auth thật, sẽ cần viết thêm 1
-> custom RPC transport mới forward được token.
-
-```bash
-CRON_SECRET=                     # optional
-```
-
-> **Cập nhật 2026-07-09 (issue #17)**: thêm 2 biến **required** mới,
-> `DOMAIN`/`CERTBOT_EMAIL` — dùng bởi `nginx`/`certbot` (mục "TLS/WSS reverse proxy"
-> ở trên), không phải secret sinh ngẫu nhiên như các biến khác mà là giá trị
-> real-world (domain thật + email thật). Không có default an toàn nào (nginx không
-> start ra config dùng được nếu thiếu `DOMAIN`) — xem `docs/merchants/public-https-deploy.md`.
-> ```bash
-> DOMAIN=                          # public domain, cần DNS trỏ vào host này +
->                                   # port 80/443/8228 mở ra internet
-> CERTBOT_EMAIL=                   # Let's Encrypt expiry notices
-> ```
-
-Không có preflight/service nào tự động kiểm tra các biến bcrypt/secret ở trên (postgres/
+cho cả `docker compose up -d` lẫn `pnpm dev`. Cách generate: merchant path →
+`create-fibergate` (`docs/merchants/quickstart.md`); contributor/from-source path →
+`pnpm generate:env` (`docs/maintainers/getting-started.md`'s "Generating a real
+`.env`"). Không có preflight nào tự động kiểm tra các biến bcrypt/secret (postgres/
 fibergate-core tự fail rõ ràng nếu thiếu) — riêng `DOMAIN` có `nginx-certs-preflight`
-sinh cert self-signed tạm nếu thiếu cert thật, nên `nginx`/`docker compose up -d` vẫn
-start được kể cả khi `DOMAIN` chưa trỏ đi đâu thật, chỉ là không dùng được qua HTTPS
-đáng tin cậy cho tới khi hoàn tất `docs/merchants/public-https-deploy.md`.
+sinh cert self-signed tạm nếu thiếu cert thật.
 
-> **Cập nhật 2026-07-08 (issue #12, demo storefront)**: `apps/demo-storefront` là 1
-> app hoàn toàn riêng (xem "Merchant's storefront app cụ thể hoá" ở mục kiến trúc
-> phía trên) nên có `.env.example` độc lập của chính nó (`FIBERGATE_BASE_URL`,
-> `FIBERGATE_INTERNAL_SECRET`, `DEMO_WEBHOOK_SECRET`) — **root `.env`/`.env.example`
-> không có biến demo-storefront nào cả**, kể cả khi deploy qua Docker Compose:
-> `apps/demo-storefront/docker-compose.demo.yml`'s service `demo-storefront` dùng
-> `env_file: [apps/demo-storefront/.env.local]` để đọc thẳng secrets từ file đó
-> (cùng file `pnpm --filter demo-storefront dev` dùng), chỉ override đúng 1 biến
-> `FIBERGATE_BASE_URL` (topology-dependent: docker DNS name khi chạy container,
-> khác giá trị `localhost` trong `.env.local`) qua `environment:` block (luôn
-> thắng `env_file:` cho cùng 1 key). Bản đầu tiên (đã sửa) có thêm
-> `DEMO_WEBHOOK_SECRET` vào root `.env.example` để Docker Compose interpolate —
-> human phát hiện đây là duplicate thật với `apps/demo-storefront/.env.example`,
-> sửa lại bằng `env_file:` để chỉ còn đúng 1 nơi lưu secret này. Xem
-> `decisions-log.md` 2026-07-08 để biết chi tiết + 1 gotcha đáng nhớ phát hiện lúc
-> sửa: `env_file:` trong 1 override compose file resolve path tương đối theo
-> **project directory** (thư mục file `-f` đầu tiên), không phải theo thư mục
-> chứa chính file override đó — cùng hành vi đã ghi nhận cho `build.context`.
->
-> Cũng đã cân nhắc và **bỏ** 1 script seed tự động (`apps/web/lib/services/webhooks.ts`'s
-> `createWebhookEndpoint()` gọi trực tiếp từ 1 `.mjs` script) từng làm trong cùng
-> phiên — human chốt không cần, sẽ tự đăng ký webhook endpoint qua Dashboard (khi
-> trang đó được xây) thay vì có riêng 1 cơ chế seed cho demo.
+`apps/web/.env.local` chỉ override 3 biến khác giá trị so với root `.env` khi chạy
+`pnpm dev` ngoài Docker (`POSTGRES_HOST`, `POSTGRES_PORT`, `FIBER_NODE_URL`) —
+`apps/web/package.json`'s `dev` script dùng `dotenv-cli` để merge 2 file trước khi
+spawn `next dev`: `dotenv -e .env.local -e ../../.env -- next dev` (file liệt kê
+trước thắng). `POSTGRES_HOST=localhost` chỉ hoạt động vì `docker-compose.yml`'s
+`postgres` service publish port loopback-only (`127.0.0.1:5432`) — cùng pattern
+dùng cho `fiber-node`'s RPC (xem section "fiber-node container" bên dưới).
 
-> **Cập nhật 2026-07-05 (issue #9, phát hiện lúc code review trước khi tạo PR)**:
-> `docker-compose.yml`'s `fibergate-core.environment` phải liệt kê tường minh **từng**
-> biến app-level muốn container thấy được — Compose không tự forward toàn bộ root
-> `.env` vào container, chỉ những biến có mặt trong `environment:` mới được inject.
-> `DASHBOARD_SESSION_SECRET` (thêm ở issue #9) ban đầu bị bỏ sót khỏi block này —
-> `pnpm dev` không lộ bug vì script `dev` load thẳng root `.env` qua `dotenv-cli`,
-> bỏ qua hẳn cơ chế allowlist của Compose. Verify bằng `docker compose config | grep
-> DASHBOARD_SESSION_SECRET` thấy resolve đúng sau khi thêm dòng
-> `DASHBOARD_SESSION_SECRET: ${DASHBOARD_SESSION_SECRET}` vào block đó. Bài học chung:
-> mọi biến app mới thêm vào `.env.example` đều phải đối chiếu lại
-> `docker-compose.yml`'s `fibergate-core.environment` trong cùng session — 2 file này
-> không tự đồng bộ.
+`apps/demo-storefront` có `.env.local` hoàn toàn độc lập (`FIBERGATE_BASE_URL`,
+`FIBERGATE_INTERNAL_SECRET`, `DEMO_WEBHOOK_SECRET`) — không đọc root `.env` hay
+`apps/web`'s vars, kể cả khi deploy qua Docker Compose overlay
+(`apps/demo-storefront/docker-compose.demo.yml` dùng `env_file:` để đọc thẳng từ
+file đó, chỉ override đúng `FIBERGATE_BASE_URL` qua `environment:` cho khớp docker
+DNS name).
 
-`apps/web/.env.local` chỉ còn 3 biến override cho local dev ngoài Docker — không
-duplicate lại các biến ở trên:
-
-```bash
-# apps/web/.env.example → copy thành apps/web/.env.local
-POSTGRES_HOST=localhost          # root .env không có field này — trong docker-compose
-                                  # nó là giá trị cố định "postgres", khai thẳng trong
-                                  # docker-compose.yml, không phải merchant-configurable
-POSTGRES_PORT=5432
-FIBER_NODE_URL=                  # root .env mặc định trỏ DNS nội bộ docker
-                                  # (http://fiber-node:8227) — không resolve được nếu
-                                  # chạy pnpm dev thuần, cần override, vd http://localhost:8227
-```
-
-`apps/web/package.json`'s `dev` script dùng `dotenv-cli` để merge 2 file này trước
-khi spawn `next dev`: `dotenv -e .env.local -e ../../.env -- next dev` — file liệt kê
-trước thắng (theo docs của `dotenv-cli`), nên `.env.local` override đúng 3 biến trên,
-còn lại lấy từ root `.env`.
-
-> **Cập nhật 2026-07-03 (issue #4, phát hiện lúc chạy thử `db:migrate`)**:
-> `POSTGRES_HOST=localhost` ở trên chỉ hoạt động thật vì `docker-compose.yml`'s
-> `postgres` service publish port loopback-only (`127.0.0.1:5432:5432`) — giống
-> hệt pattern đã dùng cho `fiber-node`'s RPC (xem section "fiber-node container"
-> bên dưới). Trước đó `postgres` không có `ports:` nào, nên `pnpm dev`/
-> `pnpm --filter web db:migrate` chạy trên host không kết nối được (connection
-> refused). Xem `decisions-log.md` 2026-07-03 để biết chi tiết + cách verify.
+Lịch sử các quyết định/gotcha liên quan (biến `FIBER_NODE_RPC_AUTH_TOKEN` chưa gắn
+được vào request thật ở bản SDK đang pin; `DOMAIN`/`CERTBOT_EMAIL` trở thành
+required khi thêm nginx/certbot; tách `.env` riêng cho demo-storefront; Docker
+Compose không tự forward `.env` vào container; `env_file:` resolve path theo
+project directory): xem `decisions-log.md` và `.context/processes/gotchas.md`.
 
 ## fiber-node container (docker-compose)
 

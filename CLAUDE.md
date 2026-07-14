@@ -147,6 +147,8 @@ Chi tiết đầy đủ + cách đã verify: `.context/processes/gotchas.md`. Đ
 - `subscribe_store_changes`'s subscription id là JSON number, không phải string
 - RUSD/UDT cache có thể stale-forever / request-storm race
 - Invoice `expired` không reverse được dù payment thật settle sau đó (issue #51)
+- Docker Compose không tự forward toàn bộ `.env` vào container — phải liệt kê tường minh trong `environment:` block
+- `env_file:` trong override compose file resolve path theo project directory, không phải thư mục chứa file override
 
 ## CKB/Fiber References
 
