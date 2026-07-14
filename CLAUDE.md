@@ -4,8 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Đây là project gì?
 
-**FiberGate** là self-hosted, open-source merchant payment gateway framework prototype cho Fiber Network hackathon (1–15 July 2026). (Không gọi là "LSP framework" — không cung cấp dịch vụ liquidity/mở channel hộ bên thứ ba; đây là merchant payment gateway, khớp category 3 "Merchant, Liquidity, LSP, and Multi-Asset Infrastructure" qua hướng "payment processor prototypes... payment status webhooks".)
-Merchant tự deploy bằng `docker compose up -d` (Fiber node + PostgreSQL + FiberGate core) trên hạ tầng của chính mình, rồi gọi REST API nội bộ để tạo invoice và nhận thanh toán — không cần tự viết code kết nối Fiber RPC, quản lý invoice state machine, hay tự build webhook delivery từ đầu. Single-tenant: mỗi deployment phục vụ 1 merchant, không có multi-tenant API key/account system.
+**FiberGate** — self-hosted merchant payment gateway framework prototype cho Fiber Network hackathon (1–15 July 2026). Mô tả đầy đủ: xem `README.md`.
+
+> **Constraint cho agent**: Không gọi đây là "LSP framework" — không cung cấp dịch vụ liquidity/mở channel hộ bên thứ ba. Single-tenant: mỗi deployment phục vụ đúng 1 merchant, không có multi-tenant API key/account system — ảnh hưởng trực tiếp tới auth pattern (xem "Auth flow cho API routes" bên dưới: 1 shared secret, không lookup theo user/client).
 
 Đọc `.context/INDEX.md` trước tiên, sau đó đọc theo thứ tự:
 
@@ -230,3 +231,4 @@ Khi gặp yêu cầu chưa rõ hoặc có nhiều cách tiếp cận, Claude Cod
    (component nào trong mockup nên dựng bằng Antd component nào + cách override) — không tự bịa
    màu sắc/spacing, và không tự dựng lại component mà Antd đã có sẵn
 5. Update context file nếu có thay đổi design
+6. Trước khi coi là xong: đối chiếu `.context/processes/definition-of-done.md` — đừng dừng lại chỉ vì code "trông có vẻ xong"
