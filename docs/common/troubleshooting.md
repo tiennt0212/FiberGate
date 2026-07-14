@@ -3,8 +3,8 @@
 Errors you might hit regardless of which path you're on (a `create-fibergate`-scaffolded
 deploy, hand-editing that output for full manual control, or running from source as a
 contributor). Grouped by area — jump to the one that matches your symptom. See also
-[`docs/merchants/deployment.md`](../merchants/deployment.md) and
-[`docs/merchants/public-https-deploy.md`](../merchants/public-https-deploy.md) for the
+[Manual / advanced deployment](../merchants/deployment.md) and
+[Public HTTPS deploy](../merchants/public-https-deploy.md) for the
 steps these errors are most likely to come up during.
 
 ## Startup / `.env`
@@ -13,7 +13,7 @@ steps these errors are most likely to come up during.
   blank required var in `.env`. Check `docker compose logs postgres` or
   `docker compose logs fibergate-core` for the specific error, then fill in the
   missing value — `create-fibergate` generates these for you (see
-  [`../merchants/quickstart.md`](../merchants/quickstart.md)); if you hand-edited
+  [Quickstart for merchants](../merchants/quickstart.md)); if you hand-edited
   `.env` afterward, double-check you didn't blank one out.
 - **`fibergate-core` never starts, even though `.env` looks complete** — it has
   `depends_on: condition: service_healthy` on both `postgres` and `fiber-node`, so it
@@ -27,7 +27,7 @@ steps these errors are most likely to come up during.
   `.env` interpolation and `dotenv-expand` — used by `pnpm dev`/`build` — each corrupt
   literal `$` characters differently; base64 has no `$` in its alphabet, so it's the
   one encoding that survives both paths intact. See
-  [`docs/decisions-and-tradeoffs.md`](../decisions-and-tradeoffs.md).)
+  [Decisions, trade-offs, and roadmap](../decisions-and-tradeoffs.md).)
 
 ## `fiber-node`
 
@@ -54,7 +54,7 @@ steps these errors are most likely to come up during.
 
 - **`https://$DOMAIN` shows a certificate warning / "not secure"** — expected until
   you've run the one-time certbot command in
-  [`docs/merchants/public-https-deploy.md`](../merchants/public-https-deploy.md). Until
+  [Public HTTPS deploy](../merchants/public-https-deploy.md). Until
   then `nginx` is serving the temporary self-signed cert `nginx-certs-preflight`
   generated so it could start at all — normal on first boot, not a bug.
 - **The certbot command fails with a challenge/timeout error** — almost always DNS or
@@ -70,7 +70,7 @@ steps these errors are most likely to come up during.
 
 ## Testing payments with `fiber-node-payer`
 
-(See [`docs/merchants/demo-storefront.md`](../merchants/demo-storefront.md) for the
+(See [Demo storefront](../merchants/demo-storefront.md) for the
 full flow this refers to.)
 
 - **`connect_peer` succeeds but the peer disappears from `list_peers` within ~1s, and

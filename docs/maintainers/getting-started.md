@@ -1,7 +1,7 @@
 # Getting started (contributor / local dev)
 
 This is for people modifying FiberGate's code. If you're a merchant just running
-it, see [`../merchants/quickstart.md`](../merchants/quickstart.md) instead.
+it, see [Quickstart for merchants](../merchants/quickstart.md) instead.
 
 Requires [pnpm](https://pnpm.io/) (this repo pins `pnpm@9.15.9` via `packageManager`)
 and Node.js.
@@ -99,4 +99,4 @@ against root `docker-compose.yml` instead of a scaffolded one.
 no manual step needed here either, on first install or after pulling new migration
 files.
 
-Something failed? See [`../common/troubleshooting.md`](../common/troubleshooting.md).
+Something failed? See [Troubleshooting](../common/troubleshooting.md).

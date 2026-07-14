@@ -2,10 +2,10 @@
 
 A plain-language reference for every `.env` var across the 4 deploy/dev paths in this
 repo. If you just want to get running, `create-fibergate` generates all of these for
-you — see [`../merchants/quickstart.md`](../merchants/quickstart.md). This page is for
+you — see [Quickstart for merchants](../merchants/quickstart.md). This page is for
 when you want to know what a var does, whether it's required, or you're hand-editing
 `.env` for full manual control (see
-[`../merchants/deployment.md`](../merchants/deployment.md)).
+[Manual / advanced deployment](../merchants/deployment.md)).
 
 > AI-facing canonical version (kept in sync with this page):
 > [`.context/architecture/env-vars.md`](https://github.com/tiennt0212/FiberGate/blob/canary/.context/architecture/env-vars.md).
@@ -30,8 +30,8 @@ gitignored.
 | `POSTGRES_PASSWORD` | **Required** | Database password. No safe default — pick your own. |
 | `FIBER_SECRET_KEY_PASSWORD` | **Required** | Unlocks your CKB testnet signing key file. Must match the passphrase you used when the key was encrypted, not a new password you invent. |
 | `DOMAIN` | **Required** | Your public domain, DNS-pointed at this host, with ports 80/443/8228 reachable from the internet. Without it, nginx can't serve a usable HTTPS config. |
-| `CERTBOT_EMAIL` | Optional | Only used for the one-time real-certificate step in [`public-https-deploy.md`](../merchants/public-https-deploy.md); safe to leave blank until then. |
-| `ADMIN_PASSWORD_HASH_B64` | **Required** | Your dashboard login, base64-encoded. **Not** the raw bcrypt hash — see the login-troubleshooting note in [`troubleshooting.md`](troubleshooting.md) for why. `create-fibergate` generates this correctly for you. |
+| `CERTBOT_EMAIL` | Optional | Only used for the one-time real-certificate step in [Public HTTPS deploy](../merchants/public-https-deploy.md); safe to leave blank until then. |
+| `ADMIN_PASSWORD_HASH_B64` | **Required** | Your dashboard login, base64-encoded. **Not** the raw bcrypt hash — see the login-troubleshooting note in [Troubleshooting](troubleshooting.md) for why. `create-fibergate` generates this correctly for you. |
 | `DASHBOARD_SESSION_SECRET` | **Required** | Signs your dashboard session cookie. Keep it different from `FIBERGATE_INTERNAL_SECRET` below — they serve different purposes. |
 | `FIBERGATE_INTERNAL_SECRET` | **Required** | The API key your storefront/checkout app uses to call FiberGate's API. Whatever you set here, your storefront's own `.env` must match it exactly. |
 | `WEBHOOK_SECRET_ENCRYPTION_KEY` | **Required** | Protects webhook secrets at rest (a 64-char hex key). `create-fibergate` generates this for you. |
@@ -75,8 +75,8 @@ it does not read `apps/web`'s vars or the root `.env` at all.
 ## Generating secrets
 
 - **Merchant deploy**: `create-fibergate` generates every secret for you — see
-  [`../merchants/quickstart.md`](../merchants/quickstart.md). You never generate
+  [Quickstart for merchants](../merchants/quickstart.md). You never generate
   secrets by hand.
 - **Contributor / from-source**: `pnpm generate:env` does the same thing for the root
-  `.env` — see [`../maintainers/getting-started.md`](../maintainers/getting-started.md)'s
+  `.env` — see [Getting started (contributor / local dev)](../maintainers/getting-started.md)'s
   "Generating a real `.env`".

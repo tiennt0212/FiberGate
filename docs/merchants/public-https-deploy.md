@@ -116,4 +116,4 @@ and smoke-tested locally (self-signed cert, `DOMAIN=localhost`) but not against 
 Let's Encrypt issuance or a live browser-wallet payment. Both are next steps once a
 real domain is live.
 
-Something not working? See [`../common/troubleshooting.md`](../common/troubleshooting.md).
+Something not working? See [Troubleshooting](../common/troubleshooting.md).

@@ -38,7 +38,7 @@ step, on first install or any later upgrade.
   set during scaffolding.
 - **Create an invoice**: `POST /api/v1/invoices` with
   `Authorization: Bearer <FIBERGATE_INTERNAL_SECRET>` (the value the CLI generated
-  for you, in `.env`). See the API spec in `.context/api/rest-api-spec.md`, or use
+  for you, in `.env`). See the [API Reference](/api-reference), or use
   [`@fibergate/sdk`](https://github.com/tiennt0212/FiberGate/tree/canary/packages/sdk)
   from your own storefront app instead of calling the REST API directly.
 - **Register a webhook** from the dashboard to get notified when an invoice is paid.
@@ -56,9 +56,9 @@ changes what's running until you edit that pin yourself.
 ## Something not covered here?
 
 - **Want a public HTTPS domain for judges/customers to hit?** →
-  [`public-https-deploy.md`](public-https-deploy.md)
+  [Public HTTPS deploy](public-https-deploy.md)
 - **Want full manual control over the generated files, or no Node.js on the deploy
-  host itself?** → [`deployment.md`](deployment.md)
+  host itself?** → [Manual / advanced deployment](deployment.md)
 - **Want to see a real merchant integration end-to-end?** →
-  [`demo-storefront.md`](demo-storefront.md)
-- **Something failed during setup?** → [`../common/troubleshooting.md`](../common/troubleshooting.md)
+  [Demo storefront](demo-storefront.md)
+- **Something failed during setup?** → [Troubleshooting](../common/troubleshooting.md)
