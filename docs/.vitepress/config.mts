@@ -47,6 +47,10 @@ export default defineConfig({
         text: "Common",
         items: [
           { text: "Troubleshooting", link: "/common/troubleshooting" },
+          {
+            text: "Environment variables",
+            link: "/common/environment-variables",
+          },
         ],
       },
       {
