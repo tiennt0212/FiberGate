@@ -70,5 +70,5 @@ Không đọc `apps/web`'s env vars hay root `.env` — hoàn toàn độc lập
 ## Lưu ý dùng chung
 
 - 2 biến tên giống nhau nhưng khác file/mục đích: `FIBER_NODE_URL` (bảng 1 vs bảng 3 — giá trị docker DNS vs localhost) và `FIBERGATE_INTERNAL_SECRET` (bảng 1 vs bảng 4 — 2 phía của cùng 1 shared secret, phải khớp giá trị).
-- Cách generate từng secret: `README.md`'s "Generating secrets" (hoặc `create-fibergate` tự generate hộ cho merchant path).
+- Cách generate từng secret: merchant path → `create-fibergate` tự generate hộ (`docs/merchants/quickstart.md`); contributor/from-source path → `pnpm generate:env` (`docs/maintainers/getting-started.md`'s "Generating a real `.env`"). **Không** phải "README.md's Generating secrets" — section đó không tồn tại, dù 4 file `.env.example` đều lỡ trỏ về đó.
 - Gotcha liên quan tới `.env`/Docker Compose forwarding: xem `.context/processes/gotchas.md`.
