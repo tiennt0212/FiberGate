@@ -37,6 +37,19 @@ Dự án được xây dựng cho **Gone in 60ms: Fiber Network Infrastructure H
 
 Xem `CLAUDE.md`'s "Monorepo layout" — bản canonical, đầy đủ nhất, tránh giữ tree trùng lặp ở nhiều nơi.
 
+## Public docs mirror
+
+Các file sau có bản dịch/adapt sang tiếng Anh trên VitePress site
+(https://tiennt0212.github.io/FiberGate/) — sửa 1 bên thì phải kiểm tra bên còn lại
+trong cùng lần sửa, 2 bên không tự đồng bộ:
+
+| `.context/` source | Mirrored to (VitePress) |
+|---|---|
+| `api/rest-api-spec.md` | `docs/api-reference.md` |
+| `architecture/system-design.md` (phần diagram) | `docs/architecture.md` |
+| `business-rules/payment-rules.md` (state diagram) | `docs/architecture.md` |
+| `glossary/fiber-terms.md` | `docs/glossary.md` |
+
 ## Quy ước code
 
 - TypeScript strict mode toàn bộ

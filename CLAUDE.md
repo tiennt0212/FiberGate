@@ -135,6 +135,7 @@ Xem `apps/web/CLAUDE.md` — Auth flow cho API routes, Service layer pattern, Da
 - Error handling phải explicit — không dùng `try/catch` rỗng
 - TypeScript strict mode toàn bộ — không dùng `any`
 - Khi tạo git commit cho nhiều thay đổi độc lập nhau (nhiều file/nhiều mục đích khác nhau trong cùng phiên), tách thành nhiều commit nhỏ theo từng đơn vị thay đổi — **không** dồn tất cả vào 1 commit lớn, kể cả khi user chỉ yêu cầu 1 lần "commit giúp tôi"
+- Khi sửa 1 file có bản mirror công khai trên VitePress site (xem bảng "Public docs mirror" ở `.context/INDEX.md`), cũng kiểm tra/cập nhật trang `docs/*.md` tương ứng trong cùng lần sửa — 2 bên không tự đồng bộ
 
 ## Gotchas đã tốn công tìm ra
 

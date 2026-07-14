@@ -7,6 +7,9 @@ tags: [rest-api, endpoints, authentication]
 
 # REST API Specification — FiberGate
 
+> Bản public (VitePress): `docs/api-reference.md`. Sửa 1 trong 2 file thì kiểm tra
+> file còn lại trong cùng lần sửa (xem `.context/INDEX.md`'s "Public docs mirror").
+
 ## Base URL
 `http://<merchant-host>:<port>/api/v1` — self-hosted, merchant tự đặt host/port lúc deploy docker-compose.
 

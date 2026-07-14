@@ -7,6 +7,10 @@ tags: [nextjs, postgresql, docker-compose, fiber-node, monorepo, self-hosted]
 
 # System Design — FiberGate
 
+> Phần diagram (Overview, Data Flow) có bản public (VitePress): `docs/architecture.md`.
+> Sửa 1 trong 2 file thì kiểm tra file còn lại trong cùng lần sửa (xem
+> `.context/INDEX.md`'s "Public docs mirror").
+
 ## Tech Stack
 
 | Layer | Technology | Lý do |

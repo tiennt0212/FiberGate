@@ -47,6 +47,10 @@ tags: [invoice, webhook, polling, limits]
 
 ## Status Transition Rules
 
+> State diagram này có bản public (VitePress): `docs/architecture.md`'s "Invoice
+> status lifecycle". Sửa 1 trong 2 file thì kiểm tra file còn lại trong cùng lần sửa
+> (xem `.context/INDEX.md`'s "Public docs mirror").
+
 ```mermaid
 stateDiagram-v2
     [*] --> pending: invoice created
