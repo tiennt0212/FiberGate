@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **FiberGate** — self-hosted merchant payment gateway framework prototype cho Fiber Network hackathon (1–15 July 2026). Mô tả đầy đủ: xem `README.md`.
 
-> **Constraint cho agent**: Không gọi đây là "LSP framework" — không cung cấp dịch vụ liquidity/mở channel hộ bên thứ ba. Single-tenant: mỗi deployment phục vụ đúng 1 merchant, không có multi-tenant API key/account system — ảnh hưởng trực tiếp tới auth pattern (xem "Auth flow cho API routes" bên dưới: 1 shared secret, không lookup theo user/client).
+> **Constraint cho agent**: Không gọi đây là "LSP framework" — không cung cấp dịch vụ liquidity/mở channel hộ bên thứ ba. Single-tenant: mỗi deployment phục vụ đúng 1 merchant, không có multi-tenant API key/account system — ảnh hưởng trực tiếp tới auth pattern (xem "Auth flow cho API routes" ở `apps/web/CLAUDE.md`: 1 shared secret, không lookup theo user/client).
 
 Đọc `.context/INDEX.md` trước tiên, sau đó đọc theo thứ tự:
 
@@ -31,7 +31,7 @@ apps/web/          — Next.js 14 App Router (fibergate-core: dashboard + API ro
   app/api/cron/    — Optional manual-trigger endpoint: /poll-invoices (nguồn chính là in-process interval worker)
   lib/db/          — Drizzle client + schema + helpers
   lib/fiber/       — Fiber JSON-RPC client (wraps FNN node calls)
-  lib/services/    — Business logic route.ts delegates to (xem "Service layer pattern" bên dưới)
+  lib/services/    — Business logic route.ts delegates to (xem "Service layer pattern" ở apps/web/CLAUDE.md)
 apps/demo-storefront/ — Reference merchant app (issue #12) — app hoàn toàn tách biệt
   khỏi apps/web, KHÔNG import code chung, chỉ gọi @fibergate/sdk qua HTTP
   (FIBERGATE_BASE_URL/FIBERGATE_INTERNAL_SECRET) giống một merchant thứ ba thật —
