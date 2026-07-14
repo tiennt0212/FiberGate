@@ -3,8 +3,8 @@
   "private": true,
   "version": "0.1.0",
   "scripts": {
-    "dev": "pnpm --filter sdk build && next dev -p 3001",
-    "build": "pnpm --filter sdk build && next build",
+    "dev": "next dev -p 3001",
+    "build": "next build",
     "start": "next start -p 3001",
     "typecheck": "tsc --noEmit",
     "lint": "next lint",
@@ -15,7 +15,7 @@
   "dependencies": {
     "@fiber-pay/react": "^0.2.7",
     "@fiber-pay/sdk": "0.2.7",
-    "@fibergate/sdk": "workspace:*",
+    "@fibergate/sdk": "^0.1.0",
     "@nervosnetwork/fiber-js": "0.9.0-rc7",
     "next": "^14.2.35",
     "qrcode.react": "^4.2.0",
