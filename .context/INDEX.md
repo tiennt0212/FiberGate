@@ -1,7 +1,7 @@
 ---
 type: index
 version: 1.0
-last_updated: 2026-06-30
+last_updated: 2026-07-14
 ---
 
 # FiberGate — Context Index
@@ -29,13 +29,13 @@ Dự án được xây dựng cho **Gone in 60ms: Fiber Network Infrastructure H
 | `guides/webhook-signature.md` | Giải thích HMAC-SHA256 và cách verify webhook signature |
 | `user-stories/developer-flows.md` | User stories từ góc nhìn developer tích hợp |
 | `processes/decisions-log.md` | Quyết định kiến trúc và nghiệp vụ đã được human chốt |
+| `processes/gotchas.md` | Infra/protocol gotchas đã tốn công tìm ra (đọc trước khi đụng Fiber RPC/Docker networking/`.env`) |
 | `processes/definition-of-done.md` | DoD và checklist tự verify cuối mỗi AI coding session |
+| `design/DESIGN.md`, `design/FiberGate.dc.html`, `design/COMPONENTS.dc.html`, `design/CLAUDE.md` | Design tokens/type scale/component patterns + mockup UI đầy đủ (mở bằng browser) |
 
 ## Monorepo layout
 
-- `apps/web` — Next.js 14 App Router (fibergate-core), dashboard (single-admin) + API routes
-- `packages/sdk` — npm package `@fibergate/sdk`, TypeScript
-- `docker-compose.yml` — Fiber node + PostgreSQL + fibergate-core, merchant tự deploy
+Xem `CLAUDE.md`'s "Monorepo layout" — bản canonical, đầy đủ nhất, tránh giữ tree trùng lặp ở nhiều nơi.
 
 ## Quy ước code
 
