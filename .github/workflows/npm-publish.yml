@@ -7,6 +7,12 @@
 # docs/maintainers/release-process.md) and npm rejects re-publishing an
 # unchanged version anyway.
 #
+# To test this workflow end-to-end from a feature branch before merging to
+# canary (push-to-canary is the only trigger that fires automatically):
+# `gh workflow run npm-publish.yml --ref <branch> -f dry_run=true` — runs
+# every step, including a real `npm publish --dry-run` against the registry
+# (packaging/version checks, no actual write), without publishing anything.
+#
 # Auth: npm Trusted Publishing (OIDC) — no NPM_TOKEN secret to store or
 # rotate, same "only the built-in GITHUB_TOKEN" posture as
 # docker-publish.yml's GHCR login. Requires a one-time manual step per
@@ -21,7 +27,12 @@ on:
     paths:
       - "packages/sdk/**"
       - "packages/create-fibergate/**"
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run (npm publish --dry-run, nothing actually published) — use this to test the workflow end-to-end from a feature branch before merging."
+        type: boolean
+        default: false
 
 jobs:
   publish-sdk:
@@ -80,7 +91,7 @@ jobs:
       - name: Publish
         if: steps.check.outputs.should_publish == 'true'
         working-directory: packages/sdk
-        run: npm publish
+        run: npm publish ${{ inputs.dry_run && '--dry-run' || '' }}
 
   publish-create-fibergate:
     name: Publish create-fibergate
@@ -137,4 +148,4 @@ jobs:
       - name: Publish
         if: steps.check.outputs.should_publish == 'true'
         working-directory: packages/create-fibergate
-        run: npm publish
+        run: npm publish ${{ inputs.dry_run && '--dry-run' || '' }}
