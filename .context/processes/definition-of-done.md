@@ -8,52 +8,52 @@ tags: [dod, ai-agent, claude-code, session]
 
 # Definition of Done — AI Coding Session
 
-> Áp dụng cho mỗi phiên làm việc với Claude Code.
-> Trước khi kết thúc phiên, Claude Code tự kiểm tra
-> và báo cáo theo format dưới đây.
+> Applies to every Claude Code working session.
+> Before ending a session, Claude Code should self-check
+> and report using the format below.
 
 ---
 
-## Format báo cáo cuối phiên
+## End-of-session report format
 
 ```
-### Session Summary — [tên feature/task]
+### Session Summary — [feature/task name]
 
-**Đã làm:**
+**Done:**
 - [item 1]
 
-**Còn dở / chưa làm:**
-- [item nếu có, lý do]
+**Incomplete / not done:**
+- [item if any, reason]
 
-**Câu hỏi cần human trả lời trước phiên tiếp theo:**
-- [câu hỏi cụ thể, rõ ràng]
+**Questions for the human before the next session:**
+- [specific, clear question]
 
-**Decisions mới được chốt trong phiên này:**
-- [ghi ngắn gọn — Claude Code cập nhật vào decisions-log.md]
+**New decisions settled during this session:**
+- [brief note — Claude Code updates decisions-log.md]
 
-**Context files đã cập nhật:**
-- [tên file hoặc "không có"]
+**Context files updated:**
+- [file name or "none"]
 ```
 
 ---
 
-## Checklist tự verify
+## Self-verify checklist
 
 ### Code integrity
-- [ ] TypeScript không có lỗi (`tsc --noEmit` pass)
-- [ ] Không có `console.log` debug còn sót
-- [ ] Không hardcode giá trị nên là env variable
-- [ ] Mọi TODO mới thêm vào đều có ghi chú lý do
+- [ ] TypeScript has no errors (`tsc --noEmit` passes)
+- [ ] No leftover debug `console.log` statements
+- [ ] No hardcoded values that should be an env variable
+- [ ] Every new TODO has a note explaining why
 
 ### Context consistency
 
-Nếu phiên này thay đổi bất kỳ điều gì dưới đây, file context tương ứng
-**phải được cập nhật trong cùng phiên**, không để sang phiên sau:
+If this session changed any of the following, the corresponding context file
+**must be updated in the same session** — don't defer it to a later session:
 
-| Thay đổi gì | Cập nhật file nào |
+| What changed | Which file to update |
 |---|---|
-| Thêm/sửa bảng DB | `data-dictionary/database-schema.md` |
-| Thêm/sửa API endpoint | `api/rest-api-spec.md` |
-| Thay đổi business logic | `business-rules/payment-rules.md` |
-| Thay đổi kiến trúc | `architecture/system-design.md` |
-| Decision mới được human chốt | `processes/decisions-log.md` |
+| Added/changed a DB table | `data-dictionary/database-schema.md` |
+| Added/changed an API endpoint | `api/rest-api-spec.md` |
+| Changed business logic | `business-rules/payment-rules.md` |
+| Changed architecture | `architecture/system-design.md` |
+| New decision settled by a human | `processes/decisions-log.md` |
