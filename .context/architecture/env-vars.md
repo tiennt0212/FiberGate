@@ -8,67 +8,68 @@ tags: [env, config, secrets, ai-agent]
 
 # Environment Variables — canonical reference
 
-> Nguồn duy nhất liệt kê **toàn bộ** env var trong repo, qua cả 4 file
-> `.env.example`. Khi thêm/đổi 1 biến: sửa đúng `.env.example` liên quan **và**
-> bảng tương ứng ở đây trong cùng lần sửa — 2 nơi không tự đồng bộ.
+> The single source listing **all** env vars in the repo, across all 4
+> `.env.example` files. When adding/changing a variable: update the relevant
+> `.env.example` **and** the corresponding table here in the same edit — the
+> two don't auto-sync.
 >
-> Bản dễ đọc hơn cho merchant/contributor (không cần biết code): xem
+> A more readable version for merchants/contributors (no code knowledge needed): see
 > `docs/common/environment-variables.md`.
 
 ---
 
 ## 1. Root `.env.example` → `.env` (docker-compose.yml — build-from-source, contributor/dev path)
 
-| Var | Bắt buộc | Giá trị mặc định/cố định | Mô tả |
+| Var | Required | Default/fixed value | Description |
 |---|---|---|---|
-| `POSTGRES_USER` | Configurable | `fibergate` | Đọc bởi cả `postgres` service lẫn `fibergate-core` — 3 biến `POSTGRES_*` này là single source of truth cho DB credentials. |
+| `POSTGRES_USER` | Configurable | `fibergate` | Read by both the `postgres` service and `fibergate-core` — these 3 `POSTGRES_*` vars are the single source of truth for DB credentials. |
 | `POSTGRES_DB` | Configurable | `fibergate` | " |
-| `POSTGRES_PASSWORD` | **Required** | (không có default an toàn) | " |
-| `FIBER_SECRET_KEY_PASSWORD` | **Required** | — | Mật khẩu mở khoá CKB signing key file tại `docker/fiber-node/ckb/key`. Chỉ `fiber-node` đọc, không phải app-level var, nhưng vẫn nằm trong `.env.example` để `cp .env.example .env` surface đủ giá trị required 1 lần. |
-| `DOMAIN` | **Required** | (không có default dùng được) | Domain public cho nginx/certbot — cần DNS trỏ vào host, port 80/443/8228 mở ra internet. |
-| `CERTBOT_EMAIL` | Optional | — | Email nhận thông báo hết hạn cert Let's Encrypt. Không được đọc lúc `docker compose up -d` (self-signed cert tạm luôn được sinh) — chỉ cần khi chạy `certbot certonly` thật. |
-| `ADMIN_PASSWORD_HASH_B64` | **Required** | — | Base64-encoded bcrypt hash cho dashboard single-admin login — **không phải** raw `$2y$10$...` hash (xem gotcha `.env` corrupt `$`). |
-| `DASHBOARD_SESSION_SECRET` | **Required** | — | Ký session cookie (httpOnly JWT) cho `app/(dashboard)/**`. Cố ý tách biệt khỏi `FIBERGATE_INTERNAL_SECRET` (BR-SEC-004). |
-| `FIBERGATE_INTERNAL_SECRET` | **Required** | — | Shared secret duy nhất cho `/api/v1/*` — storefront app dùng làm Bearer token. |
-| `FIBER_NODE_URL` | Fixed value | `http://fiber-node:8227` | DNS name nội bộ docker-compose, chỉ resolve được trong network đó. Đổi giá trị này thì phải đổi luôn `docker/fiber-node/config.yml`'s `rpc.listening_addr`. |
-| `FIBER_NODE_RPC_AUTH_TOKEN` | Optional | — | Biscuit token — không cần vì `fiber-node` không có public IP. **Lưu ý**: `@ckb-ccc/fiber` bản đang pin chưa có cơ chế gắn token này vào request thật kể cả khi set (xem `decisions-log.md` 2026-07-03). |
-| `WEBHOOK_SECRET_ENCRYPTION_KEY` | **Required** | 64-char hex, `create-fibergate`/`pnpm generate:env` tự sinh | AES-256-GCM key mã hoá `webhook_endpoints.secret` at rest — không phải signing key (signing key là secret riêng của từng endpoint, BR-SEC-003). |
-| `CRON_SECRET` | Optional | — | Bảo vệ `/api/cron/poll-invoices` (manual trigger endpoint). |
-| `FIBER_PAYER_SECRET_KEY_PASSWORD` | Required chỉ khi dùng `fiber-node-payer` | — | Mật khẩu key riêng cho `fiber-node-payer` (local-testing only, profile `payer`, không start bằng `docker compose up -d` trần) — key khác hẳn `FIBER_SECRET_KEY_PASSWORD`. |
+| `POSTGRES_PASSWORD` | **Required** | (no safe default) | " |
+| `FIBER_SECRET_KEY_PASSWORD` | **Required** | — | Password to unlock the CKB signing key file at `docker/fiber-node/ckb/key`. Only read by `fiber-node`, not an app-level var, but still kept in `.env.example` so `cp .env.example .env` surfaces all required values at once. |
+| `DOMAIN` | **Required** | (no usable default) | Public domain for nginx/certbot — needs DNS pointed at the host, ports 80/443/8228 open to the internet. |
+| `CERTBOT_EMAIL` | Optional | — | Email to receive Let's Encrypt cert expiry notifications. Not read during `docker compose up -d` (a temporary self-signed cert is always generated) — only needed when actually running `certbot certonly`. |
+| `ADMIN_PASSWORD_HASH_B64` | **Required** | — | Base64-encoded bcrypt hash for the dashboard's single-admin login — **not** the raw `$2y$10$...` hash (see the `.env` `$` corruption gotcha). |
+| `DASHBOARD_SESSION_SECRET` | **Required** | — | Signs the session cookie (httpOnly JWT) for `app/(dashboard)/**`. Deliberately kept separate from `FIBERGATE_INTERNAL_SECRET` (BR-SEC-004). |
+| `FIBERGATE_INTERNAL_SECRET` | **Required** | — | The single shared secret for `/api/v1/*` — the storefront app uses it as a Bearer token. |
+| `FIBER_NODE_URL` | Fixed value | `http://fiber-node:8227` | Internal docker-compose DNS name, only resolvable within that network. If you change this value you must also change `docker/fiber-node/config.yml`'s `rpc.listening_addr`. |
+| `FIBER_NODE_RPC_AUTH_TOKEN` | Optional | — | Biscuit token — not needed since `fiber-node` has no public IP. **Note**: the pinned `@ckb-ccc/fiber` version doesn't actually attach this token to requests even when set (see `decisions-log.md` 2026-07-03). |
+| `WEBHOOK_SECRET_ENCRYPTION_KEY` | **Required** | 64-char hex, auto-generated by `create-fibergate`/`pnpm generate:env` | AES-256-GCM key that encrypts `webhook_endpoints.secret` at rest — not the signing key (the signing key is each endpoint's own secret, BR-SEC-003). |
+| `CRON_SECRET` | Optional | — | Protects `/api/cron/poll-invoices` (manual trigger endpoint). |
+| `FIBER_PAYER_SECRET_KEY_PASSWORD` | Required only when using `fiber-node-payer` | — | Password for `fiber-node-payer`'s own key (local-testing only, `payer` profile, not started by plain `docker compose up -d`) — a different key from `FIBER_SECRET_KEY_PASSWORD`. |
 
 ## 2. `.env.release.example` → `.env` (docker-compose.release.yml — merchant published-image path)
 
-Giống hệt bảng 1, **trừ** `FIBER_PAYER_SECRET_KEY_PASSWORD` (fiber-node-payer không có trong release bundle), **cộng thêm**:
+Identical to table 1, **minus** `FIBER_PAYER_SECRET_KEY_PASSWORD` (fiber-node-payer isn't part of the release bundle), **plus**:
 
-| Var | Bắt buộc | Giá trị mặc định/cố định | Mô tả |
+| Var | Required | Default/fixed value | Description |
 |---|---|---|---|
-| `GHCR_NAMESPACE` | **Required** | — | GitHub org/user đã publish image `fibergate-core` (`ghcr.io/<GHCR_NAMESPACE>/fibergate-core`). |
-| `FIBERGATE_CORE_TAG` | Optional | `latest` | Pin về 1 build cụ thể (vd `sha-a1b2c3d`) thay vì canary mới nhất. |
+| `GHCR_NAMESPACE` | **Required** | — | The GitHub org/user that published the `fibergate-core` image (`ghcr.io/<GHCR_NAMESPACE>/fibergate-core`). |
+| `FIBERGATE_CORE_TAG` | Optional | `latest` | Pin to a specific build (e.g. `sha-a1b2c3d`) instead of the newest canary. |
 
-## 3. `apps/web/.env.example` → `apps/web/.env.local` (local dev ngoài Docker)
+## 3. `apps/web/.env.example` → `apps/web/.env.local` (local dev outside Docker)
 
-Chỉ override đúng 3 biến khác giá trị so với root `.env` khi chạy `pnpm dev` (không qua Docker) — mọi biến khác lấy từ root `.env` qua `dotenv-cli` (`dotenv -e .env.local -e ../../.env -- next dev`, file liệt kê trước thắng).
+Only overrides the 3 vars whose values differ from the root `.env` when running `pnpm dev` (not through Docker) — every other var comes from the root `.env` via `dotenv-cli` (`dotenv -e .env.local -e ../../.env -- next dev`, the first-listed file wins).
 
-| Var | Bắt buộc | Giá trị mặc định/cố định | Mô tả |
+| Var | Required | Default/fixed value | Description |
 |---|---|---|---|
-| `POSTGRES_HOST` | Configurable | `localhost` | Root `.env` không có field này — trong docker-compose là `postgres` (DNS nội bộ). Chỉ hoạt động vì `docker-compose.yml`'s `postgres` service publish port loopback-only (`127.0.0.1:5432`). |
+| `POSTGRES_HOST` | Configurable | `localhost` | Not present in the root `.env` — inside docker-compose it's `postgres` (internal DNS). Only works because `docker-compose.yml`'s `postgres` service publishes the port loopback-only (`127.0.0.1:5432`). |
 | `POSTGRES_PORT` | Configurable | `5432` | — |
-| `FIBER_NODE_URL` | Fixed value (override) | `http://localhost:8227` | Root `.env`'s giá trị (`http://fiber-node:8227`) không resolve được ngoài Docker network — cần `fiber-node` chạy qua `docker compose up -d fiber-node` (RPC publish loopback-only). |
+| `FIBER_NODE_URL` | Fixed value (override) | `http://localhost:8227` | The root `.env`'s value (`http://fiber-node:8227`) doesn't resolve outside the Docker network — requires `fiber-node` running via `docker compose up -d fiber-node` (RPC published loopback-only). |
 
-## 4. `apps/demo-storefront/.env.example` → `.env.local` (app tách biệt hoàn toàn, reference merchant)
+## 4. `apps/demo-storefront/.env.example` → `.env.local` (fully separate app, reference merchant)
 
-Không đọc `apps/web`'s env vars hay root `.env` — hoàn toàn độc lập, giống 1 merchant thứ ba thật. Cùng file cũng được `docker-compose.demo.yml` đọc qua `env_file:`.
+Doesn't read `apps/web`'s env vars or the root `.env` — fully independent, just like a real third-party merchant. The same file is also read by `docker-compose.demo.yml` via `env_file:`.
 
-| Var | Bắt buộc | Giá trị mặc định/cố định | Mô tả |
+| Var | Required | Default/fixed value | Description |
 |---|---|---|---|
-| `FIBERGATE_BASE_URL` | **Required** | `http://localhost:3000` | Root URL (không có `/api/v1` suffix) của deployment FiberGate. Bị ignore khi chạy qua Docker Compose overlay (hardcode `http://fibergate-core:3000`). |
-| `FIBERGATE_INTERNAL_SECRET` | **Required** | — | Phải khớp chính xác với `fibergate-core`'s `FIBERGATE_INTERNAL_SECRET` (mục 1) — dùng làm Bearer token gọi `/api/v1/invoices`. |
-| `DEMO_WEBHOOK_SECRET` | **Required** | — | Phải khớp secret đã đăng ký khi tạo webhook endpoint trên FiberGate deployment — verify header `X-Fiber-Signature`. |
+| `FIBERGATE_BASE_URL` | **Required** | `http://localhost:3000` | Root URL (no `/api/v1` suffix) of the FiberGate deployment. Ignored when running through the Docker Compose overlay (hardcoded to `http://fibergate-core:3000`). |
+| `FIBERGATE_INTERNAL_SECRET` | **Required** | — | Must exactly match `fibergate-core`'s `FIBERGATE_INTERNAL_SECRET` (table 1) — used as the Bearer token when calling `/api/v1/invoices`. |
+| `DEMO_WEBHOOK_SECRET` | **Required** | — | Must match the secret registered when creating the webhook endpoint on the FiberGate deployment — used to verify the `X-Fiber-Signature` header. |
 
 ---
 
-## Lưu ý dùng chung
+## Shared notes
 
-- 2 biến tên giống nhau nhưng khác file/mục đích: `FIBER_NODE_URL` (bảng 1 vs bảng 3 — giá trị docker DNS vs localhost) và `FIBERGATE_INTERNAL_SECRET` (bảng 1 vs bảng 4 — 2 phía của cùng 1 shared secret, phải khớp giá trị).
-- Cách generate từng secret: merchant path → `create-fibergate` tự generate hộ (`docs/merchants/quickstart.md`); contributor/from-source path → `pnpm generate:env` (`docs/maintainers/getting-started.md`'s "Generating a real `.env`"). **Không** phải "README.md's Generating secrets" — section đó không tồn tại, dù 4 file `.env.example` đều lỡ trỏ về đó.
-- Gotcha liên quan tới `.env`/Docker Compose forwarding: xem `.context/processes/gotchas.md`.
+- Two vars share a name but differ by file/purpose: `FIBER_NODE_URL` (table 1 vs table 3 — docker DNS value vs localhost) and `FIBERGATE_INTERNAL_SECRET` (table 1 vs table 4 — two sides of the same shared secret, values must match).
+- How each secret is generated: merchant path → `create-fibergate` generates it automatically (`docs/merchants/quickstart.md`); contributor/from-source path → `pnpm generate:env` (`docs/maintainers/getting-started.md`'s "Generating a real `.env`"). **Not** "README.md's Generating secrets" — that section doesn't exist, even though all 4 `.env.example` files mistakenly point to it.
+- Gotchas related to `.env`/Docker Compose forwarding: see `.context/processes/gotchas.md`.
