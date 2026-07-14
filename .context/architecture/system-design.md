@@ -69,37 +69,50 @@ chạy local.
 
 ## Data Flow — Tạo Invoice
 
+```mermaid
+sequenceDiagram
+    participant SF as Storefront app
+    participant API as FiberGate API<br/>(/api/v1/invoices)
+    participant Node as Fiber Node (RPC)
+    participant DB as PostgreSQL
+
+    SF->>API: POST /invoices {amount, asset, description}<br/>Authorization: Bearer FIBERGATE_INTERNAL_SECRET
+    API->>API: constant-time compare Bearer token<br/>(single-tenant, không lookup user)
+    API->>Node: new_invoice {amount_in_shannon, asset, description}
+    Node-->>API: {invoice_address, payment_hash}
+    API->>DB: INSERT invoice (status="pending")
+    API-->>SF: 201 Created {invoice}
 ```
-1. Storefront app POST /api/v1/invoices { amount, asset, description }
-   với header Authorization: Bearer <FIBERGATE_INTERNAL_SECRET>
 
-2. API Route:
-   a. Validate Bearer token → so sánh constant-time với FIBERGATE_INTERNAL_SECRET (env var) — không lookup user, single-tenant
-   b. Gọi Fiber Node RPC: new_invoice { amount_in_shannon, asset, description }
-   c. Node trả về: { invoice_address, payment_hash }
-   d. Lưu invoice vào PostgreSQL: status = "pending"
-   e. Trả về response cho storefront app
+Sau khi tạo, invoice chuyển trạng thái qua 1 trong 2 cơ chế song song (Phase 2 là
+primary, Phase 1 là fallback — không tắt hẳn):
 
-3. Background Poller — Phase 1: in-process interval worker chạy trong container fibergate-core mỗi 10s,
-   thực hiện đúng thứ tự 2 bước sau (thứ tự bắt buộc, xem `decisions-log.md`):
-   a. RPC-driven batch (BR-POL-002/003) — CHẠY TRƯỚC: query invoices WHERE status = "pending" AND
-      expires_at > now() - 60s, tối đa 50 invoice; với mỗi invoice gọi Fiber Node RPC get_invoice
-      { payment_hash }; nếu status đổi (paid/expired/failed) → update PostgreSQL + fire webhook.
-   b. Bulk clock-expire (BR-STS-002(b)) — CHẠY SAU: 1 câu UPDATE duy nhất, invoices WHERE
-      status = "pending" AND expires_at < now() → set "expired" + fire webhook, không gọi RPC
-      (bắt những invoice đã hết hạn quá lâu, ngoài cửa sổ 60s ở bước a nên chưa từng được RPC check).
-      Phải chạy SAU bước a — chạy trước sẽ có thể đánh dấu "expired" nhầm 1 invoice vừa được trả tiền
-      đúng lúc hết hạn (status chỉ chuyển 1 chiều — BR-STS-001 — nên không có đường quay lại "paid").
+```mermaid
+sequenceDiagram
+    participant Node as Fiber Node
+    participant Listener as invoice-listener.ts<br/>(WebSocket, Phase 2 — primary)
+    participant Poller as invoice-poller.ts<br/>(interval 30s, Phase 1 — fallback)
+    participant DB as PostgreSQL
 
-3'. Background Listener — Phase 2 (thay Background Poller ở trên — **implemented + live-verified
-    2026-07-13, issue #13**, xem chi tiết ở "Phase 2 — Real-time Invoice Listener" bên dưới):
-    `lib/poller/invoice-listener.ts` mở 1 WebSocket client riêng (`lib/fiber/subscribe-client.ts`,
-    không dùng @ckb-ccc/fiber cho phần này) subscribe `subscribe_store_changes`, xử lý mỗi
-    notification `store_changes` bằng cách gọi thẳng `lib/poller/invoice-poller.ts`'s
-    `applyInvoiceStatusUpdate()` — cùng 1 hàm `applyNodeStatus()`/`TERMINAL_TRANSITIONS` bước a-d ở
-    trên dùng, chỉ khác entry point (theo event thay vì theo chu kỳ). Vẫn giữ interval poll
-    (`lib/poller/worker.ts`) làm fallback, giảm tần suất xuống **30s**.
+    Node--)Listener: WS notification: PutCkbInvoiceStatus<br/>{payment_hash, invoice_status}
+    Listener->>DB: applyInvoiceStatusUpdate() → status=paid/expired/failed
+    Listener->>Listener: fire webhook (xem "Data Flow — Webhook Delivery")
+
+    loop mỗi 30s (fallback only)
+        Poller->>DB: SELECT pending invoices (expires_at > now-60s)
+        Poller->>Node: get_invoice(payment_hash) — batch, tối đa 50
+        Node-->>Poller: status
+        Poller->>DB: (1) update nếu status đổi + fire webhook
+        Poller->>DB: (2) bulk clock-expire — CHẠY SAU (1)
+    end
 ```
+
+Thứ tự (1) rồi mới (2) trong vòng lặp Poller là **bắt buộc** (BR-STS-002(b)): bulk
+clock-expire không gọi RPC, chỉ dựa vào đồng hồ — chạy trước sẽ có thể đánh dấu
+`expired` nhầm 1 invoice vừa được trả tiền đúng lúc hết hạn (status chỉ chuyển 1
+chiều, BR-STS-001, không có đường quay lại `paid`). Chi tiết RPC batch: BR-POL-002/003.
+Listener implemented + live-verified 2026-07-13 (issue #13) — xem "Phase 2 —
+Real-time Invoice Listener" ngay dưới.
 
 ## Phase 2 — Real-time Invoice Listener (đã verify với source code FNN, xem `decisions-log.md`)
 
@@ -151,30 +164,40 @@ thật:**
 
 ## Data Flow — Webhook Delivery
 
-> **Cập nhật 2026-07-06 (issue #8, implement `lib/webhooks/*`)**: Bản mô tả dưới đây đã sửa 2 chỗ
-> stale còn sót lại từ 1 bản nháp multi-tenant cũ hơn: (1) không có cột `user_id` nào trong
-> `webhook_endpoints` (single-tenant) — filter đúng là `is_active = true AND eventType IN events`;
-> (2) retry KHÔNG phải exponential backoff — là schedule cố định `immediate → 1 phút → 5 phút`
-> (BR-WHK-003). Key ký HMAC luôn là `webhook_endpoints.secret` **riêng theo từng endpoint**
-> (mã hoá tại rest bằng `WEBHOOK_SECRET_ENCRYPTION_KEY`, xem mục Environment Variables), không phải
-> 1 global signing key.
+```mermaid
+sequenceDiagram
+    participant Trigger as trigger.ts
+    participant DB as PostgreSQL
+    participant Scheduler as retry-scheduler.ts
+    participant Deliver as deliver.ts
+    participant Merchant as Merchant webhook URL
 
+    Note over Trigger: Invoice status → paid/expired/failed (BR-WHK-001)
+    Trigger->>DB: SELECT webhook_endpoints<br/>WHERE is_active=true AND eventType IN events
+    loop mỗi endpoint match
+        Trigger->>DB: INSERT webhook_deliveries<br/>(status=pending, attempt_count=0)
+        Trigger->>Scheduler: scheduleAttempt(deliveryId, 0)
+    end
+
+    Note over Trigger,DB: trigger.ts chỉ await phần INSERT — không await gửi HTTP thật (non-blocking)
+
+    Scheduler->>Deliver: attempt fires
+    Deliver->>Deliver: decrypt endpoint secret (secret-crypto.ts)<br/>sign HMAC-SHA256(rawBody, secret)
+    Deliver->>Merchant: POST payload<br/>X-Fiber-Signature: sha256=xxx (timeout 5s, BR-WHK-002)
+    Merchant-->>Deliver: HTTP response (hoặc timeout)
+    Deliver->>DB: update delivery record<br/>(http_status, response_body ≤1KB, attempt_count)
+    alt retryable (timeout/network/5xx/429, BR-WHK-006) và attempts < 3 (BR-WHK-003)
+        Deliver->>Scheduler: scheduleAttempt() lần tiếp theo (+60s rồi +300s)
+    else non-retryable (4xx khác) hoặc đã đạt 3 attempts
+        Deliver->>DB: status = "failed", dừng hẳn
+    end
 ```
-1. Invoice status → paid/expired/failed (BR-WHK-001)
-2. Query webhook_endpoints WHERE is_active = true AND eventType IN events
-3. Với mỗi endpoint match (dispatch không block poller — trigger.ts chỉ await phần insert
-   webhook_deliveries bên dưới, không await bước gửi HTTP thật; xem lib/webhooks/trigger.ts):
-   a. Build payload: { event, created_at, data: {...} } (api/rest-api-spec.md "Webhook Payload")
-   b. Insert 1 row webhook_deliveries (status='pending', attempt_count=0)
-   c. Arm attempt qua lib/webhooks/retry-scheduler.ts's scheduleAttempt(deliveryId, 0)
-4. Khi attempt thật thi hành (lib/webhooks/deliver.ts):
-   a. Decrypt endpoint's secret (lib/webhooks/secret-crypto.ts), sign: HMAC-SHA256(rawBody, secret)
-   b. POST đến merchant URL với header X-Fiber-Signature: sha256=xxx, timeout 5s (BR-WHK-002)
-   c. Lưu delivery record (http_status, response_body truncated 1KB, attempt_count, status)
-   d. Nếu retryable (timeout/network/5xx/429, BR-WHK-006) và chưa đạt 3 attempts (BR-WHK-003) →
-      scheduleAttempt() lần tiếp theo (+60s rồi +300s); nếu non-retryable (4xx khác) hoặc đã đạt
-      3 attempts → status='failed', dừng hẳn
-```
+
+Payload shape: `api/rest-api-spec.md`'s "Webhook Payload". Key ký HMAC luôn là
+`webhook_endpoints.secret` **riêng theo từng endpoint** (mã hoá at rest bằng
+`WEBHOOK_SECRET_ENCRYPTION_KEY`, xem "Environment Variables"), không phải 1 global
+signing key — và retry là schedule cố định (`immediate → 1 phút → 5 phút`,
+BR-WHK-003), không phải exponential backoff.
 
 ## Monorepo Structure
 
