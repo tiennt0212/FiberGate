@@ -7,76 +7,76 @@ tags: [vision, scope, hackathon, lsp]
 
 # Project Vision — FiberGate
 
-## Vấn đề đang giải quyết
+## Problem being solved
 
-Hiện tại, để nhận thanh toán qua Fiber Network, developer phải:
-1. Tự cài đặt và chạy một Fiber Node (FNN binary)
-2. Tự mở channel với các public nodes (lock CKB on-chain)
-3. Tự quản lý liquidity
-4. Tự gọi JSON-RPC để tạo invoice và poll trạng thái
+Today, to accept payments over Fiber Network, a developer has to:
+1. Install and run a Fiber Node (FNN binary) themselves
+2. Open channels with public nodes themselves (lock CKB on-chain)
+3. Manage liquidity themselves
+4. Call JSON-RPC themselves to create invoices and poll status
 
-→ Barrier to entry quá cao. Không có developer nào tích hợp payment nhanh được.
+→ Barrier to entry is too high. No developer can integrate payments quickly.
 
-## Giải pháp
+## Solution
 
-FiberGate là một **self-hosted, open-source Fiber payment gateway framework**:
-- Merchant tự deploy `docker compose up -d` (Fiber node + PostgreSQL + FiberGate core), tự vận hành node và dữ liệu của mình
-- Gọi `POST /api/v1/invoices` (nội bộ, cùng docker network hoặc qua secret riêng) → nhận invoice ngay lập tức
-- Nhận webhook notification khi payment thành công
-- Không cần tự viết code kết nối Fiber RPC, quản lý invoice state machine, hay tự build webhook delivery — FiberGate đóng gói sẵn phần hạ tầng đó
+FiberGate is a **self-hosted, open-source Fiber payment gateway framework**:
+- Merchants deploy it themselves with `docker compose up -d` (Fiber node + PostgreSQL + FiberGate core), and run their own node and data
+- Call `POST /api/v1/invoices` (internal, same docker network or via a shared secret) → get an invoice immediately
+- Receive a webhook notification when a payment succeeds
+- No need to write your own Fiber RPC integration code, manage an invoice state machine, or build webhook delivery from scratch — FiberGate packages that infrastructure for you
 
-**Tại sao chọn framing self-hosted thay vì managed SaaS:** Hackathon "Gone in 60ms" quy định "infrastructure only, not products built on top" (dự án sản phẩm/thương mại có hackathon riêng sau này). Một platform SaaS custodial đa khách hàng dễ bị xếp vào nhóm "product built on top". Đóng gói thành framework mã nguồn mở mà bất kỳ ai cũng tự deploy được thì khớp đúng category **"Merchant, Liquidity, LSP, and Multi-Asset Infrastructure"**.
+**Why self-hosted framing instead of managed SaaS:** The "Gone in 60ms" hackathon rules require "infrastructure only, not products built on top" (product/commercial projects have their own separate hackathon later). A custodial, multi-customer SaaS platform would likely be classified as a "product built on top." Packaging this as an open-source framework anyone can self-deploy fits squarely into the **"Merchant, Liquidity, LSP, and Multi-Asset Infrastructure"** category.
 
 ## Hackathon Scope (prototype)
 
-**IN SCOPE — Phase 1 (core, ưu tiên cao nhất):**
+**IN SCOPE — Phase 1 (core, highest priority):**
 - Docker-compose bundle: Fiber node (FNN binary) + PostgreSQL + FiberGate core (Next.js: dashboard + API)
-- Dashboard cá nhân (single-admin, không multi-tenant): xem invoices/transactions, cấu hình webhooks, xem trạng thái node
-- REST API: tạo invoice, query status, list invoices
-- Webhook system: fire events khi invoice paid/expired (HMAC-signed)
-- npm SDK: `@fibergate/sdk` với TypeScript support
-- Một Fiber node trên testnet
-- **Demo merchant checkout flow**: 1 trang storefront giả lập (VD: bán 1 khóa học/API key) dùng SDK/API để tạo invoice, hiện QR, và nhận webhook khi thanh toán xong (chưa có mockup trong Claude Design — cần tự thiết kế/code trực tiếp khi implement)
-- **1 instance demo được deploy public** (VPS/cloud của team) cho giám khảo bấm thử trực tiếp — bắt buộc theo deliverables hackathon ("demo link... plus a hosted demo"), ngoài docker-compose instructions cho người muốn tự deploy. Lúc làm phần này, cân nhắc thêm TLS/WSS cho `fiber-node` — xem `decisions-log.md` 2026-07-08 ("Insight ghi nhận cho tương lai") cho lý do (phục vụ cả judge thanh toán thật lẫn nút "Pay with browser wallet" đã build sẵn trong `apps/demo-storefront`). Cũng lúc này: root `docker-compose.yml` hiện tại (dùng `build:` từ source) dự kiến sẽ chuyển vai trò thành file dev/contributor-only — merchant thật sẽ dùng 1 image `fibergate-core` build sẵn + 1 `docker-compose.yml` riêng, tối giản (không cần clone repo) — xem `decisions-log.md` 2026-07-08 ("Gộp `fiber-node-payer` trở lại..."). Chưa triển khai, chỉ là định hướng đã thống nhất.
-- **Receipts**: view/download tóm tắt 1 invoice đã `paid` (amount, asset, payment_hash, timestamp) — dùng dữ liệu đã có sẵn trong bảng `invoices`, không cần bảng mới
-- **Accounting export**: nút export CSV danh sách invoices trên trang transactions, lọc theo khoảng ngày/status — dùng dữ liệu đã có sẵn
-- **Settlement view**: 1 tab dashboard gộp hiển thị invoice `paid` cùng lịch sử `webhook_deliveries` liên quan (chính là settlement record) — không cần bảng mới, chỉ là 1 view khác trên dữ liệu hiện có
+- Personal dashboard (single-admin, not multi-tenant): view invoices/transactions, configure webhooks, view node status
+- REST API: create invoice, query status, list invoices
+- Webhook system: fire events when invoice paid/expired (HMAC-signed)
+- npm SDK: `@fibergate/sdk` with TypeScript support
+- A single Fiber node on testnet
+- **Demo merchant checkout flow**: a simulated storefront page (e.g. selling a course/API key) that uses the SDK/API to create an invoice, show a QR code, and receive a webhook once payment completes (no mockup in Claude Design yet — needs to be designed/coded directly during implementation)
+- **1 publicly deployed demo instance** (team VPS/cloud) for judges to try directly — required by the hackathon deliverables ("demo link... plus a hosted demo"), in addition to docker-compose instructions for people who want to self-deploy. While building this, consider also adding TLS/WSS for `fiber-node` — see `decisions-log.md` 2026-07-08 ("Insight noted for the future") for the reasoning (serves both judges making real payments and the "Pay with browser wallet" button already built into `apps/demo-storefront`). Also at this point: the current root `docker-compose.yml` (using `build:` from source) is expected to become a dev/contributor-only file — real merchants will use a prebuilt `fibergate-core` image + a separate, minimal `docker-compose.yml` (no need to clone the repo) — see `decisions-log.md` 2026-07-08 ("Merge `fiber-node-payer` back in..."). Not yet implemented, just an agreed direction.
+- **Receipts**: view/download a summary of a `paid` invoice (amount, asset, payment_hash, timestamp) — uses data already in the `invoices` table, no new table needed
+- **Accounting export**: a CSV export button for the invoice list on the transactions page, filterable by date range/status — uses existing data
+- **Settlement view**: a dashboard tab combining `paid` invoices with their related `webhook_deliveries` history (effectively the settlement record) — no new table needed, just another view over existing data
 
-**IN SCOPE — Phase 2 (sau khi Phase 1 ổn định):**
-- Thay in-process polling bằng Fiber node event subscription real-time (JSON-RPC/WebSocket)
+**IN SCOPE — Phase 2 (after Phase 1 stabilizes):**
+- Replace in-process polling with real-time Fiber node event subscriptions (JSON-RPC/WebSocket)
 
-**IN SCOPE — Phase 3 (optional stretch, nếu còn thời gian):**
+**IN SCOPE — Phase 3 (optional stretch, if time allows):**
 - L402 subscription middleware (pay-as-you-go API / gated content)
 
 **OUT OF SCOPE (documented as future work):**
-- Managed/hosted offering bởi FiberGate team (đã pivot khỏi hướng này)
-- Multi-tenant accounts / multiple merchants trên cùng 1 deployment
+- Managed/hosted offering by the FiberGate team (already pivoted away from this direction)
+- Multi-tenant accounts / multiple merchants on the same deployment
 - Mainnet deployment
 - Multi-node / high availability
 - On/off ramp
-- Automatic channel rebalancing (chỉ manual)
-- **Refunds**: Fiber (giống Lightning) là push-payment, không có cơ chế "rút tiền ngược" tự động như thẻ tín dụng — muốn hoàn tiền, merchant phải tự gửi 1 payment mới ngược lại cho payer, đòi hỏi payer chủ động cung cấp trước refund address/invoice, tốn liquidity thật, và cần 1 bảng + luồng `send_payment` riêng. Độ phức tạp không tương xứng với thời gian hackathon, để dành cho phát triển sau.
-- Reconciliation report (đối chiếu `invoices` với `node_snapshots`) — có giá trị nhưng không critical cho core flow, cân nhắc thêm sau nếu Phase 1-3 xong sớm.
+- Automatic channel rebalancing (manual only)
+- **Refunds**: Fiber (like Lightning) is push-payment — there's no automatic "pull money back" mechanism like a credit card. To refund, a merchant would have to send a brand-new payment back to the payer, which requires the payer to proactively supply a refund address/invoice up front, consumes real liquidity, and needs its own table + `send_payment` flow. The complexity isn't proportional to the hackathon timeframe, so it's deferred to future work.
+- Reconciliation report (cross-checking `invoices` against `node_snapshots`) — valuable but not critical to the core flow; consider adding later if Phase 1-3 finish early.
 
-## Trade-offs đã chấp nhận (phải document rõ trong submission)
+## Accepted trade-offs (must be clearly documented in the submission)
 
-**Node vẫn giữ funds trong channel:** Đây là đặc điểm vốn có của bất kỳ LSP/node operator nào (không phải rủi ro riêng của FiberGate) — nhưng vì self-hosted, node key và funds thuộc về chính merchant vận hành, không phải bên thứ ba (FiberGate team) giữ hộ như mô hình custodial SaaS trước đây.
+**The node still holds funds in the channel:** This is inherent to any LSP/node operator (not a risk unique to FiberGate) — but because it's self-hosted, the node key and funds belong to the merchant operating it, not held custodially by a third party (the FiberGate team) as in the earlier SaaS model.
 
-**Single node:** Một node duy nhất trên testnet. Single point of failure.
+**Single node:** Only one node on testnet. Single point of failure.
 
-**Settlement delay:** Tiền trong channel chưa phải tiền on-chain. Merchant thấy "paid" nhưng thực ra là credit trong channel.
+**Settlement delay:** Money in a channel isn't on-chain money yet. A merchant sees "paid" but it's really a credit within the channel.
 
 ## Target users
 
-- Merchant/developer muốn tự host một cổng thanh toán Fiber cho app của mình (Next.js, React, Node.js)
-- Hackathon participants muốn demo Fiber payment mà không tự viết code RPC/webhook từ đầu
-- Người vận hành muốn nhận CKB/RUSD testnet payments trên hạ tầng do chính họ kiểm soát
+- Merchants/developers who want to self-host a Fiber payment gateway for their app (Next.js, React, Node.js)
+- Hackathon participants who want to demo Fiber payments without writing their own RPC/webhook code from scratch
+- Operators who want to receive CKB/RUSD testnet payments on infrastructure they control themselves
 
-## So sánh với fiber-checkout
+## Comparison with fiber-checkout
 
 | | fiber-checkout | FiberGate |
 |---|---|---|
-| Developer cần chạy node? | Có | Có (đóng gói sẵn trong docker-compose) |
-| Developer cần quản lý liquidity? | Có | Có, nhưng có dashboard hỗ trợ theo dõi |
-| Có dashboard + webhook + invoice API đóng gói sẵn? | Không | Có |
-| Custodial? | Không (self-custody) | Không (self-hosted, self-custody) |
+| Does the developer need to run a node? | Yes | Yes (bundled in docker-compose) |
+| Does the developer need to manage liquidity? | Yes | Yes, but with dashboard support for monitoring |
+| Bundled dashboard + webhook + invoice API? | No | Yes |
+| Custodial? | No (self-custody) | No (self-hosted, self-custody) |
