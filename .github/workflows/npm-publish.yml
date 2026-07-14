@@ -83,10 +83,13 @@ jobs:
         run: pnpm --filter sdk build
 
       # npm Trusted Publishing (OIDC) requires npm CLI >= 11.5.1; the
-      # version bundled with Node 20 predates that.
+      # version bundled with Node 20 predates that. Pinned to the 11.x line
+      # (not `npm@latest`) because npm 12 dropped Node 20 support entirely
+      # (requires Node ^22.22.2 || ^24.15.0 || >=26) — `npm@latest` broke
+      # this step in production the first time it ran.
       - name: Update npm CLI
         if: steps.check.outputs.should_publish == 'true'
-        run: npm install -g npm@latest
+        run: npm install -g npm@^11.5.1
 
       - name: Publish
         if: steps.check.outputs.should_publish == 'true'
@@ -141,9 +144,11 @@ jobs:
         if: steps.check.outputs.should_publish == 'true'
         run: pnpm --filter create-fibergate build
 
+      # Pinned to the 11.x line (not `npm@latest`) — see the matching comment
+      # in the publish-sdk job above.
       - name: Update npm CLI
         if: steps.check.outputs.should_publish == 'true'
-        run: npm install -g npm@latest
+        run: npm install -g npm@^11.5.1
 
       - name: Publish
         if: steps.check.outputs.should_publish == 'true'
