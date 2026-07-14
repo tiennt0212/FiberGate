@@ -1,6 +1,8 @@
 import { defineConfig } from "vitepress";
+import { withMermaid } from "vitepress-plugin-mermaid";
 
-export default defineConfig({
+export default withMermaid(
+  defineConfig({
   title: "FiberGate",
   description:
     "Self-hosted CKB Fiber Network merchant payment gateway — documentation",
@@ -10,6 +12,7 @@ export default defineConfig({
     nav: [
       { text: "Merchants", link: "/merchants/quickstart" },
       { text: "Maintainers", link: "/maintainers/getting-started" },
+      { text: "Reference", link: "/architecture" },
       { text: "Troubleshooting", link: "/common/troubleshooting" },
       { text: "Decisions & trade-offs", link: "/decisions-and-tradeoffs" },
     ],
@@ -62,10 +65,19 @@ export default defineConfig({
           },
         ],
       },
+      {
+        text: "Reference",
+        items: [
+          { text: "Architecture", link: "/architecture" },
+          { text: "API Reference", link: "/api-reference" },
+          { text: "Glossary", link: "/glossary" },
+        ],
+      },
     ],
     search: { provider: "local" },
     socialLinks: [
       { icon: "github", link: "https://github.com/tiennt0212/FiberGate" },
     ],
   },
-});
+  })
+);
