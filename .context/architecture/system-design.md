@@ -26,34 +26,27 @@ tags: [nextjs, postgresql, docker-compose, fiber-node, monorepo, self-hosted]
 
 ## Kiến trúc tổng thể
 
+```mermaid
+flowchart TB
+    subgraph VPS["Docker Compose (VPS của merchant)"]
+        SF["Merchant's storefront app<br/>(ngoài compose hoặc cùng docker network)"]
+        subgraph Core["fibergate-core (Next.js)"]
+            Dash["Dashboard<br/>(admin gate)"]
+            API["API /api/v1/*<br/>POST /invoices · GET /invoices/:id · GET /node/info"]
+        end
+        DB[("PostgreSQL<br/>invoices · webhook_* · node_snapshots")]
+        Node["Fiber Node (FNN binary)<br/>JSON-RPC :8227 · P2P :8228<br/>Connected testnet"]
+
+        SF -->|"Bearer FIBERGATE_INTERNAL_SECRET"| API
+        API --> DB
+        API --> Node
+        Dash --> DB
+        Dash --> Node
+    end
 ```
-┌────────────────────────────────────────────────────────────────┐
-│                Docker Compose (VPS của merchant)                │
-│                                                                  │
-│  ┌───────────────────┐  Bearer FIBERGATE_INTERNAL_SECRET        │
-│  │ Merchant's         │─────────────────┐                       │
-│  │ storefront app     │                 │                       │
-│  │ (ngoài compose hoặc│                 ▼                       │
-│  │ cùng docker network)│  ┌──────────────────────────────────┐  │
-│  └───────────────────┘  │  fibergate-core (Next.js)         │  │
-│                          │  ┌────────────┐ ┌────────────────┐│  │
-│                          │  │ Dashboard  │ │ API /api/v1/*  ││  │
-│                          │  │(admin gate)│ │ - POST /invoices││  │
-│                          │  │            │ │ - GET /invoices/:id││
-│                          │  │            │ │ - GET /node/info││  │
-│                          │  └────────────┘ └───────┬────────┘│  │
-│                          └──────────┬───────────────┼─────────┘  │
-│                                     │               │            │
-│                          ┌──────────▼──┐  ┌─────────▼─────────┐ │
-│                          │ PostgreSQL  │  │  Fiber Node        │ │
-│                          │ - invoices  │◄─┤  FNN binary        │ │
-│                          │ - webhook_* │  │  JSON-RPC :8227    │ │
-│                          │ - node_snapshots│ P2P :8228         │ │
-│                          └─────────────┘  │  Connected testnet │ │
-│                                            └────────────────────┘│
-│                    (mọi giao tiếp qua docker internal network)   │
-└────────────────────────────────────────────────────────────────┘
-```
+
+Mọi giao tiếp trong sơ đồ trên đi qua docker internal network — không service nào
+publish public port ngoại trừ qua `nginx` (xem "TLS/WSS reverse proxy" bên dưới).
 
 **"Merchant's storefront app" cụ thể hoá (issue #12):** `apps/demo-storefront` là bản
 implement thật của box này — 1 workspace app hoàn toàn tách biệt khỏi `apps/web`
