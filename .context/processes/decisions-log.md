@@ -1,7 +1,7 @@
 ---
 type: decisions_log
 version: 1.0
-last_updated: 2026-07-13T15:34+07:00
+last_updated: 2026-07-14T12:00+07:00
 tags: [decisions, architecture, business-logic, open-questions]
 ---
 
@@ -363,6 +363,7 @@ Implement: `.github/workflows/docker-publish.yml`, `docker-compose.release.yml` 
   2. **Phạm vi: CHỈ generate `.env`, không đụng CKB signing key** — bước `ckb-cli account export` + copy vào `docker/fiber-node/ckb/key` trong `getting-started.md` giữ nguyên thủ công, khớp đúng tiêu đề issue #55 ("Replace manual openssl/htpasswd .env generation").
 
   Implement: extract `ask`/`askSecretValue`/`promptPostgres`/`promptAdminPassword`/`promptDomain` từ `cli.ts` sang `lib/prompts.ts` (refactor thuần, không đổi hành vi `create-fibergate`); thêm `LOCAL_REQUIRED_ENV_VARS` trong `lib/env-file.ts` (giống `REQUIRED_ENV_VARS` trừ `GHCR_NAMESPACE` — root `.env.example` không có biến published-image) kèm 2 test case mirror; entrypoint mới `src/generate-local-env.ts` đọc `.env.example` sống ở repo root (không copy vào `templates/` như `cli.ts` — script này chỉ chạy from-source nên không có nguy cơ lệch bản), ghi thẳng `REPO_ROOT/.env` mode `0o600`; thêm entry thứ 2 vào `tsup.config.ts`; root script `pnpm generate:env`. Cập nhật `docs/maintainers/getting-started.md`'s "Generating a real `.env`" + xoá bullet tương ứng khỏi roadmap `docs/decisions-and-tradeoffs.md`.
+[2026-07-14] **CI/CD publish npm packages (issue #56)** — issue tự ghi "not yet scoped" với 3 câu hỏi mở, hỏi trực tiếp human và có 3 quyết định: (1) **Trigger**: publish khi push `canary` VÀ version trong `package.json` khác version đã có trên npm registry (không phải mọi push như Docker image, không cần git tag riêng) — Lý do: maintainer vẫn tự bump `version` bằng tay như quy trình cũ, CI chỉ lo bước `npm publish`, tránh lỗi "version already exists". (2) **`@fibergate/sdk` publish ngay** thay vì trì hoãn review API surface — Lý do: SDK đã có README đầy đủ, test coverage, `exports`/`types` dual ESM+CJS đúng chuẩn, đủ chín để public. (3) **Auth = npm Trusted Publishing (OIDC)**, không dùng `NPM_TOKEN` secret — Lý do: khớp pattern "chỉ dùng `GITHUB_TOKEN` built-in, zero secret bên thứ 3" mà `docker-publish.yml` đã dùng cho GHCR; đồng thời né được giới hạn tài khoản npm của project chỉ có passkey/security-key 2FA (không hoạt động non-interactive trong CI). Implement: `.github/workflows/npm-publish.yml`. **Chưa live-verify** — cần human tự cấu hình Trusted Publisher trên npmjs.com cho cả 2 package (bước thủ công, Claude không tự làm được) rồi chạy `workflow_dispatch` thật để xác nhận.
 
 ---
 

@@ -68,11 +68,6 @@ xem thêm bản đầy đủ hơn ở `docs/decisions-and-tradeoffs.md`'s "Roadm
   thay cho việc merchant/contributor tự chạy `openssl rand`/`htpasswd` tay như hiện
   tại — mục tiêu là bỏ hẳn hướng dẫn sinh secret thủ công khỏi project, không chỉ
   khỏi doc merchant-facing (đường đó đã được `create-fibergate` giải quyết).
-- **CI/CD publish `create-fibergate` và `@fibergate/sdk` lên npm.** Hiện tại
-  `fibergate-core`'s Docker image tự publish lên GHCR mỗi lần push `canary`
-  (`.github/workflows/docker-publish.yml`), nhưng 2 npm package chưa có workflow
-  tương đương — `create-fibergate` publish tay (hiện `0.1.2`), `@fibergate/sdk`
-  **chưa publish lên npm** (chỉ dùng qua pnpm workspace linking).
 
 ## Trade-offs đã chấp nhận (phải document rõ trong submission)
 
