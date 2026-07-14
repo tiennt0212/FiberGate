@@ -42,13 +42,15 @@ steps these errors are most likely to come up during.
   `ckb-cli account export --extended-privkey-path`, that file has 2 lines (private
   key + chain code) — `head -n 1` it first. Only after ruling that out, check whether
   `FIBER_SECRET_KEY_PASSWORD` actually matches the passphrase used to encrypt the key.
-- **`fiber-node` starts but then exits with "Cannot listen on a public address without
-  a biscuit public key set in the config"** — don't change
-  `docker/fiber-node/config.yml`'s `rpc.listening_addr` to `0.0.0.0`; `fnn` treats
-  that as a public bind and refuses to start without Biscuit auth configured. It's
-  already pre-seeded with a static private IP (`172.28.0.10`) matching the
-  `fiber-node` service's `ipv4_address` in `docker-compose.yml` — if you edited either
-  of those, keep them in sync.
+::: danger `0.0.0.0` counts as "public", even inside a private Docker network
+**`fiber-node` starts but then exits with "Cannot listen on a public address without
+a biscuit public key set in the config"** — don't change
+`docker/fiber-node/config.yml`'s `rpc.listening_addr` to `0.0.0.0`; `fnn` treats
+that as a public bind and refuses to start without Biscuit auth configured. It's
+already pre-seeded with a static private IP (`172.28.0.10`) matching the
+`fiber-node` service's `ipv4_address` in `docker-compose.yml` — if you edited either
+of those, keep them in sync.
+:::
 
 ## Public HTTPS / TLS / WSS
 
