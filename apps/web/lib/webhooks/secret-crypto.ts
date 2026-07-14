@@ -18,10 +18,11 @@ const ENCRYPTED_PARTS_COUNT = 3;
 
 /**
  * `WEBHOOK_SECRET_ENCRYPTION_KEY` is a 64-character hex string encoding a
- * 32-byte AES-256 key (e.g. generated via `openssl rand -hex 32` — same
- * encoding convention as documented in README.md "Generating secrets").
- * Validated on every call so a malformed key fails fast and loudly instead
- * of silently producing unusable ciphertext.
+ * 32-byte AES-256 key. `create-fibergate` generates this for you; hand-fixing
+ * a malformed value can also be done via `openssl rand -hex 32` (see
+ * docs/common/environment-variables.md). Validated on every call so a
+ * malformed key fails fast and loudly instead of silently producing
+ * unusable ciphertext.
  */
 function loadEncryptionKey(): Buffer {
   const raw = requireEnv("WEBHOOK_SECRET_ENCRYPTION_KEY");
