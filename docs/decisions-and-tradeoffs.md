@@ -112,12 +112,6 @@ against a real handshake.
 Beyond the hackathon submission, in roughly the order they'd add the most value:
 
 - **Mainnet support** — everything today targets CKB testnet only.
-- **CI/CD to publish `create-fibergate` and `@fibergate/sdk` to npm.**
-  `fibergate-core`'s Docker image already auto-publishes to GHCR on every push to
-  `canary`; neither npm package has an equivalent workflow yet — both are published
-  by hand today (`create-fibergate`, currently `0.1.2`) or not published at all
-  (`@fibergate/sdk`, workspace-only). Worth a GitHub Actions job that publishes on a
-  version bump or tag, matching the rigor already applied to the Docker image.
 - **Automate `.env` generation for the remaining manual/from-source path.**
   `create-fibergate` already replaced hand-run `openssl rand`/`htpasswd` for the
   primary merchant deploy path; the contributor/from-source path
