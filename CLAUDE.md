@@ -2,43 +2,43 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Đây là project gì?
+## What is this project?
 
-**FiberGate** — self-hosted merchant payment gateway framework prototype cho Fiber Network hackathon (1–15 July 2026). Mô tả đầy đủ: xem `README.md`.
+**FiberGate** — a self-hosted merchant payment gateway framework prototype for the Fiber Network hackathon (1–15 July 2026). Full description: see `README.md`.
 
-> **Constraint cho agent**: Không gọi đây là "LSP framework" — không cung cấp dịch vụ liquidity/mở channel hộ bên thứ ba. Single-tenant: mỗi deployment phục vụ đúng 1 merchant, không có multi-tenant API key/account system — ảnh hưởng trực tiếp tới auth pattern (xem "Auth flow cho API routes" ở `apps/web/CLAUDE.md`: 1 shared secret, không lookup theo user/client).
+> **Constraint for the agent**: Don't call this an "LSP framework" — it doesn't provide liquidity/channel-opening services on behalf of a third party. Single-tenant: each deployment serves exactly 1 merchant, with no multi-tenant API key/account system — this directly affects the auth pattern (see "Auth flow for API routes" in `apps/web/CLAUDE.md`: 1 shared secret, no lookup by user/client).
 
-Đọc `.context/INDEX.md` trước tiên, sau đó đọc theo thứ tự:
+Read `.context/INDEX.md` first, then read in this order:
 
-1. `.context/glossary/fiber-terms.md` — Thuật ngữ (quan trọng để không hallucinate)
+1. `.context/glossary/fiber-terms.md` — Terminology (important to avoid hallucination)
 2. `.context/business-context/project-vision.md` — Vision, scope, hackathon constraints
-3. `.context/architecture/system-design.md` — Kiến trúc, data flow, tech stack, env vars
+3. `.context/architecture/system-design.md` — Architecture, data flow, tech stack, env vars
 4. `.context/data-dictionary/database-schema.md` — PostgreSQL tables, columns, relations
-5. `.context/api/rest-api-spec.md` — API spec đầy đủ (request/response/errors)
-6. `.context/business-rules/payment-rules.md` — Logic nghiệp vụ, rate limits, security rules
-7. `.context/processes/decisions-log.md` — Quyết định đã được human chốt
-8. `.context/processes/gotchas.md` — Infra/protocol gotchas đã tốn công tìm ra
-9. `.context/processes/definition-of-done.md` — DoD và checklist cuối phiên
+5. `.context/api/rest-api-spec.md` — Full API spec (request/response/errors)
+6. `.context/business-rules/payment-rules.md` — Business logic, rate limits, security rules
+7. `.context/processes/decisions-log.md` — Decisions already settled by a human
+8. `.context/processes/gotchas.md` — Infra/protocol gotchas that took real effort to find
+9. `.context/processes/definition-of-done.md` — DoD and end-of-session checklist
 
 ## Monorepo layout
 
-> Bản canonical duy nhất — `README.md`/`.context/INDEX.md` chỉ tóm tắt/link về đây.
+> The single canonical version — `README.md`/`.context/INDEX.md` only summarize/link back here.
 
 ```
 apps/web/          — Next.js 14 App Router (fibergate-core: dashboard + API routes)
   app/(dashboard)/ — Protected routes (single-admin password gate): /dashboard, /webhooks, /transactions
   app/api/v1/      — REST API endpoints: /invoices, /node
-  app/api/cron/    — Optional manual-trigger endpoint: /poll-invoices (nguồn chính là in-process interval worker)
+  app/api/cron/    — Optional manual-trigger endpoint: /poll-invoices (primary source is the in-process interval worker)
   lib/db/          — Drizzle client + schema + helpers
   lib/fiber/       — Fiber JSON-RPC client (wraps FNN node calls)
-  lib/services/    — Business logic route.ts delegates to (xem "Service layer pattern" ở apps/web/CLAUDE.md)
-apps/demo-storefront/ — Reference merchant app (issue #12) — app hoàn toàn tách biệt
-  khỏi apps/web, KHÔNG import code chung, chỉ gọi @fibergate/sdk qua HTTP
-  (FIBERGATE_BASE_URL/FIBERGATE_INTERNAL_SECRET) giống một merchant thứ ba thật —
-  demo QR checkout + nhận webhook thật (POST /api/webhook, verify bằng SDK's
-  verifyWebhookSignature) đẩy update qua Server-Sent Events. Có Dockerfile +
-  docker-compose.demo.yml riêng ngay trong thư mục này (không nằm ở docker/ gốc —
-  tự chứa hoàn toàn). Xem docs/merchants/demo-storefront.md.
+  lib/services/    — Business logic route.ts delegates to (see "Service layer pattern" in apps/web/CLAUDE.md)
+apps/demo-storefront/ — Reference merchant app (issue #12) — an app fully separate
+  from apps/web, does NOT import shared code, only calls @fibergate/sdk over HTTP
+  (FIBERGATE_BASE_URL/FIBERGATE_INTERNAL_SECRET) exactly like a real third-party
+  merchant — demo QR checkout + receives real webhooks (POST /api/webhook, verified
+  with the SDK's verifyWebhookSignature) pushing updates over Server-Sent Events.
+  Has its own Dockerfile + docker-compose.demo.yml right in this directory (not in
+  the root docker/ — fully self-contained). See docs/merchants/demo-storefront.md.
 packages/sdk/      — npm package @fibergate/sdk (TypeScript, tsup)
 packages/create-fibergate/ — npm package `create-fibergate` (issue #48):
                      `npx create-fibergate@latest` — interactive wizard
@@ -58,149 +58,149 @@ packages/create-fibergate/ — npm package `create-fibergate` (issue #48):
                      .env.release.example — see scripts/copy-templates.mjs —
                      so it can never drift from those files.
 docker-compose.yml — Fiber node + PostgreSQL + fibergate-core + nginx/certbot (TLS/WSS
-                     reverse proxy, issue #17 — xem CKB/Fiber References bên dưới),
-                     build fibergate-core từ source — dùng cho contributor/dev, không
-                     phải đường deploy merchant khuyến nghị (xem dòng dưới)
-docker-compose.release.yml — issue #21 + #41: cùng 6 service như docker-compose.yml,
-                     nhưng fibergate-core dùng image: ghcr.io/<GHCR_NAMESPACE>/
-                     fibergate-core (published qua .github/workflows/docker-publish.yml,
-                     tag theo git commit SHA + latest) thay vì build: — merchant chỉ cần
-                     file này + .env, không cần clone repo, xem docs/merchants/deployment.md
-.github/workflows/docker-publish.yml — build + push fibergate-core lên GHCR mỗi lần
-                     push canary (+ workflow_dispatch để trigger thủ công)
-docker/            — docker/fibergate-core/Dockerfile, config fiber-node,
+                     reverse proxy, issue #17 — see CKB/Fiber References below),
+                     builds fibergate-core from source — used for contributor/dev, not
+                     the recommended merchant deploy path (see the line below)
+docker-compose.release.yml — issue #21 + #41: same 6 services as docker-compose.yml,
+                     but fibergate-core uses image: ghcr.io/<GHCR_NAMESPACE>/
+                     fibergate-core (published via .github/workflows/docker-publish.yml,
+                     tagged by git commit SHA + latest) instead of build: — a merchant only
+                     needs this file + .env, no need to clone the repo, see docs/merchants/deployment.md
+.github/workflows/docker-publish.yml — builds + pushes fibergate-core to GHCR on every
+                     push to canary (+ workflow_dispatch for manual triggering)
+docker/            — docker/fibergate-core/Dockerfile, fiber-node config,
                      docker/nginx/nginx.conf.template (nginx + certbot service, TLS
-                     cho fibergate-core dashboard/API + WSS cho fiber-node P2P — KHÔNG
-                     front apps/demo-storefront, xem docs/merchants/public-https-deploy.md)
-docs/              — Documentation dành cho người (không phải AI), chia theo audience —
-                     xem README.md's bảng "Documentation" để biết file nào cho ai:
+                     for the fibergate-core dashboard/API + WSS for fiber-node P2P — does NOT
+                     front apps/demo-storefront, see docs/merchants/public-https-deploy.md)
+docs/              — Documentation for humans (not AI), split by audience —
+                     see README.md's "Documentation" table to know which file is for whom:
                      docs/merchants/* (deploy/quickstart/demo-storefront), docs/maintainers/*
-                     (local dev/release process), docs/common/troubleshooting.md (lỗi
-                     thường gặp, dùng chung), docs/decisions-and-tradeoffs.md (bản tường
-                     thuật cho giám khảo/reviewer — không thay thế .context/processes/
-                     decisions-log.md, chỉ là bản đọc dễ hơn của nó)
-CONTRIBUTING.md, CODE_OF_CONDUCT.md, MAINTAINER.md — quy ước đóng góp/release, ở root
-                     theo convention GitHub tự nhận diện
+                     (local dev/release process), docs/common/troubleshooting.md (common
+                     errors, shared), docs/decisions-and-tradeoffs.md (a narrative
+                     write-up for judges/reviewers — doesn't replace .context/processes/
+                     decisions-log.md, just an easier-to-read version of it)
+CONTRIBUTING.md, CODE_OF_CONDUCT.md, MAINTAINER.md — contribution/release conventions, at
+                     root per GitHub's auto-recognized convention
 .context/          — Project context files (Single Source of Truth)
-.context/design/   — Mockup UI đầy đủ, commit thẳng vào repo (không chỉ token nữa):
-                     - FiberGate.dc.html — mockup dashboard thật (mở trực tiếp bằng browser)
-                     - COMPONENTS.dc.html — artboard catalog: từng component pattern trong DESIGN.md
-                       render trực quan kèm caption map sang Antd v5 component + cách override
-                       (Card/Tag/Table/Button/Segmented/Progress/Alert/Badge/Modal/Menu...) — mở bằng
-                       browser để tra khi code UI, đỡ phải tự đoán nên dùng component Antd nào
-                     - support.js — script phụ trợ cho mockup
-                     - DESIGN.md — design tokens/type scale/component patterns (reference khi code UI)
-                     Nguồn gốc: Claude Design (project ID ở trên), nhưng do giới hạn chia sẻ với
-                     teammate nên bản trong repo mới là bản dùng được cho cả team. Human tự đồng bộ
-                     thủ công khi có thay đổi bên Claude Design — bản trong repo có thể trễ hơn bản
-                     gốc, không tự động mirror real-time.
+.context/design/   — Full UI mockup, committed directly to the repo (not just tokens anymore):
+                     - FiberGate.dc.html — the real dashboard mockup (open directly in a browser)
+                     - COMPONENTS.dc.html — an artboard catalog: every component pattern in DESIGN.md
+                       rendered visually with captions mapping to the Antd v5 component + how to override it
+                       (Card/Tag/Table/Button/Segmented/Progress/Alert/Badge/Modal/Menu...) — open in a
+                       browser to look up which Antd component to use when coding UI, instead of guessing
+                     - support.js — helper script for the mockup
+                     - DESIGN.md — design tokens/type scale/component patterns (reference when coding UI)
+                     Origin: Claude Design (project ID above), but due to sharing limits with
+                     teammates, the copy in the repo is the one the whole team can actually use. The human
+                     manually syncs it when there are changes on the Claude Design side — the copy in the
+                     repo may lag behind the original, it doesn't mirror in real-time automatically.
 ```
 
 ## Project IDs
 
-| Service | ID | Ghi chú |
+| Service | ID | Note |
 |---------|-----|---------|
 | Claude Design | `15b01139-c51f-472e-81df-e7c0777dd47d` | UI mockups |
 
 ## Commands
 
 ```bash
-pnpm install                    # install tất cả packages
-pnpm dev                        # chạy apps/web dev server
-pnpm build                      # build tất cả
-pnpm lint                       # lint toàn bộ
-pnpm --filter web typecheck     # TypeScript strict check cho web app
-pnpm --filter sdk build         # build chỉ sdk package
-pnpm --filter create-fibergate build  # build CLI (chạy scripts/copy-templates.mjs trước tsup)
-pnpm --filter web dev           # chạy chỉ web app
-pnpm docker:dev                 # chạy dev mode: chỉ postgres + fiber-node (không có fibergate-core)
-pnpm docker:dev:down            # dừng postgres + fiber-node ở dev mode
+pnpm install                    # install all packages
+pnpm dev                        # run the apps/web dev server
+pnpm build                      # build everything
+pnpm lint                       # lint everything
+pnpm --filter web typecheck     # TypeScript strict check for the web app
+pnpm --filter sdk build         # build only the sdk package
+pnpm --filter create-fibergate build  # build the CLI (runs scripts/copy-templates.mjs before tsup)
+pnpm --filter web dev           # run only the web app
+pnpm docker:dev                 # run dev mode: only postgres + fiber-node (no fibergate-core)
+pnpm docker:dev:down            # stop postgres + fiber-node in dev mode
 
-docker compose up -d            # build + chạy fiber-node + postgres + fibergate-core
-docker compose build             # rebuild image fibergate-core sau khi đổi code
+docker compose up -d            # build + run fiber-node + postgres + fibergate-core
+docker compose build             # rebuild the fibergate-core image after code changes
 ```
 
-## Kiến trúc và patterns quan trọng (apps/web)
+## Key architecture and patterns (apps/web)
 
-Xem `apps/web/CLAUDE.md` — Auth flow cho API routes, Service layer pattern, Database pattern, Fiber RPC calls, Poller và cron endpoint, Response format.
+See `apps/web/CLAUDE.md` — Auth flow for API routes, Service layer pattern, Database pattern, Fiber RPC calls, Poller and cron endpoint, Response format.
 
-## Rules quan trọng
+## Important rules
 
-- **KHÔNG** tự thêm dependencies mà không hỏi
-- **KHÔNG** hardcode bất kỳ secret hay URL nào — dùng env vars (xem list trong `.context/architecture/system-design.md`)
-- **KHÔNG** tự sửa database schema mà không update `.context/data-dictionary/database-schema.md`
-- Schema Drizzle phải khớp với `.context/data-dictionary/database-schema.md` — sửa file nào cũng phải đồng bộ file kia
-- Mọi API route `/api/v1/*` phải validate authentication **trước** khi thực hiện bất kỳ logic nào khác
-- Error handling phải explicit — không dùng `try/catch` rỗng
-- TypeScript strict mode toàn bộ — không dùng `any`
-- Khi tạo git commit cho nhiều thay đổi độc lập nhau (nhiều file/nhiều mục đích khác nhau trong cùng phiên), tách thành nhiều commit nhỏ theo từng đơn vị thay đổi — **không** dồn tất cả vào 1 commit lớn, kể cả khi user chỉ yêu cầu 1 lần "commit giúp tôi"
-- Khi sửa 1 file có bản mirror công khai trên VitePress site (xem bảng "Public docs mirror" ở `.context/INDEX.md`), cũng kiểm tra/cập nhật trang `docs/*.md` tương ứng trong cùng lần sửa — 2 bên không tự đồng bộ
+- **DO NOT** add dependencies without asking first
+- **DO NOT** hardcode any secret or URL — use env vars (see the list in `.context/architecture/system-design.md`)
+- **DO NOT** modify the database schema without updating `.context/data-dictionary/database-schema.md`
+- The Drizzle schema must match `.context/data-dictionary/database-schema.md` — editing one requires syncing the other
+- Every `/api/v1/*` API route must validate authentication **before** doing any other logic
+- Error handling must be explicit — no empty `try/catch` blocks
+- TypeScript strict mode throughout — no `any`
+- When creating a git commit for multiple independent changes (multiple files/multiple different purposes in the same session), split them into multiple small commits per unit of change — **do not** lump everything into one big commit, even if the user only asks once to "commit this for me"
+- When editing a file that has a public mirror on the VitePress site (see the "Public docs mirror" table in `.context/INDEX.md`), also check/update the corresponding `docs/*.md` page in the same edit — the two don't auto-sync
 
-## Gotchas đã tốn công tìm ra
+## Gotchas that took real effort to find
 
-Chi tiết đầy đủ + cách đã verify: `.context/processes/gotchas.md`. Đừng lặp lại:
+Full details + how they were verified: `.context/processes/gotchas.md`. Don't repeat these:
 
-- `0.0.0.0` bị `fnn` coi là "public" dù trong Docker network riêng
-- `.env` corrupt ký tự `$` (2 cách khác nhau, tùy reader)
-- `ckb-cli` export key xuất sai format `fnn` cần
-- `pubsub` không nằm trong `enabled_modules` mặc định của FNN
-- `subscribe_store_changes`'s subscription id là JSON number, không phải string
-- RUSD/UDT cache có thể stale-forever / request-storm race
-- Invoice `expired` không reverse được dù payment thật settle sau đó (issue #51)
-- Docker Compose không tự forward toàn bộ `.env` vào container — phải liệt kê tường minh trong `environment:` block
-- `env_file:` trong override compose file resolve path theo project directory, không phải thư mục chứa file override
+- `0.0.0.0` is treated as "public" by `fnn` even inside a private Docker network
+- `.env` corrupts the `$` character (2 different ways, depending on the reader)
+- `ckb-cli` key export produces the wrong format for what `fnn` needs
+- `pubsub` is not in FNN's default `enabled_modules`
+- `subscribe_store_changes`'s subscription id is a JSON number, not a string
+- The RUSD/UDT cache can go stale-forever / hit a request-storm race
+- An `expired` invoice can't be reversed even if the real payment later settles (issue #51)
+- Docker Compose doesn't automatically forward the entire `.env` into the container — must be explicitly listed in the `environment:` block
+- `env_file:` in an override compose file resolves its path relative to the project directory, not the directory containing the override file
 
 ## CKB/Fiber References
 
-Khi cần thông tin về CKB protocol hoặc Fiber Network, tra cứu theo thứ tự:
+When you need information about the CKB protocol or Fiber Network, look it up in this order:
 
-1. `.context/glossary/fiber-terms.md` — thuật ngữ đã được curate cho project này
-2. CKB AI MCP (đã cài) — query trực tiếp bằng ngôn ngữ tự nhiên
-3. `https://docs.nervos.org/llms.txt` — CKB docs tổng quan
-4. `https://www.fiber.world/docs` — Fiber docs chính thức
+1. `.context/glossary/fiber-terms.md` — terminology already curated for this project
+2. CKB AI MCP (already installed) — query directly in natural language
+3. `https://docs.nervos.org/llms.txt` — general CKB docs
+4. `https://www.fiber.world/docs` — official Fiber docs
 
-**Fiber Gateway chỉ dùng Fiber ở application layer (JSON-RPC calls). KHÔNG viết CKB Scripts. KHÔNG cần hiểu Cell Model trừ khi debug channel issues.**
+**FiberGate only uses Fiber at the application layer (JSON-RPC calls). Do NOT write CKB Scripts. No need to understand the Cell Model unless debugging channel issues.**
 
-### SDK/tooling — official vs community (theo `fiber-hackathon-docs/resources.md`)
+### SDK/tooling — official vs community (per `fiber-hackathon-docs/resources.md`)
 
-- **Official, dùng cho core (Phase 1/2):** `@ckb-ccc/fiber` (SDK cho `lib/fiber/client.ts`), `fnn-cli` + `ckb-cli` (setup/bootstrap channel lúc dev, không phải runtime dependency của app).
-- **Community, chỉ dùng làm reference cho Phase 3 (L402, optional stretch) — riêng cho `apps/web`:** `@fiber-pay/sdk` — xem demo tham chiếu [`fiber-l402`](https://github.com/RetricSu/fiber-l402) (Express + Astro + React, dùng chính thư viện này để build L402 paywall middleware). **Không dùng `@fiber-pay/react` trong `apps/web`/`fibergate-core`.**
-- **`apps/demo-storefront` (app tách biệt hoàn toàn) có dùng `@fiber-pay/react` + `@nervosnetwork/fiber-js` thật** — nút "Pay with browser wallet", chạy 1 Fiber node WASM ngay trong browser. Xem `apps/demo-storefront/app/BrowserWalletPay.tsx`, `docs/merchants/demo-storefront.md`. Lý do/lịch sử: `decisions-log.md` 2026-07-08 (issue #12).
-- **Fiber WSS Config Manual** (`nervosnetwork/fiber/blob/v0.9.0-rc6/docs/fiber-node-wss.md`, pin đúng tag khớp image đang dùng) — hướng dẫn expose P2P của node qua `wss://` (Nginx+TLS) cho browser/WASM client. **Không áp dụng cho `fibergate-core` tự thân**: gọi JSON-RPC tới `fiber-node` qua docker internal network (plain HTTP), không cần TLS/WSS. `docker-compose.yml`'s `nginx` service implement recipe này (`stream{}` + `ssl_preread` trên port `8228`, phân biệt raw TCP P2P thường vs TLS/WSS browser) — cần `DOMAIN` cấu hình + `docker/fiber-node/config.yml`'s `announced_addrs` thêm dòng `/dns4/<DOMAIN>/tcp/8228/wss` thủ công. **Chưa live-verify qua domain thật/Let's Encrypt/browser wallet thật** — mới smoke-test local với cert self-signed (`DOMAIN=localhost`). Chi tiết kiến trúc: `system-design.md`'s "TLS/WSS reverse proxy (nginx + certbot)"; runbook: `docs/merchants/public-https-deploy.md`; lịch sử: `decisions-log.md` 2026-07-09 (issue #17).
+- **Official, used for the core (Phase 1/2):** `@ckb-ccc/fiber` (SDK for `lib/fiber/client.ts`), `fnn-cli` + `ckb-cli` (setup/bootstrap channels during dev, not a runtime dependency of the app).
+- **Community, used only as a reference for Phase 3 (L402, optional stretch) — specific to `apps/web`:** `@fiber-pay/sdk` — see the reference demo [`fiber-l402`](https://github.com/RetricSu/fiber-l402) (Express + Astro + React, using this exact library to build L402 paywall middleware). **Do not use `@fiber-pay/react` in `apps/web`/`fibergate-core`.**
+- **`apps/demo-storefront` (a fully separate app) does use the real `@fiber-pay/react` + `@nervosnetwork/fiber-js`** — the "Pay with browser wallet" button, running a Fiber node WASM right in the browser. See `apps/demo-storefront/app/BrowserWalletPay.tsx`, `docs/merchants/demo-storefront.md`. Reasoning/history: `decisions-log.md` 2026-07-08 (issue #12).
+- **The Fiber WSS Config Manual** (`nervosnetwork/fiber/blob/v0.9.0-rc6/docs/fiber-node-wss.md`, pinned to the exact tag matching the image in use) — guide for exposing the node's P2P over `wss://` (Nginx+TLS) to a browser/WASM client. **Does not apply to `fibergate-core` itself**: it calls JSON-RPC on `fiber-node` over the docker internal network (plain HTTP), no TLS/WSS needed. `docker-compose.yml`'s `nginx` service implements this recipe (`stream{}` + `ssl_preread` on port `8228`, distinguishing regular raw TCP P2P from TLS/WSS browser traffic) — requires `DOMAIN` to be configured + a manual addition of `/dns4/<DOMAIN>/tcp/8228/wss` to `docker/fiber-node/config.yml`'s `announced_addrs`. **Not yet live-verified against a real domain/Let's Encrypt/real browser wallet** — only smoke-tested locally with a self-signed cert (`DOMAIN=localhost`). Architecture details: `system-design.md`'s "TLS/WSS reverse proxy (nginx + certbot)"; runbook: `docs/merchants/public-https-deploy.md`; history: `decisions-log.md` 2026-07-09 (issue #17).
 
-## Nguyên tắc làm việc với AI Agent
+## Principles for working with the AI Agent
 
-### Hỏi trước khi làm
-Khi gặp yêu cầu chưa rõ hoặc có nhiều cách tiếp cận, Claude Code
-**KHÔNG tự suy đoán rồi implement**. Thay vào đó:
+### Ask before doing
+When facing an unclear request or one with multiple possible approaches, Claude Code
+**must NOT guess and implement on its own**. Instead:
 
-1. Nêu rõ phần nào còn ambiguous
-2. Đặt câu hỏi cụ thể để làm rõ
-3. Nếu cần, đề xuất 2-3 options và hỏi chọn cái nào
-4. Chỉ implement sau khi nhận được câu trả lời
+1. State clearly which part is ambiguous
+2. Ask specific clarifying questions
+3. If needed, propose 2-3 options and ask which to choose
+4. Only implement after receiving an answer
 
-**Ví dụ tình huống cần hỏi:**
-- Yêu cầu mô tả feature nhưng không rõ edge case
-- Có thể implement theo nhiều cách với trade-off khác nhau
-- Không chắc scope: "tạo webhook" là chỉ backend hay cả UI?
-- Không rõ behavior khi error: retry hay fail ngay?
+**Example situations that call for asking:**
+- A feature request that doesn't specify edge cases
+- Multiple possible implementations with different trade-offs
+- Unclear scope: does "create a webhook" mean backend only, or UI too?
+- Unclear error behavior: retry or fail immediately?
 
-### Không tự quyết định các vấn đề sau (dừng và hỏi):
-- Thay đổi database schema
-- Thay đổi API response format (breaking change)
-- Cài thêm dependency mới
-- Xóa code hoặc file hiện có
-- Bất kỳ logic liên quan đến security, auth, signing, hashing
-- Chọn kiến trúc khi có nhiều hướng khả thi
+### Don't decide these on your own (stop and ask):
+- Changing the database schema
+- Changing the API response format (breaking change)
+- Adding a new dependency
+- Deleting existing code or files
+- Any logic related to security, auth, signing, hashing
+- Choosing an architecture when multiple approaches are viable
 
-## Khi implement một feature mới
+## When implementing a new feature
 
-1. Đọc user story liên quan trong `.context/user-stories/`
-2. Đọc business rules liên quan trong `.context/business-rules/`
-3. Implement theo API spec trong `.context/api/rest-api-spec.md`
-4. Nếu là UI/dashboard: đối chiếu `.context/design/FiberGate.dc.html` (mockup thật, mở bằng browser),
-   `.context/design/DESIGN.md` (tokens/component patterns), và `.context/design/COMPONENTS.dc.html`
-   (component nào trong mockup nên dựng bằng Antd component nào + cách override) — không tự bịa
-   màu sắc/spacing, và không tự dựng lại component mà Antd đã có sẵn
-5. Update context file nếu có thay đổi design
-6. Trước khi coi là xong: đối chiếu `.context/processes/definition-of-done.md` — đừng dừng lại chỉ vì code "trông có vẻ xong"
+1. Read the relevant user story in `.context/user-stories/`
+2. Read the relevant business rules in `.context/business-rules/`
+3. Implement per the API spec in `.context/api/rest-api-spec.md`
+4. If it's UI/dashboard work: cross-reference `.context/design/FiberGate.dc.html` (the real mockup, open in a browser),
+   `.context/design/DESIGN.md` (tokens/component patterns), and `.context/design/COMPONENTS.dc.html`
+   (which component in the mockup should be built with which Antd component + how to override it) — don't invent
+   colors/spacing on your own, and don't rebuild a component Antd already provides
+5. Update the context file if there's a design change
+6. Before considering it done: cross-check `.context/processes/definition-of-done.md` — don't stop just because the code "looks done"
