@@ -8,15 +8,15 @@ Every claim below is backed by an entry in that log if you want the full detail.
 ## Product framing: self-hosted infrastructure, not a custodial SaaS
 
 FiberGate started as a managed, multi-tenant "Fiber payment gateway" concept and was
-deliberately pivoted, on day one, to a self-hosted, open-source framework: a
-merchant runs `docker compose up -d` on their own infrastructure and keeps their own
-node, keys, and funds. The reason was the hackathon's own rule — "infrastructure
+deliberately pivoted, on day one, to a **self-hosted, open-source framework**: a
+merchant runs `docker compose up -d` on their own infrastructure and **keeps their
+own node, keys, and funds**. The reason was the hackathon's own rule — "infrastructure
 only, not products built on top." A custodial SaaS serving multiple merchants reads
 as a *product*; a framework any merchant can deploy and operate themselves reads as
 *infrastructure*. This single decision shaped almost everything downstream:
-single-tenant auth (one shared secret, no per-client API keys), a single-admin
-dashboard (no user/role system), and plain PostgreSQL instead of a heavier
-self-hosted Supabase stack (10+ containers for Auth/Realtime/Storage that a
+**single-tenant auth** (one shared secret, no per-client API keys), a
+**single-admin dashboard** (no user/role system), and **plain PostgreSQL** instead of
+a heavier self-hosted Supabase stack (10+ containers for Auth/Realtime/Storage that a
 single-tenant app doesn't need).
 
 We also deliberately don't call this an "LSP" (Lightning Service Provider analogue)
@@ -69,10 +69,10 @@ assumed from documentation.
 ## Phase 2: real-time invoice detection
 
 The original design polled the Fiber node every 10 seconds to detect invoice status
-changes. This is now replaced as the primary mechanism by a WebSocket subscription
+changes. This is now replaced as the primary mechanism by a **WebSocket subscription**
 to the node's `subscribe_store_changes` pubsub RPC — invoices flip to `paid`
 within seconds of settlement instead of up to 10s later, and the interval poller is
-demoted to a 30s fallback (kept deliberately, not removed) because the Fiber team's
+demoted to a **30s fallback** (kept deliberately, not removed) because the Fiber team's
 own docs describe this RPC as intended primarily for Cross-Chain Hub integration,
 not general client use — we're relying on documented, stable behavior that isn't
 officially scoped for this use case.
