@@ -1,0 +1,151 @@
+# Publishes packages/sdk (@fibergate/sdk) and packages/create-fibergate
+# (create-fibergate) to npm — issue #56. Mirrors docker-publish.yml's rigor
+# (push-to-canary trigger, workflow_dispatch for manual test runs,
+# concurrency guard) but gates the actual `npm publish` on the package's
+# package.json version differing from what's already on the registry, since
+# maintainers still bump `version` by hand (see
+# docs/maintainers/release-process.md) and npm rejects re-publishing an
+# unchanged version anyway.
+#
+# To test this workflow end-to-end from a feature branch before merging to
+# canary (push-to-canary is the only trigger that fires automatically):
+# `gh workflow run npm-publish.yml --ref <branch> -f dry_run=true` — runs
+# every step, including a real `npm publish --dry-run` against the registry
+# (packaging/version checks, no actual write), without publishing anything.
+#
+# Auth: npm Trusted Publishing (OIDC) — no NPM_TOKEN secret to store or
+# rotate, same "only the built-in GITHUB_TOKEN" posture as
+# docker-publish.yml's GHCR login. Requires a one-time manual step per
+# package on npmjs.com (Package settings -> Trusted Publisher -> this repo +
+# this workflow filename) that only the npm account owner can do — see
+# docs/maintainers/release-process.md.
+name: Publish npm packages
+
+on:
+  push:
+    branches: [canary]
+    paths:
+      - "packages/sdk/**"
+      - "packages/create-fibergate/**"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run (npm publish --dry-run, nothing actually published) — use this to test the workflow end-to-end from a feature branch before merging."
+        type: boolean
+        default: false
+
+jobs:
+  publish-sdk:
+    name: Publish @fibergate/sdk
+    runs-on: ubuntu-latest
+    concurrency:
+      group: npm-publish-sdk-${{ github.ref }}
+      cancel-in-progress: true
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # npm view exits non-zero (404) for a package that has never been
+      # published — @fibergate/sdk's current state — so the fallback below
+      # treats "never published" the same as "published at 0.0.0", which
+      # always compares as different from any real version in package.json.
+      - name: Check if version needs publishing
+        id: check
+        working-directory: packages/sdk
+        run: |
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          PUBLISHED_VERSION=$(npm view @fibergate/sdk version 2>/dev/null || echo "0.0.0")
+          echo "current=$CURRENT_VERSION" >> "$GITHUB_OUTPUT"
+          echo "published=$PUBLISHED_VERSION" >> "$GITHUB_OUTPUT"
+          if [ "$CURRENT_VERSION" != "$PUBLISHED_VERSION" ]; then
+            echo "should_publish=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "should_publish=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build
+        if: steps.check.outputs.should_publish == 'true'
+        run: pnpm --filter sdk build
+
+      # npm Trusted Publishing (OIDC) requires npm CLI >= 11.5.1; the
+      # version bundled with Node 20 predates that.
+      - name: Update npm CLI
+        if: steps.check.outputs.should_publish == 'true'
+        run: npm install -g npm@latest
+
+      - name: Publish
+        if: steps.check.outputs.should_publish == 'true'
+        working-directory: packages/sdk
+        run: npm publish ${{ inputs.dry_run && '--dry-run' || '' }}
+
+  publish-create-fibergate:
+    name: Publish create-fibergate
+    runs-on: ubuntu-latest
+    concurrency:
+      group: npm-publish-create-fibergate-${{ github.ref }}
+      cancel-in-progress: true
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check if version needs publishing
+        id: check
+        working-directory: packages/create-fibergate
+        run: |
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          PUBLISHED_VERSION=$(npm view create-fibergate version 2>/dev/null || echo "0.0.0")
+          echo "current=$CURRENT_VERSION" >> "$GITHUB_OUTPUT"
+          echo "published=$PUBLISHED_VERSION" >> "$GITHUB_OUTPUT"
+          if [ "$CURRENT_VERSION" != "$PUBLISHED_VERSION" ]; then
+            echo "should_publish=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "should_publish=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      # create-fibergate's prebuild step (scripts/copy-templates.mjs) copies
+      # docker-compose.release.yml, docker/fiber-node/config.yml,
+      # docker/nginx/nginx.conf.template, and .env.release.example from the
+      # repo root into templates/ (gitignored) — runs automatically via
+      # `pnpm run build`'s own prebuild hook, nothing extra needed here.
+      - name: Build
+        if: steps.check.outputs.should_publish == 'true'
+        run: pnpm --filter create-fibergate build
+
+      - name: Update npm CLI
+        if: steps.check.outputs.should_publish == 'true'
+        run: npm install -g npm@latest
+
+      - name: Publish
+        if: steps.check.outputs.should_publish == 'true'
+        working-directory: packages/create-fibergate
+        run: npm publish ${{ inputs.dry_run && '--dry-run' || '' }}

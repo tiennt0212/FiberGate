@@ -118,6 +118,13 @@ Beyond the hackathon submission, in roughly the order they'd add the most value:
   by hand today (`create-fibergate`, currently `0.1.2`) or not published at all
   (`@fibergate/sdk`, workspace-only). Worth a GitHub Actions job that publishes on a
   version bump or tag, matching the rigor already applied to the Docker image.
+- **Automate `.env` generation for the remaining manual/from-source path.**
+  `create-fibergate` already replaced hand-run `openssl rand`/`htpasswd` for the
+  primary merchant deploy path; the contributor/from-source path
+  (`docs/maintainers/getting-started.md`) still expects a human to fill in `.env` by
+  hand. Idea: a lightweight script, same shape as `create-fibergate`, that generates
+  a working `.env` from a template for that path too — retiring manual secret
+  generation from the project entirely, not just from the merchant-facing docs.
 - **L402 subscription middleware** (pay-per-request API paywall) — a Phase 3 stretch
   goal, referencing the community `fiber-l402` demo built on `@fiber-pay/sdk`.
 - **Multi-node / high-availability** deployments.

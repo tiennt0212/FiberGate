@@ -1,8 +1,27 @@
 {
   "name": "@fibergate/sdk",
   "version": "0.1.0",
-  "private": true,
+  "description": "TypeScript client for FiberGate — a self-hosted merchant payment gateway for the Fiber Network.",
+  "keywords": [
+    "fibergate",
+    "fiber-network",
+    "ckb",
+    "payment-gateway",
+    "sdk"
+  ],
+  "license": "MIT",
+  "author": "tiennt0212",
+  "homepage": "https://github.com/tiennt0212/FiberGate/tree/canary/packages/sdk#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tiennt0212/FiberGate.git",
+    "directory": "packages/sdk"
+  },
+  "bugs": "https://github.com/tiennt0212/FiberGate/issues",
   "type": "module",
+  "publishConfig": {
+    "access": "public"
+  },
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
