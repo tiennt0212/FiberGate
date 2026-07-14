@@ -8,6 +8,15 @@ export default withMermaid(
       "Self-hosted CKB Fiber Network merchant payment gateway — documentation",
     base: "/FiberGate/",
     cleanUrls: true,
+    vite: {
+      optimizeDeps: {
+        // mermaid's CJS transitive deps (dayjs, dompurify) aren't always
+        // picked up by Vite's dev-server dependency crawler under pnpm's
+        // nested node_modules layout — without this, dev (not build) throws
+        // "does not provide an export named 'default'" for dayjs.min.js.
+        include: ["mermaid", "dayjs"],
+      },
+    },
     themeConfig: {
       nav: [
         { text: "Merchants", link: "/merchants/quickstart" },
