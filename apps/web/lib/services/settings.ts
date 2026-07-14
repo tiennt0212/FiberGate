@@ -11,7 +11,7 @@ import { requireEnv } from "@/lib/env";
 // read exclusively from ADMIN_PASSWORD_HASH_B64.
 
 const ADMIN_PASSWORD_HASH_KEY = "admin_password_hash";
-const BCRYPT_COST_FACTOR = 10; // matches README's `htpasswd -nbBC 10` seed instructions
+const BCRYPT_COST_FACTOR = 10; // htpasswd's own default cost factor, so a hash generated outside this app still validates
 
 // PostgreSQL's SQLSTATE code for "undefined_table" — stable across Postgres
 // versions/locales, unlike matching on the error message text. Confirmed by

@@ -40,6 +40,7 @@ Browse online: **https://tiennt0212.github.io/FiberGate/**
 | ...testing a payment locally without a real wallet | [docs/maintainers/local-testing.md](docs/maintainers/local-testing.md) |
 | **Maintainers** publishing a release | [docs/maintainers/release-process.md](docs/maintainers/release-process.md) |
 | Anyone hitting an error | [docs/common/troubleshooting.md](docs/common/troubleshooting.md) |
+| Anyone wondering what an env var does | [docs/common/environment-variables.md](docs/common/environment-variables.md) |
 | Judges/reviewers — decisions, trade-offs, roadmap | [docs/decisions-and-tradeoffs.md](docs/decisions-and-tradeoffs.md) |
 | Full architecture, API spec, schema, business rules | [.context/INDEX.md](.context/INDEX.md) |
 

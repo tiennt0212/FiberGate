@@ -47,6 +47,21 @@ tags: [invoice, webhook, polling, limits]
 
 ## Status Transition Rules
 
+> State diagram này có bản public (VitePress): `docs/architecture.md`'s "Invoice
+> status lifecycle". Sửa 1 trong 2 file thì kiểm tra file còn lại trong cùng lần sửa
+> (xem `.context/INDEX.md`'s "Public docs mirror").
+
+```mermaid
+stateDiagram-v2
+    [*] --> pending: invoice created
+    pending --> paid: Fiber node status = "Paid" only<br/>("Received" chưa terminal, xem BR-STS-001)
+    pending --> expired: (a) node báo expired, hoặc<br/>(b) expires_at < now() — bulk clock-expire
+    pending --> failed: Fiber node báo cancelled
+    paid --> [*]
+    expired --> [*]
+    failed --> [*]
+```
+
 **BR-STS-001:** Status chỉ đi theo một chiều: `pending → paid | expired | failed`. Không thể reverse.
 
 > **Cập nhật 2026-07-04 (issue #7, background poller)**: Node-status → `paid` mapping

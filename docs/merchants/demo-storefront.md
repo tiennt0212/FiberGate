@@ -17,7 +17,7 @@ of the "storefront integrates like a real merchant" story the QR code demonstrat
 Known gaps, not yet live-verified:
 - The browser wallet can only reach P2P peers over `wss://` (browsers can't open raw
   TCP). `fiber-node` has a WSS path available via `nginx` (see
-  [`public-https-deploy.md`](public-https-deploy.md)) once a real `DOMAIN` is
+  [Public HTTPS deploy](public-https-deploy.md)) once a real `DOMAIN` is
   configured and `announced_addrs` is updated — the routing config exists but hasn't
   been exercised against a real domain or a real browser payment yet.
 - `@fiber-pay/react`'s documented compatibility target is Fiber `v0.9.0-rc4`;
@@ -26,7 +26,7 @@ Known gaps, not yet live-verified:
 ## Try it locally
 
 1. Bring up `fibergate-core` normally — `pnpm docker:dev`, `pnpm --filter web
-   db:migrate`, fill in root `.env` (see [`../maintainers/getting-started.md`](../maintainers/getting-started.md)).
+   db:migrate`, fill in root `.env` (see [Getting started (contributor / local dev)](../maintainers/getting-started.md)).
 2. Register a webhook endpoint pointing at the demo storefront — `url:
    http://localhost:3001/api/webhook`, `events: ["payment.paid"]` — and note the
    secret you set for it. There's no dashboard UI for managing `webhook_endpoints`
@@ -44,7 +44,7 @@ Known gaps, not yet live-verified:
 5. Open `http://localhost:3001`, click **Buy now**. A QR code appears for
    `invoice_address` — pay it from a Fiber testnet wallet with an open channel to
    this node, or see
-   [`../maintainers/local-testing.md`](../maintainers/local-testing.md) if you don't
+   [Paying a demo invoice locally (fiber-node-payer)](../maintainers/local-testing.md) if you don't
    have one handy (spins up a throwaway second node just to pay it). The page
    updates automatically the moment the webhook is verified — no refresh needed.
 
@@ -62,8 +62,8 @@ docker compose -f docker-compose.yml -f apps/demo-storefront/docker-compose.demo
 ```
 
 Want to pay a demo invoice yourself without a separate wallet/node? See
-[`../maintainers/local-testing.md`](../maintainers/local-testing.md) — a
+[Paying a demo invoice locally (fiber-node-payer)](../maintainers/local-testing.md) — a
 contributor/testing tool (a second throwaway Fiber node), not something you need to
 understand as a merchant or integrator.
 
-Something not working? See [`../common/troubleshooting.md`](../common/troubleshooting.md).
+Something not working? See [Troubleshooting](../common/troubleshooting.md).

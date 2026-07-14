@@ -8,15 +8,15 @@ Every claim below is backed by an entry in that log if you want the full detail.
 ## Product framing: self-hosted infrastructure, not a custodial SaaS
 
 FiberGate started as a managed, multi-tenant "Fiber payment gateway" concept and was
-deliberately pivoted, on day one, to a self-hosted, open-source framework: a
-merchant runs `docker compose up -d` on their own infrastructure and keeps their own
-node, keys, and funds. The reason was the hackathon's own rule — "infrastructure
+deliberately pivoted, on day one, to a **self-hosted, open-source framework**: a
+merchant runs `docker compose up -d` on their own infrastructure and **keeps their
+own node, keys, and funds**. The reason was the hackathon's own rule — "infrastructure
 only, not products built on top." A custodial SaaS serving multiple merchants reads
 as a *product*; a framework any merchant can deploy and operate themselves reads as
 *infrastructure*. This single decision shaped almost everything downstream:
-single-tenant auth (one shared secret, no per-client API keys), a single-admin
-dashboard (no user/role system), and plain PostgreSQL instead of a heavier
-self-hosted Supabase stack (10+ containers for Auth/Realtime/Storage that a
+**single-tenant auth** (one shared secret, no per-client API keys), a
+**single-admin dashboard** (no user/role system), and **plain PostgreSQL** instead of
+a heavier self-hosted Supabase stack (10+ containers for Auth/Realtime/Storage that a
 single-tenant app doesn't need).
 
 We also deliberately don't call this an "LSP" (Lightning Service Provider analogue)
@@ -29,8 +29,9 @@ funds themselves.
 A recurring theme in this project: several assumptions that looked correct on paper
 turned out to be wrong the first time they were exercised against a real `fnn` node,
 and were only caught because every non-trivial claim was verified live rather than
-assumed from documentation. Four worth highlighting:
+assumed from documentation.
 
+::: warning Four worth highlighting
 1. **`0.0.0.0` counts as a "public" bind, even inside a private Docker network.**
    `fiber-node`'s RPC needed to be reachable from the `fibergate-core` container, so
    it seemed natural to bind `0.0.0.0:8227`. `fnn` refuses to start on any address it
@@ -63,14 +64,15 @@ assumed from documentation. Four worth highlighting:
    redundant `node_info` call before the first lookup resolved (check-then-act race,
    not just a missed cache hit). Fixed by caching the in-flight *promise* instead of
    the resolved value, and invalidating on both RPC failure and "still not found."
+:::
 
 ## Phase 2: real-time invoice detection
 
 The original design polled the Fiber node every 10 seconds to detect invoice status
-changes. This is now replaced as the primary mechanism by a WebSocket subscription
+changes. This is now replaced as the primary mechanism by a **WebSocket subscription**
 to the node's `subscribe_store_changes` pubsub RPC — invoices flip to `paid`
 within seconds of settlement instead of up to 10s later, and the interval poller is
-demoted to a 30s fallback (kept deliberately, not removed) because the Fiber team's
+demoted to a **30s fallback** (kept deliberately, not removed) because the Fiber team's
 own docs describe this RPC as intended primarily for Cross-Chain Hub integration,
 not general client use — we're relying on documented, stable behavior that isn't
 officially scoped for this use case.
@@ -112,13 +114,6 @@ against a real handshake.
 Beyond the hackathon submission, in roughly the order they'd add the most value:
 
 - **Mainnet support** — everything today targets CKB testnet only.
-- **Automate `.env` generation for the remaining manual/from-source path.**
-  `create-fibergate` already replaced hand-run `openssl rand`/`htpasswd` for the
-  primary merchant deploy path; the contributor/from-source path
-  (`docs/maintainers/getting-started.md`) still expects a human to fill in `.env` by
-  hand. Idea: a lightweight script, same shape as `create-fibergate`, that generates
-  a working `.env` from a template for that path too — retiring manual secret
-  generation from the project entirely, not just from the merchant-facing docs.
 - **L402 subscription middleware** (pay-per-request API paywall) — a Phase 3 stretch
   goal, referencing the community `fiber-l402` demo built on `@fiber-pay/sdk`.
 - **Multi-node / high-availability** deployments.

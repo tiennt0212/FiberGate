@@ -4,8 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Đây là project gì?
 
-**FiberGate** là self-hosted, open-source merchant payment gateway framework prototype cho Fiber Network hackathon (1–15 July 2026). (Không gọi là "LSP framework" — không cung cấp dịch vụ liquidity/mở channel hộ bên thứ ba; đây là merchant payment gateway, khớp category 3 "Merchant, Liquidity, LSP, and Multi-Asset Infrastructure" qua hướng "payment processor prototypes... payment status webhooks".)
-Merchant tự deploy bằng `docker compose up -d` (Fiber node + PostgreSQL + FiberGate core) trên hạ tầng của chính mình, rồi gọi REST API nội bộ để tạo invoice và nhận thanh toán — không cần tự viết code kết nối Fiber RPC, quản lý invoice state machine, hay tự build webhook delivery từ đầu. Single-tenant: mỗi deployment phục vụ 1 merchant, không có multi-tenant API key/account system.
+**FiberGate** — self-hosted merchant payment gateway framework prototype cho Fiber Network hackathon (1–15 July 2026). Mô tả đầy đủ: xem `README.md`.
+
+> **Constraint cho agent**: Không gọi đây là "LSP framework" — không cung cấp dịch vụ liquidity/mở channel hộ bên thứ ba. Single-tenant: mỗi deployment phục vụ đúng 1 merchant, không có multi-tenant API key/account system — ảnh hưởng trực tiếp tới auth pattern (xem "Auth flow cho API routes" ở `apps/web/CLAUDE.md`: 1 shared secret, không lookup theo user/client).
 
 Đọc `.context/INDEX.md` trước tiên, sau đó đọc theo thứ tự:
 
@@ -16,9 +17,12 @@ Merchant tự deploy bằng `docker compose up -d` (Fiber node + PostgreSQL + Fi
 5. `.context/api/rest-api-spec.md` — API spec đầy đủ (request/response/errors)
 6. `.context/business-rules/payment-rules.md` — Logic nghiệp vụ, rate limits, security rules
 7. `.context/processes/decisions-log.md` — Quyết định đã được human chốt
-8. `.context/processes/definition-of-done.md` — DoD và checklist cuối phiên
+8. `.context/processes/gotchas.md` — Infra/protocol gotchas đã tốn công tìm ra
+9. `.context/processes/definition-of-done.md` — DoD và checklist cuối phiên
 
 ## Monorepo layout
+
+> Bản canonical duy nhất — `README.md`/`.context/INDEX.md` chỉ tóm tắt/link về đây.
 
 ```
 apps/web/          — Next.js 14 App Router (fibergate-core: dashboard + API routes)
@@ -27,7 +31,7 @@ apps/web/          — Next.js 14 App Router (fibergate-core: dashboard + API ro
   app/api/cron/    — Optional manual-trigger endpoint: /poll-invoices (nguồn chính là in-process interval worker)
   lib/db/          — Drizzle client + schema + helpers
   lib/fiber/       — Fiber JSON-RPC client (wraps FNN node calls)
-  lib/services/    — Business logic route.ts delegates to (xem "Service layer pattern" bên dưới)
+  lib/services/    — Business logic route.ts delegates to (xem "Service layer pattern" ở apps/web/CLAUDE.md)
 apps/demo-storefront/ — Reference merchant app (issue #12) — app hoàn toàn tách biệt
   khỏi apps/web, KHÔNG import code chung, chỉ gọi @fibergate/sdk qua HTTP
   (FIBERGATE_BASE_URL/FIBERGATE_INTERNAL_SECRET) giống một merchant thứ ba thật —
@@ -42,9 +46,8 @@ packages/create-fibergate/ — npm package `create-fibergate` (issue #48):
                      from docker-compose.release.yml, generating `.env`
                      (secrets via Node's crypto, admin password bcrypt-hashed
                      via bcryptjs) and placing the CKB testnet key, so a
-                     merchant never hand-edits `.env`/hand-runs
-                     `openssl rand`/`htpasswd` by hand (that flow is retired —
-                     see docs/merchants/quickstart.md). Also validates a passphrase against an
+                     merchant never hand-edits `.env` or generates secrets by
+                     hand. Also validates a passphrase against an
                      already-encrypted key reused from a prior deploy
                      (offline, mirroring fnn's own scrypt+AES-256-GCM key
                      file format — see lib/ckb-key-crypto.ts) before writing
@@ -117,55 +120,9 @@ docker compose up -d            # build + chạy fiber-node + postgres + fiberga
 docker compose build             # rebuild image fibergate-core sau khi đổi code
 ```
 
-## Kiến trúc và patterns quan trọng
+## Kiến trúc và patterns quan trọng (apps/web)
 
-### Auth flow cho API routes
-
-Mọi API route `/api/v1/*` phải validate theo thứ tự:
-1. Extract Bearer token từ `Authorization` header
-2. So sánh constant-time với `FIBERGATE_INTERNAL_SECRET` (env var) — **không** dùng `===` thường
-3. Reject nếu không khớp — single-tenant, không lookup theo user/client
-
-`FIBERGATE_INTERNAL_SECRET` là 1 shared secret duy nhất set lúc deploy, không phải per-client key. Không bao giờ log ra console hoặc trả về trong response (BR-SEC-001).
-
-### Service layer pattern
-
-`route.ts` handler chỉ làm auth, parse/validate request, map lỗi sang HTTP status, và shape response — **không** tự viết Drizzle query hay gọi Fiber RPC trực tiếp. Business logic (đọc/ghi DB, gọi `lib/fiber/client.ts`, domain rules) nằm trong `lib/services/*.ts` (ví dụ `lib/services/invoices.ts`, `lib/services/node.ts`), route chỉ gọi vào:
-```typescript
-// route.ts
-const row = await invoicesService.createInvoice(input); // domain logic ở service
-return ok(serializeCreatedInvoice(row), undefined, 201);  // shaping ở route
-```
-Rule request/route-level thuần túy (ví dụ rate limit `BR-RTE-*`) vẫn ở route, không đẩy xuống service. Test theo 2 tầng tương ứng: `lib/services/*.test.ts` mock `@/lib/db` + `@/lib/fiber/client`; `route.test.ts` mock `@/lib/services/*` (không mock lại db/fiber trực tiếp nữa).
-
-Ngoại lệ: `lib/poller/invoice-poller.ts` (background job, không phải request/response controller) hiện vẫn tự query DB trực tiếp — chưa gộp vào service layer.
-
-### Database pattern trong API routes
-
-Dùng Drizzle client từ `lib/db/`, single-tenant nên **không cần scope theo user_id**:
-```typescript
-const rows = await db.select().from(invoices).where(eq(invoices.id, invoiceId))
-```
-
-### Fiber RPC calls
-
-Mọi call đến Fiber node đi qua `lib/fiber/client.ts`. Không call Fiber RPC trực tiếp từ API routes. Response timeout: 5 giây (BR-POL-004).
-
-`lib/fiber/client.ts` build trên nền **`@ckb-ccc/fiber`** (official SDK — "Best starting point for most app integrations" theo tài liệu hackathon) thay vì tự viết JSON-RPC thô. Không dùng `@fiber-pay/sdk`/`@fiber-pay/react` cho core flow (Phase 1/2) — 2 thư viện đó là community/experimental, chỉ cân nhắc làm reference cho Phase 3 (L402), xem `CKB/Fiber References` bên dưới.
-
-### Poller và cron endpoint
-
-Phase 2 (issue #13): nguồn chính là real-time WebSocket listener (`subscribe_store_changes`, xem `lib/poller/invoice-listener.ts`); in-process interval worker (`lib/poller/worker.ts`) chạy trong container `fibergate-core` mỗi 30s (BR-POL-001) giờ chỉ là fallback, không tắt hẳn. `/api/cron/poll-invoices` chỉ là endpoint optional để trigger poll thủ công — vẫn phải check `Authorization: Bearer ${CRON_SECRET}` trước khi xử lý.
-
-### Response format
-
-Tất cả API responses theo format:
-```typescript
-// Success
-{ data: T, error: null, meta?: { ... } }
-// Error  
-{ data: null, error: { code: string, message: string } }
-```
+Xem `apps/web/CLAUDE.md` — Auth flow cho API routes, Service layer pattern, Database pattern, Fiber RPC calls, Poller và cron endpoint, Response format.
 
 ## Rules quan trọng
 
@@ -176,6 +133,22 @@ Tất cả API responses theo format:
 - Mọi API route `/api/v1/*` phải validate authentication **trước** khi thực hiện bất kỳ logic nào khác
 - Error handling phải explicit — không dùng `try/catch` rỗng
 - TypeScript strict mode toàn bộ — không dùng `any`
+- Khi tạo git commit cho nhiều thay đổi độc lập nhau (nhiều file/nhiều mục đích khác nhau trong cùng phiên), tách thành nhiều commit nhỏ theo từng đơn vị thay đổi — **không** dồn tất cả vào 1 commit lớn, kể cả khi user chỉ yêu cầu 1 lần "commit giúp tôi"
+- Khi sửa 1 file có bản mirror công khai trên VitePress site (xem bảng "Public docs mirror" ở `.context/INDEX.md`), cũng kiểm tra/cập nhật trang `docs/*.md` tương ứng trong cùng lần sửa — 2 bên không tự đồng bộ
+
+## Gotchas đã tốn công tìm ra
+
+Chi tiết đầy đủ + cách đã verify: `.context/processes/gotchas.md`. Đừng lặp lại:
+
+- `0.0.0.0` bị `fnn` coi là "public" dù trong Docker network riêng
+- `.env` corrupt ký tự `$` (2 cách khác nhau, tùy reader)
+- `ckb-cli` export key xuất sai format `fnn` cần
+- `pubsub` không nằm trong `enabled_modules` mặc định của FNN
+- `subscribe_store_changes`'s subscription id là JSON number, không phải string
+- RUSD/UDT cache có thể stale-forever / request-storm race
+- Invoice `expired` không reverse được dù payment thật settle sau đó (issue #51)
+- Docker Compose không tự forward toàn bộ `.env` vào container — phải liệt kê tường minh trong `environment:` block
+- `env_file:` trong override compose file resolve path theo project directory, không phải thư mục chứa file override
 
 ## CKB/Fiber References
 
@@ -191,9 +164,9 @@ Khi cần thông tin về CKB protocol hoặc Fiber Network, tra cứu theo th�
 ### SDK/tooling — official vs community (theo `fiber-hackathon-docs/resources.md`)
 
 - **Official, dùng cho core (Phase 1/2):** `@ckb-ccc/fiber` (SDK cho `lib/fiber/client.ts`), `fnn-cli` + `ckb-cli` (setup/bootstrap channel lúc dev, không phải runtime dependency của app).
-- **Community, chỉ dùng làm reference cho Phase 3 (L402, optional stretch) — riêng cho `apps/web`:** `@fiber-pay/sdk` — xem demo tham chiếu [`fiber-l402`](https://github.com/RetricSu/fiber-l402) (Express + Astro + React, dùng chính thư viện này để build L402 paywall middleware).
-  > **Cập nhật 2026-07-08 (issue #12)**: dòng "`@fiber-pay/react` không liên quan... FiberGate không có phần này" ở trên chỉ đúng cho `apps/web`/`fibergate-core` — vẫn giữ nguyên, KHÔNG dùng `@fiber-pay/react` trong `apps/web`. Nhưng `apps/demo-storefront` (app hoàn toàn tách biệt, xem monorepo layout phía trên) giờ **có dùng** `@fiber-pay/react` + `@nervosnetwork/fiber-js` thật — 1 nút "Pay with browser wallet" thử nghiệm (human yêu cầu trực tiếp), chạy 1 Fiber node WASM ngay trong browser để test thanh toán nhanh hơn không cần node/wallet riêng. Xem `apps/demo-storefront/app/BrowserWalletPay.tsx`, `docs/merchants/demo-storefront.md`, và `decisions-log.md` 2026-07-08.
-- **Fiber WSS Config Manual** (`nervosnetwork/fiber/blob/v0.9.0-rc6/docs/fiber-node-wss.md`, pin đúng tag khớp image đang dùng) — hướng dẫn expose P2P của node qua `wss://` (Nginx+TLS) cho browser/WASM client. **Không áp dụng** cho `fibergate-core` tự thân: gọi JSON-RPC tới `fiber-node` qua docker internal network (plain HTTP), không cần TLS/WSS. **Cập nhật 2026-07-09 (issue #17)**: `docker-compose.yml`'s `nginx` service (mới) giờ implement đúng recipe của tài liệu này — `stream{}` block + `ssl_preread` trên port `8228` phân biệt raw TCP (P2P thường) vs TLS/WSS (browser) — mở khoá đường route cho `apps/demo-storefront`'s "Pay with browser wallet" (ngay trên), miễn `DOMAIN` được cấu hình và `docker/fiber-node/config.yml`'s `announced_addrs` được sửa thủ công thêm dòng `/dns4/<DOMAIN>/tcp/8228/wss`. Chi tiết kiến trúc: `system-design.md`'s "TLS/WSS reverse proxy (nginx + certbot)"; runbook: `docs/merchants/public-https-deploy.md`. **Chưa live-verify** — mới smoke-test local với cert self-signed (`DOMAIN=localhost`), chưa test qua domain thật/Let's Encrypt/browser wallet thật (xem `decisions-log.md` 2026-07-09).
+- **Community, chỉ dùng làm reference cho Phase 3 (L402, optional stretch) — riêng cho `apps/web`:** `@fiber-pay/sdk` — xem demo tham chiếu [`fiber-l402`](https://github.com/RetricSu/fiber-l402) (Express + Astro + React, dùng chính thư viện này để build L402 paywall middleware). **Không dùng `@fiber-pay/react` trong `apps/web`/`fibergate-core`.**
+- **`apps/demo-storefront` (app tách biệt hoàn toàn) có dùng `@fiber-pay/react` + `@nervosnetwork/fiber-js` thật** — nút "Pay with browser wallet", chạy 1 Fiber node WASM ngay trong browser. Xem `apps/demo-storefront/app/BrowserWalletPay.tsx`, `docs/merchants/demo-storefront.md`. Lý do/lịch sử: `decisions-log.md` 2026-07-08 (issue #12).
+- **Fiber WSS Config Manual** (`nervosnetwork/fiber/blob/v0.9.0-rc6/docs/fiber-node-wss.md`, pin đúng tag khớp image đang dùng) — hướng dẫn expose P2P của node qua `wss://` (Nginx+TLS) cho browser/WASM client. **Không áp dụng cho `fibergate-core` tự thân**: gọi JSON-RPC tới `fiber-node` qua docker internal network (plain HTTP), không cần TLS/WSS. `docker-compose.yml`'s `nginx` service implement recipe này (`stream{}` + `ssl_preread` trên port `8228`, phân biệt raw TCP P2P thường vs TLS/WSS browser) — cần `DOMAIN` cấu hình + `docker/fiber-node/config.yml`'s `announced_addrs` thêm dòng `/dns4/<DOMAIN>/tcp/8228/wss` thủ công. **Chưa live-verify qua domain thật/Let's Encrypt/browser wallet thật** — mới smoke-test local với cert self-signed (`DOMAIN=localhost`). Chi tiết kiến trúc: `system-design.md`'s "TLS/WSS reverse proxy (nginx + certbot)"; runbook: `docs/merchants/public-https-deploy.md`; lịch sử: `decisions-log.md` 2026-07-09 (issue #17).
 
 ## Nguyên tắc làm việc với AI Agent
 
@@ -230,3 +203,4 @@ Khi gặp yêu cầu chưa rõ hoặc có nhiều cách tiếp cận, Claude Cod
    (component nào trong mockup nên dựng bằng Antd component nào + cách override) — không tự bịa
    màu sắc/spacing, và không tự dựng lại component mà Antd đã có sẵn
 5. Update context file nếu có thay đổi design
+6. Trước khi coi là xong: đối chiếu `.context/processes/definition-of-done.md` — đừng dừng lại chỉ vì code "trông có vẻ xong"

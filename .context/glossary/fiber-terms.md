@@ -8,6 +8,9 @@ tags: [fiber, ckb, payment-channel, lightning]
 
 # Fiber Network — Glossary
 
+> Bản public (VitePress): `docs/glossary.md`. Sửa 1 trong 2 file thì kiểm tra file
+> còn lại trong cùng lần sửa (xem `.context/INDEX.md`'s "Public docs mirror").
+
 ## Fiber Network
 Mạng payment channel peer-to-peer xây dựng trên Nervos CKB. Tương tự Bitcoin Lightning Network nhưng hỗ trợ multi-asset (CKB, RUSD, UDT tokens).
 

@@ -76,4 +76,4 @@ touches `postgres`/`fibergate-core`.
    seconds (30s poller as fallback), fires the webhook, and the demo storefront's
    page updates automatically via SSE.
 
-Something not working? See [`../common/troubleshooting.md`](../common/troubleshooting.md).
+Something not working? See [Troubleshooting](../common/troubleshooting.md).

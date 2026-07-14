@@ -26,7 +26,7 @@ Only `docker` is needed on the deploy host itself.
 - **Rotate a secret** (e.g. `FIBERGATE_INTERNAL_SECRET`) — edit the value directly in
   `.env`, then `docker compose up -d` to apply.
 - **Change the admin password** — do this from Dashboard → Settings instead of
-  re-editing `.env` (see [`quickstart.md`](quickstart.md)).
+  re-editing `.env` (see [Quickstart for merchants](quickstart.md)).
 
 ## Worth knowing
 
@@ -34,18 +34,9 @@ Only `docker` is needed on the deploy host itself.
   during scaffolding from a raw key you provide once. Reusing an already-encrypted
   key from a prior deploy? The CLI validates the passphrase offline before writing
   anything.
-- **`DOMAIN`/`CERTBOT_EMAIL`**: see [`public-https-deploy.md`](public-https-deploy.md)
+- **`DOMAIN`/`CERTBOT_EMAIL`**: see [Public HTTPS deploy](public-https-deploy.md)
   if you want a public HTTPS domain — not required for `docker compose up -d` to
   work locally.
 
 Something failed along the way? See
-[`../common/troubleshooting.md`](../common/troubleshooting.md).
-
-> **Note:** the old hand-rolled flow this doc used to describe (curl 3 files
-> individually, run `openssl rand -hex 32` yourself, hand-compute a bcrypt hash for
-> the admin password) is retired in favor of always scaffolding with
-> `create-fibergate` first. There's no fully-manual, no-CLI-at-all path documented
-> right now — see the roadmap in
-> [`../decisions-and-tradeoffs.md`](../decisions-and-tradeoffs.md) for the plan to
-> replace even the remaining from-source/contributor `.env` setup with a similar
-> template-based generator script.
+[Troubleshooting](../common/troubleshooting.md).

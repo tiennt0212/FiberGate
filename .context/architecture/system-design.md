@@ -7,6 +7,10 @@ tags: [nextjs, postgresql, docker-compose, fiber-node, monorepo, self-hosted]
 
 # System Design — FiberGate
 
+> Phần diagram (Overview, Data Flow) có bản public (VitePress): `docs/architecture.md`.
+> Sửa 1 trong 2 file thì kiểm tra file còn lại trong cùng lần sửa (xem
+> `.context/INDEX.md`'s "Public docs mirror").
+
 ## Tech Stack
 
 | Layer | Technology | Lý do |
@@ -26,34 +30,27 @@ tags: [nextjs, postgresql, docker-compose, fiber-node, monorepo, self-hosted]
 
 ## Kiến trúc tổng thể
 
+```mermaid
+flowchart TB
+    subgraph VPS["Docker Compose (VPS của merchant)"]
+        SF["Merchant's storefront app<br/>(ngoài compose hoặc cùng docker network)"]
+        subgraph Core["fibergate-core (Next.js)"]
+            Dash["Dashboard<br/>(admin gate)"]
+            API["API /api/v1/*<br/>POST /invoices · GET /invoices/:id · GET /node/info"]
+        end
+        DB[("PostgreSQL<br/>invoices · webhook_* · node_snapshots")]
+        Node["Fiber Node (FNN binary)<br/>JSON-RPC :8227 · P2P :8228<br/>Connected testnet"]
+
+        SF -->|"Bearer FIBERGATE_INTERNAL_SECRET"| API
+        API --> DB
+        API --> Node
+        Dash --> DB
+        Dash --> Node
+    end
 ```
-┌────────────────────────────────────────────────────────────────┐
-│                Docker Compose (VPS của merchant)                │
-│                                                                  │
-│  ┌───────────────────┐  Bearer FIBERGATE_INTERNAL_SECRET        │
-│  │ Merchant's         │─────────────────┐                       │
-│  │ storefront app     │                 │                       │
-│  │ (ngoài compose hoặc│                 ▼                       │
-│  │ cùng docker network)│  ┌──────────────────────────────────┐  │
-│  └───────────────────┘  │  fibergate-core (Next.js)         │  │
-│                          │  ┌────────────┐ ┌────────────────┐│  │
-│                          │  │ Dashboard  │ │ API /api/v1/*  ││  │
-│                          │  │(admin gate)│ │ - POST /invoices││  │
-│                          │  │            │ │ - GET /invoices/:id││
-│                          │  │            │ │ - GET /node/info││  │
-│                          │  └────────────┘ └───────┬────────┘│  │
-│                          └──────────┬───────────────┼─────────┘  │
-│                                     │               │            │
-│                          ┌──────────▼──┐  ┌─────────▼─────────┐ │
-│                          │ PostgreSQL  │  │  Fiber Node        │ │
-│                          │ - invoices  │◄─┤  FNN binary        │ │
-│                          │ - webhook_* │  │  JSON-RPC :8227    │ │
-│                          │ - node_snapshots│ P2P :8228         │ │
-│                          └─────────────┘  │  Connected testnet │ │
-│                                            └────────────────────┘│
-│                    (mọi giao tiếp qua docker internal network)   │
-└────────────────────────────────────────────────────────────────┘
-```
+
+Mọi giao tiếp trong sơ đồ trên đi qua docker internal network — không service nào
+publish public port ngoại trừ qua `nginx` (xem "TLS/WSS reverse proxy" bên dưới).
 
 **"Merchant's storefront app" cụ thể hoá (issue #12):** `apps/demo-storefront` là bản
 implement thật của box này — 1 workspace app hoàn toàn tách biệt khỏi `apps/web`
@@ -69,37 +66,50 @@ chạy local.
 
 ## Data Flow — Tạo Invoice
 
+```mermaid
+sequenceDiagram
+    participant SF as Storefront app
+    participant API as FiberGate API<br/>(/api/v1/invoices)
+    participant Node as Fiber Node (RPC)
+    participant DB as PostgreSQL
+
+    SF->>API: POST /invoices {amount, asset, description}<br/>Authorization: Bearer FIBERGATE_INTERNAL_SECRET
+    API->>API: constant-time compare Bearer token<br/>(single-tenant, không lookup user)
+    API->>Node: new_invoice {amount_in_shannon, asset, description}
+    Node-->>API: {invoice_address, payment_hash}
+    API->>DB: INSERT invoice (status="pending")
+    API-->>SF: 201 Created {invoice}
 ```
-1. Storefront app POST /api/v1/invoices { amount, asset, description }
-   với header Authorization: Bearer <FIBERGATE_INTERNAL_SECRET>
 
-2. API Route:
-   a. Validate Bearer token → so sánh constant-time với FIBERGATE_INTERNAL_SECRET (env var) — không lookup user, single-tenant
-   b. Gọi Fiber Node RPC: new_invoice { amount_in_shannon, asset, description }
-   c. Node trả về: { invoice_address, payment_hash }
-   d. Lưu invoice vào PostgreSQL: status = "pending"
-   e. Trả về response cho storefront app
+Sau khi tạo, invoice chuyển trạng thái qua 1 trong 2 cơ chế song song (Phase 2 là
+primary, Phase 1 là fallback — không tắt hẳn):
 
-3. Background Poller — Phase 1: in-process interval worker chạy trong container fibergate-core mỗi 10s,
-   thực hiện đúng thứ tự 2 bước sau (thứ tự bắt buộc, xem `decisions-log.md`):
-   a. RPC-driven batch (BR-POL-002/003) — CHẠY TRƯỚC: query invoices WHERE status = "pending" AND
-      expires_at > now() - 60s, tối đa 50 invoice; với mỗi invoice gọi Fiber Node RPC get_invoice
-      { payment_hash }; nếu status đổi (paid/expired/failed) → update PostgreSQL + fire webhook.
-   b. Bulk clock-expire (BR-STS-002(b)) — CHẠY SAU: 1 câu UPDATE duy nhất, invoices WHERE
-      status = "pending" AND expires_at < now() → set "expired" + fire webhook, không gọi RPC
-      (bắt những invoice đã hết hạn quá lâu, ngoài cửa sổ 60s ở bước a nên chưa từng được RPC check).
-      Phải chạy SAU bước a — chạy trước sẽ có thể đánh dấu "expired" nhầm 1 invoice vừa được trả tiền
-      đúng lúc hết hạn (status chỉ chuyển 1 chiều — BR-STS-001 — nên không có đường quay lại "paid").
+```mermaid
+sequenceDiagram
+    participant Node as Fiber Node
+    participant Listener as invoice-listener.ts<br/>(WebSocket, Phase 2 — primary)
+    participant Poller as invoice-poller.ts<br/>(interval 30s, Phase 1 — fallback)
+    participant DB as PostgreSQL
 
-3'. Background Listener — Phase 2 (thay Background Poller ở trên — **implemented + live-verified
-    2026-07-13, issue #13**, xem chi tiết ở "Phase 2 — Real-time Invoice Listener" bên dưới):
-    `lib/poller/invoice-listener.ts` mở 1 WebSocket client riêng (`lib/fiber/subscribe-client.ts`,
-    không dùng @ckb-ccc/fiber cho phần này) subscribe `subscribe_store_changes`, xử lý mỗi
-    notification `store_changes` bằng cách gọi thẳng `lib/poller/invoice-poller.ts`'s
-    `applyInvoiceStatusUpdate()` — cùng 1 hàm `applyNodeStatus()`/`TERMINAL_TRANSITIONS` bước a-d ở
-    trên dùng, chỉ khác entry point (theo event thay vì theo chu kỳ). Vẫn giữ interval poll
-    (`lib/poller/worker.ts`) làm fallback, giảm tần suất xuống **30s**.
+    Node--)Listener: WS notification: PutCkbInvoiceStatus<br/>{payment_hash, invoice_status}
+    Listener->>DB: applyInvoiceStatusUpdate() → status=paid/expired/failed
+    Listener->>Listener: fire webhook (xem "Data Flow — Webhook Delivery")
+
+    loop mỗi 30s (fallback only)
+        Poller->>DB: SELECT pending invoices (expires_at > now-60s)
+        Poller->>Node: get_invoice(payment_hash) — batch, tối đa 50
+        Node-->>Poller: status
+        Poller->>DB: (1) update nếu status đổi + fire webhook
+        Poller->>DB: (2) bulk clock-expire — CHẠY SAU (1)
+    end
 ```
+
+Thứ tự (1) rồi mới (2) trong vòng lặp Poller là **bắt buộc** (BR-STS-002(b)): bulk
+clock-expire không gọi RPC, chỉ dựa vào đồng hồ — chạy trước sẽ có thể đánh dấu
+`expired` nhầm 1 invoice vừa được trả tiền đúng lúc hết hạn (status chỉ chuyển 1
+chiều, BR-STS-001, không có đường quay lại `paid`). Chi tiết RPC batch: BR-POL-002/003.
+Listener implemented + live-verified 2026-07-13 (issue #13) — xem "Phase 2 —
+Real-time Invoice Listener" ngay dưới.
 
 ## Phase 2 — Real-time Invoice Listener (đã verify với source code FNN, xem `decisions-log.md`)
 
@@ -151,30 +161,40 @@ thật:**
 
 ## Data Flow — Webhook Delivery
 
-> **Cập nhật 2026-07-06 (issue #8, implement `lib/webhooks/*`)**: Bản mô tả dưới đây đã sửa 2 chỗ
-> stale còn sót lại từ 1 bản nháp multi-tenant cũ hơn: (1) không có cột `user_id` nào trong
-> `webhook_endpoints` (single-tenant) — filter đúng là `is_active = true AND eventType IN events`;
-> (2) retry KHÔNG phải exponential backoff — là schedule cố định `immediate → 1 phút → 5 phút`
-> (BR-WHK-003). Key ký HMAC luôn là `webhook_endpoints.secret` **riêng theo từng endpoint**
-> (mã hoá tại rest bằng `WEBHOOK_SECRET_ENCRYPTION_KEY`, xem mục Environment Variables), không phải
-> 1 global signing key.
+```mermaid
+sequenceDiagram
+    participant Trigger as trigger.ts
+    participant DB as PostgreSQL
+    participant Scheduler as retry-scheduler.ts
+    participant Deliver as deliver.ts
+    participant Merchant as Merchant webhook URL
 
+    Note over Trigger: Invoice status → paid/expired/failed (BR-WHK-001)
+    Trigger->>DB: SELECT webhook_endpoints<br/>WHERE is_active=true AND eventType IN events
+    loop mỗi endpoint match
+        Trigger->>DB: INSERT webhook_deliveries<br/>(status=pending, attempt_count=0)
+        Trigger->>Scheduler: scheduleAttempt(deliveryId, 0)
+    end
+
+    Note over Trigger,DB: trigger.ts chỉ await phần INSERT — không await gửi HTTP thật (non-blocking)
+
+    Scheduler->>Deliver: attempt fires
+    Deliver->>Deliver: decrypt endpoint secret (secret-crypto.ts)<br/>sign HMAC-SHA256(rawBody, secret)
+    Deliver->>Merchant: POST payload<br/>X-Fiber-Signature: sha256=xxx (timeout 5s, BR-WHK-002)
+    Merchant-->>Deliver: HTTP response (hoặc timeout)
+    Deliver->>DB: update delivery record<br/>(http_status, response_body ≤1KB, attempt_count)
+    alt retryable (timeout/network/5xx/429, BR-WHK-006) và attempts < 3 (BR-WHK-003)
+        Deliver->>Scheduler: scheduleAttempt() lần tiếp theo (+60s rồi +300s)
+    else non-retryable (4xx khác) hoặc đã đạt 3 attempts
+        Deliver->>DB: status = "failed", dừng hẳn
+    end
 ```
-1. Invoice status → paid/expired/failed (BR-WHK-001)
-2. Query webhook_endpoints WHERE is_active = true AND eventType IN events
-3. Với mỗi endpoint match (dispatch không block poller — trigger.ts chỉ await phần insert
-   webhook_deliveries bên dưới, không await bước gửi HTTP thật; xem lib/webhooks/trigger.ts):
-   a. Build payload: { event, created_at, data: {...} } (api/rest-api-spec.md "Webhook Payload")
-   b. Insert 1 row webhook_deliveries (status='pending', attempt_count=0)
-   c. Arm attempt qua lib/webhooks/retry-scheduler.ts's scheduleAttempt(deliveryId, 0)
-4. Khi attempt thật thi hành (lib/webhooks/deliver.ts):
-   a. Decrypt endpoint's secret (lib/webhooks/secret-crypto.ts), sign: HMAC-SHA256(rawBody, secret)
-   b. POST đến merchant URL với header X-Fiber-Signature: sha256=xxx, timeout 5s (BR-WHK-002)
-   c. Lưu delivery record (http_status, response_body truncated 1KB, attempt_count, status)
-   d. Nếu retryable (timeout/network/5xx/429, BR-WHK-006) và chưa đạt 3 attempts (BR-WHK-003) →
-      scheduleAttempt() lần tiếp theo (+60s rồi +300s); nếu non-retryable (4xx khác) hoặc đã đạt
-      3 attempts → status='failed', dừng hẳn
-```
+
+Payload shape: `api/rest-api-spec.md`'s "Webhook Payload". Key ký HMAC luôn là
+`webhook_endpoints.secret` **riêng theo từng endpoint** (mã hoá at rest bằng
+`WEBHOOK_SECRET_ENCRYPTION_KEY`, xem "Environment Variables"), không phải 1 global
+signing key — và retry là schedule cố định (`immediate → 1 phút → 5 phút`,
+BR-WHK-003), không phải exponential backoff.
 
 ## Monorepo Structure
 
@@ -216,149 +236,46 @@ fibergate/
 
 ## Environment Variables
 
-Không có `DATABASE_URL` ở bất kỳ đâu — `lib/db/` (chưa viết, thuộc issue khác) luôn
-tự build connection string từ 5 biến `POSTGRES_*` trước khi khởi tạo Drizzle client,
-1 code path duy nhất dùng chung cho cả Docker lẫn local dev:
+Bảng đầy đủ toàn bộ biến (theo từng file `.env.example`): xem
+`.context/architecture/env-vars.md` — mục này chỉ giữ lại các quyết định
+kiến trúc/current-state không tự nhiên nằm gọn trong 1 bảng.
+
+Không có `DATABASE_URL` ở bất kỳ đâu — `lib/db/` luôn tự build connection string từ
+5 biến `POSTGRES_*` trước khi khởi tạo Drizzle client, 1 code path duy nhất dùng
+chung cho cả Docker lẫn local dev:
 
 ```ts
 const databaseUrl = `postgres://${process.env.POSTGRES_USER}:${process.env.POSTGRES_PASSWORD}@${process.env.POSTGRES_HOST}:${process.env.POSTGRES_PORT}/${process.env.POSTGRES_DB}`
 ```
 
 **Chỉ 1 file chứa secret thật** — root `.env` (copy từ `.env.example`), dùng chung
-cho cả `docker compose up -d` lẫn `pnpm dev`. 6 biến required để trống có chủ đích
-(không có default an toàn nào) — `create-fibergate` generate các biến này hộ (xem
-`docs/merchants/quickstart.md`); cho local dev từ source, xem
-`docs/maintainers/getting-started.md`'s "Generating a real `.env`":
-
-```bash
-# .env.example (root) — rút gọn, xem file thật cho comment đầy đủ
-POSTGRES_USER=fibergate
-POSTGRES_DB=fibergate
-POSTGRES_PASSWORD=
-FIBER_SECRET_KEY_PASSWORD=       # không thuộc 8 biến app-level bên dưới — chỉ
-                                  # fiber-node đọc, xem section "fiber-node
-                                  # container" bên dưới — nhưng vẫn để trong
-                                  # .env.example (section riêng) để merchant
-                                  # thấy đủ giá trị required trong 1 lần cp
-ADMIN_PASSWORD_HASH_B64=         # base64-encoded bcrypt hash — KHÔNG phải
-                                  # raw "$2y$10$..." — xem "Dashboard auth"
-                                  # bên dưới để biết lý do
-DASHBOARD_SESSION_SECRET=        # ký session cookie (JWT, qua jose) cho
-                                  # app/(dashboard)/** — cố ý tách biệt với
-                                  # FIBERGATE_INTERNAL_SECRET (BR-SEC-004), xem
-                                  # apps/web/lib/auth/session.ts + middleware.ts
-FIBERGATE_INTERNAL_SECRET=
-FIBER_NODE_URL=http://fiber-node:8227  # fixed value, docker internal network
-FIBER_NODE_RPC_AUTH_TOKEN=       # optional
-WEBHOOK_SECRET_ENCRYPTION_KEY=   # 64-char hex (32-byte AES-256 key) encrypting
-                                  # webhook_endpoints.secret at rest — NOT a
-                                  # signing key itself. Each endpoint's own
-                                  # secret (webhook_endpoints.secret, random
-                                  # >=32 bytes per BR-SEC-003) is what signs
-                                  # that endpoint's payloads (BR-WHK-004); this
-                                  # env var only protects that per-endpoint
-                                  # secret at rest. See
-                                  # apps/web/lib/webhooks/secret-crypto.ts.
-                                  # create-fibergate generates this for you
-                                  # (docs/merchants/quickstart.md); for local
-                                  # dev see docs/maintainers/getting-started.md
-```
-
-> **Cập nhật 2026-07-03 (issue #5, verified khi implement `lib/fiber/client.ts`)**:
-> `client.ts` đọc `FIBER_NODE_RPC_AUTH_TOKEN` trực tiếp từ `process.env` như mô
-> tả ở trên, nhưng bản `@ckb-ccc/fiber@0.0.0-canary-20260505020844` đang pin
-> **chưa có cơ chế nào để gắn token này vào request thật** — SDK's HTTP
-> transport hard-code duy nhất header `content-type: application/json`, không
-> có chỗ nào đọc `Authorization`/Biscuit. Xem chi tiết ở `decisions-log.md`
-> 2026-07-03. Không ảnh hưởng chức năng hiện tại vì Biscuit auth đang tắt
-> hoàn toàn theo thiết kế mặc định (mục "fiber-node container" bên dưới) —
-> chỉ cần lưu ý nếu sau này có ai bật Biscuit auth thật, sẽ cần viết thêm 1
-> custom RPC transport mới forward được token.
-
-```bash
-CRON_SECRET=                     # optional
-```
-
-> **Cập nhật 2026-07-09 (issue #17)**: thêm 2 biến **required** mới,
-> `DOMAIN`/`CERTBOT_EMAIL` — dùng bởi `nginx`/`certbot` (mục "TLS/WSS reverse proxy"
-> ở trên), không phải secret sinh ngẫu nhiên như các biến khác mà là giá trị
-> real-world (domain thật + email thật). Không có default an toàn nào (nginx không
-> start ra config dùng được nếu thiếu `DOMAIN`) — xem `docs/merchants/public-https-deploy.md`.
-> ```bash
-> DOMAIN=                          # public domain, cần DNS trỏ vào host này +
->                                   # port 80/443/8228 mở ra internet
-> CERTBOT_EMAIL=                   # Let's Encrypt expiry notices
-> ```
-
-Không có preflight/service nào tự động kiểm tra các biến bcrypt/secret ở trên (postgres/
+cho cả `docker compose up -d` lẫn `pnpm dev`. Cách generate: merchant path →
+`create-fibergate` (`docs/merchants/quickstart.md`); contributor/from-source path →
+`pnpm generate:env` (`docs/maintainers/getting-started.md`'s "Generating a real
+`.env`"). Không có preflight nào tự động kiểm tra các biến bcrypt/secret (postgres/
 fibergate-core tự fail rõ ràng nếu thiếu) — riêng `DOMAIN` có `nginx-certs-preflight`
-sinh cert self-signed tạm nếu thiếu cert thật, nên `nginx`/`docker compose up -d` vẫn
-start được kể cả khi `DOMAIN` chưa trỏ đi đâu thật, chỉ là không dùng được qua HTTPS
-đáng tin cậy cho tới khi hoàn tất `docs/merchants/public-https-deploy.md`.
+sinh cert self-signed tạm nếu thiếu cert thật.
 
-> **Cập nhật 2026-07-08 (issue #12, demo storefront)**: `apps/demo-storefront` là 1
-> app hoàn toàn riêng (xem "Merchant's storefront app cụ thể hoá" ở mục kiến trúc
-> phía trên) nên có `.env.example` độc lập của chính nó (`FIBERGATE_BASE_URL`,
-> `FIBERGATE_INTERNAL_SECRET`, `DEMO_WEBHOOK_SECRET`) — **root `.env`/`.env.example`
-> không có biến demo-storefront nào cả**, kể cả khi deploy qua Docker Compose:
-> `apps/demo-storefront/docker-compose.demo.yml`'s service `demo-storefront` dùng
-> `env_file: [apps/demo-storefront/.env.local]` để đọc thẳng secrets từ file đó
-> (cùng file `pnpm --filter demo-storefront dev` dùng), chỉ override đúng 1 biến
-> `FIBERGATE_BASE_URL` (topology-dependent: docker DNS name khi chạy container,
-> khác giá trị `localhost` trong `.env.local`) qua `environment:` block (luôn
-> thắng `env_file:` cho cùng 1 key). Bản đầu tiên (đã sửa) có thêm
-> `DEMO_WEBHOOK_SECRET` vào root `.env.example` để Docker Compose interpolate —
-> human phát hiện đây là duplicate thật với `apps/demo-storefront/.env.example`,
-> sửa lại bằng `env_file:` để chỉ còn đúng 1 nơi lưu secret này. Xem
-> `decisions-log.md` 2026-07-08 để biết chi tiết + 1 gotcha đáng nhớ phát hiện lúc
-> sửa: `env_file:` trong 1 override compose file resolve path tương đối theo
-> **project directory** (thư mục file `-f` đầu tiên), không phải theo thư mục
-> chứa chính file override đó — cùng hành vi đã ghi nhận cho `build.context`.
->
-> Cũng đã cân nhắc và **bỏ** 1 script seed tự động (`apps/web/lib/services/webhooks.ts`'s
-> `createWebhookEndpoint()` gọi trực tiếp từ 1 `.mjs` script) từng làm trong cùng
-> phiên — human chốt không cần, sẽ tự đăng ký webhook endpoint qua Dashboard (khi
-> trang đó được xây) thay vì có riêng 1 cơ chế seed cho demo.
+`apps/web/.env.local` chỉ override 3 biến khác giá trị so với root `.env` khi chạy
+`pnpm dev` ngoài Docker (`POSTGRES_HOST`, `POSTGRES_PORT`, `FIBER_NODE_URL`) —
+`apps/web/package.json`'s `dev` script dùng `dotenv-cli` để merge 2 file trước khi
+spawn `next dev`: `dotenv -e .env.local -e ../../.env -- next dev` (file liệt kê
+trước thắng). `POSTGRES_HOST=localhost` chỉ hoạt động vì `docker-compose.yml`'s
+`postgres` service publish port loopback-only (`127.0.0.1:5432`) — cùng pattern
+dùng cho `fiber-node`'s RPC (xem section "fiber-node container" bên dưới).
 
-> **Cập nhật 2026-07-05 (issue #9, phát hiện lúc code review trước khi tạo PR)**:
-> `docker-compose.yml`'s `fibergate-core.environment` phải liệt kê tường minh **từng**
-> biến app-level muốn container thấy được — Compose không tự forward toàn bộ root
-> `.env` vào container, chỉ những biến có mặt trong `environment:` mới được inject.
-> `DASHBOARD_SESSION_SECRET` (thêm ở issue #9) ban đầu bị bỏ sót khỏi block này —
-> `pnpm dev` không lộ bug vì script `dev` load thẳng root `.env` qua `dotenv-cli`,
-> bỏ qua hẳn cơ chế allowlist của Compose. Verify bằng `docker compose config | grep
-> DASHBOARD_SESSION_SECRET` thấy resolve đúng sau khi thêm dòng
-> `DASHBOARD_SESSION_SECRET: ${DASHBOARD_SESSION_SECRET}` vào block đó. Bài học chung:
-> mọi biến app mới thêm vào `.env.example` đều phải đối chiếu lại
-> `docker-compose.yml`'s `fibergate-core.environment` trong cùng session — 2 file này
-> không tự đồng bộ.
+`apps/demo-storefront` có `.env.local` hoàn toàn độc lập (`FIBERGATE_BASE_URL`,
+`FIBERGATE_INTERNAL_SECRET`, `DEMO_WEBHOOK_SECRET`) — không đọc root `.env` hay
+`apps/web`'s vars, kể cả khi deploy qua Docker Compose overlay
+(`apps/demo-storefront/docker-compose.demo.yml` dùng `env_file:` để đọc thẳng từ
+file đó, chỉ override đúng `FIBERGATE_BASE_URL` qua `environment:` cho khớp docker
+DNS name).
 
-`apps/web/.env.local` chỉ còn 3 biến override cho local dev ngoài Docker — không
-duplicate lại các biến ở trên:
-
-```bash
-# apps/web/.env.example → copy thành apps/web/.env.local
-POSTGRES_HOST=localhost          # root .env không có field này — trong docker-compose
-                                  # nó là giá trị cố định "postgres", khai thẳng trong
-                                  # docker-compose.yml, không phải merchant-configurable
-POSTGRES_PORT=5432
-FIBER_NODE_URL=                  # root .env mặc định trỏ DNS nội bộ docker
-                                  # (http://fiber-node:8227) — không resolve được nếu
-                                  # chạy pnpm dev thuần, cần override, vd http://localhost:8227
-```
-
-`apps/web/package.json`'s `dev` script dùng `dotenv-cli` để merge 2 file này trước
-khi spawn `next dev`: `dotenv -e .env.local -e ../../.env -- next dev` — file liệt kê
-trước thắng (theo docs của `dotenv-cli`), nên `.env.local` override đúng 3 biến trên,
-còn lại lấy từ root `.env`.
-
-> **Cập nhật 2026-07-03 (issue #4, phát hiện lúc chạy thử `db:migrate`)**:
-> `POSTGRES_HOST=localhost` ở trên chỉ hoạt động thật vì `docker-compose.yml`'s
-> `postgres` service publish port loopback-only (`127.0.0.1:5432:5432`) — giống
-> hệt pattern đã dùng cho `fiber-node`'s RPC (xem section "fiber-node container"
-> bên dưới). Trước đó `postgres` không có `ports:` nào, nên `pnpm dev`/
-> `pnpm --filter web db:migrate` chạy trên host không kết nối được (connection
-> refused). Xem `decisions-log.md` 2026-07-03 để biết chi tiết + cách verify.
+Lịch sử các quyết định/gotcha liên quan (biến `FIBER_NODE_RPC_AUTH_TOKEN` chưa gắn
+được vào request thật ở bản SDK đang pin; `DOMAIN`/`CERTBOT_EMAIL` trở thành
+required khi thêm nginx/certbot; tách `.env` riêng cho demo-storefront; Docker
+Compose không tự forward `.env` vào container; `env_file:` resolve path theo
+project directory): xem `decisions-log.md` và `.context/processes/gotchas.md`.
 
 ## fiber-node container (docker-compose)
 
