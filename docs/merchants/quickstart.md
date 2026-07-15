@@ -1,9 +1,23 @@
 # Quickstart for merchants
 
-The fastest way to get a FiberGate deployment running is the scaffolding CLI —
-`create-fibergate` on npm. It writes everything a deployment needs (compose file,
-`.env` with generated secrets, admin password hash, CKB key handling) so you never
-hand-edit `.env` or generate secrets yourself.
+Get a FiberGate deployment running in three commands. The scaffolding wizard writes every config
+file and generates every secret for you, so you never hand-edit an env file or copy-paste a hash.
+
+New here? [What is FiberGate?](../introduction.md) explains the pieces in two minutes. Want the full
+journey (dashboard tour, first invoice, a live payment)? That's the
+[Merchant walkthrough](walkthrough.md) — this page is just the fast path to a running gateway.
+
+## What you'll need
+
+- **Docker** (with Compose) on the machine that will host the gateway.
+- A **CKB testnet signing key** for your Fiber node, plus a bit of **testnet CKB** to fund it — grab
+  funds from the [faucet](https://faucet.nervos.org). (Unsure what any of this means? See the
+  [Glossary](../glossary.md).)
+- **Node.js** on the machine where you run the wizard. It can be your laptop — the deploy host itself
+  only needs Docker (see [Manual / advanced deployment](deployment.md) if they're different
+  machines).
+
+## Run it
 
 ```bash
 npx create-fibergate@latest fibergate-deploy
@@ -11,54 +25,64 @@ cd fibergate-deploy
 docker compose up -d
 ```
 
-That's it for a working local/testnet deployment. What the wizard does, step by step:
+That's a working local/testnet deployment.
 
-1. Prompts for Postgres credentials.
-2. Prompts for your dashboard admin password — hashes it locally (bcrypt), never
-   sends it anywhere.
-3. Prompts for your CKB testnet signing key — either paste a fresh raw-hex key to
-   have it encrypted for you, or reuse an already-encrypted key from a prior deploy
-   (the passphrase is validated **offline** before anything is written to disk).
-4. Prompts for `DOMAIN` and `GHCR_NAMESPACE` (the GitHub org/user the
-   `fibergate-core` image is published under), auto-generates the remaining 3
-   secrets (`FIBERGATE_INTERNAL_SECRET`, `WEBHOOK_SECRET_ENCRYPTION_KEY`,
-   `DASHBOARD_SESSION_SECRET`).
-5. Writes a ready-to-run `docker-compose.yml` + `.env` + `.gitignore` into the target
-   directory, using the published `fibergate-core` GHCR image — no monorepo clone
-   needed.
+> 🖼️ `<TODO>` — *The create-fibergate wizard running through its prompts.*
 
-`docker compose up -d` then brings up all services; `fibergate-core` runs its
-pending DB migrations automatically before it starts serving — no manual migrate
-step, on first install or any later upgrade.
+## What the wizard asks
+
+It's a short interview, and it never sends anything over the network:
+
+1. **Postgres credentials** — a database user, name, and password (it can generate the password).
+2. **Your dashboard admin password** — hashed locally, never transmitted.
+3. **Your CKB testnet signing key** — either point it at a fresh raw-hex key to encrypt, or reuse an
+   already-encrypted key from a previous deploy (its passphrase is checked offline before anything is
+   written to disk, so a typo fails right here instead of as a container crash later).
+4. **Your domain** and the GitHub namespace the `fibergate-core` image is published under.
+
+Everything else — the internal API secret, the webhook encryption key, the session secret — is
+generated for you and written into `.env`. You don't invent or manage any of it by hand.
+
+::: details Which secrets does it generate, and what for?
+| Secret | Purpose |
+|---|---|
+| `FIBERGATE_INTERNAL_SECRET` | The API key your storefront uses to call FiberGate. |
+| `WEBHOOK_SECRET_ENCRYPTION_KEY` | Protects stored webhook secrets at rest. |
+| `DASHBOARD_SESSION_SECRET` | Signs your dashboard login session cookie. |
+
+Full reference for every variable: [Environment variables](../common/environment-variables.md).
+:::
+
+Once the interview is done, it writes a ready-to-run `docker-compose.yml`, a filled-in `.env`, and a
+`.gitignore` into the target folder — using the published `fibergate-core` image, so there's no repo
+to clone. Then `docker compose up -d` brings everything up, and `fibergate-core` runs its database
+migrations automatically before it starts serving — on first install and on every later upgrade.
 
 ## After it's up
 
-- **Dashboard**: `http://<your-host>:3000` (or `https://$DOMAIN` once you've completed
-  [public HTTPS setup](public-https-deploy.md)) — log in with the admin password you
-  set during scaffolding.
-- **Create an invoice**: `POST /api/v1/invoices` with
-  `Authorization: Bearer <FIBERGATE_INTERNAL_SECRET>` (the value the CLI generated
-  for you, in `.env`). See the [API Reference](/api-reference), or use
-  [`@fibergate/sdk`](https://github.com/tiennt0212/FiberGate/tree/canary/packages/sdk)
-  from your own storefront app instead of calling the REST API directly.
-- **Register a webhook** from the dashboard to get notified when an invoice is paid.
+- **Open the dashboard** at `http://<your-host>:3000` (or `https://<your-domain>` once you've done
+  [public HTTPS setup](public-https-deploy.md)) and log in with the admin password you just set.
+- **Create your first invoice** — the easiest way is [`@fibergate/sdk`](https://www.npmjs.com/package/@fibergate/sdk)
+  from your storefront; the [walkthrough](walkthrough.md) shows it in a few lines, or see the
+  [API Reference](../api-reference.md) to call the REST endpoint directly.
+- **Register a webhook** from the dashboard to get notified the moment an invoice is paid.
+
+> 🖼️ `<TODO>` — *The dashboard Overview right after first login.*
 
 ## Upgrading
 
-`fibergate-core`'s `pull_policy: always` means a plain `docker compose up -d` always
-checks GHCR for a newer image under your configured tag (`:latest` by default)
-before starting — you don't need to run `docker compose pull` separately first.
-Combined with auto-migrate-on-boot, upgrading a deployment is just
-`docker compose up -d` again. If you pinned `FIBERGATE_CORE_TAG` to a specific
-`sha-xxx` instead of `latest`, this still re-checks every time but never actually
-changes what's running until you edit that pin yourself.
+Upgrading is the same command: `docker compose up -d`. The image is configured to always check for a
+newer build first, and migrations run themselves on boot, so there's no separate pull or migrate step.
+
+::: details Pinning to a specific build
+By default you track `:latest`. To pin a reproducible build instead, set `FIBERGATE_CORE_TAG` in
+`.env` to a specific `sha-…` tag; `docker compose up -d` then stays on that build until you change
+the pin yourself. See [Manual / advanced deployment](deployment.md).
+:::
 
 ## Something not covered here?
 
-- **Want a public HTTPS domain for judges/customers to hit?** →
-  [Public HTTPS deploy](public-https-deploy.md)
-- **Want full manual control over the generated files, or no Node.js on the deploy
-  host itself?** → [Manual / advanced deployment](deployment.md)
-- **Want to see a real merchant integration end-to-end?** →
-  [Demo storefront](demo-storefront.md)
+- **Want a public HTTPS domain for customers or judges to reach?** → [Public HTTPS deploy](public-https-deploy.md)
+- **Want full manual control of the generated files, or Node.js isn't on the deploy host?** → [Manual / advanced deployment](deployment.md)
+- **Want to see a real merchant integration end to end?** → [Demo storefront](demo-storefront.md)
 - **Something failed during setup?** → [Troubleshooting](../common/troubleshooting.md)
