@@ -36,9 +36,10 @@ Output directory:
 ```
 my-fibergate-deploy/
   docker-compose.yml
-  .env
+  .env                            # generated secrets — gitignored, chmod 600
+  .gitignore                      # ignores .env and the CKB key
   docker/fiber-node/config.yml
-  docker/fiber-node/ckb/key
+  docker/fiber-node/ckb/key       # your CKB signing key — gitignored, chmod 600
   docker/nginx/nginx.conf.template
 ```
 
