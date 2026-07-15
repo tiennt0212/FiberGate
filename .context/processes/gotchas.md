@@ -2,7 +2,7 @@
 type: process
 module: infra-gotchas
 version: 1.0
-last_updated: 2026-07-14
+last_updated: 2026-07-15
 tags: [gotchas, infra, fiber, docker, ai-agent]
 ---
 
@@ -65,3 +65,25 @@ tags: [gotchas, infra, fiber, docker, ai-agent]
   the full command `docker compose -f docker-compose.yml -f
   apps/demo-storefront/docker-compose.demo.yml up -d` from the correct working
   directory.
+
+- **`nginx-certs-preflight`'s temporary self-signed cert collides with certbot's own
+  storage path** — it writes directly to `/etc/letsencrypt/live/${DOMAIN}/*.pem` (the
+  same path certbot uses for a real lineage) without a matching
+  `renewal/${DOMAIN}.conf`, so `certbot-init`'s first real `certonly` run succeeds
+  against Let's Encrypt (account registered, challenge validated) but then aborts
+  with `live directory exists for <domain>` at the final save-to-disk step, since
+  certbot refuses to overwrite a `live/` directory it doesn't recognize as its own.
+  Fixed by making `certbot-init` clear that placeholder itself (only when no real
+  `renewal/${DOMAIN}.conf` exists yet) before calling `certonly` — see
+  `decisions-log.md` 2026-07-15.
+
+- **The `postgres` image only applies `POSTGRES_USER`/`POSTGRES_PASSWORD`/`POSTGRES_DB`
+  on first init of an empty `postgres-data` volume** — if that volume already exists
+  from an earlier `docker compose up -d`, a newer `.env` (e.g. after re-running
+  `create-fibergate` into the same deploy directory, or hand-editing
+  `POSTGRES_PASSWORD`) is silently ignored by Postgres itself, so `fibergate-core`
+  ends up authenticating with a password that no longer matches what's actually in
+  the volume — `password authentication failed for user "fibergate"`. Fix: `docker
+  compose down -v` (destroys the volume — only safe if there's no real data to
+  keep) then `up -d` to reinit against the current `.env`; if real data needs to be
+  preserved, sync the password inside the running container instead of wiping it.

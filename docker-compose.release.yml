@@ -225,12 +225,19 @@ services:
   # starts via `docker compose up -d` (profiles: [manual]) — run explicitly,
   # only once DNS + port-forwarding (step 1 of the runbook) are confirmed
   # live: `docker compose -f docker-compose.release.yml run --rm certbot-init`.
-  # Deliberately has NO `entrypoint:` override (unlike `certbot` above) — it
-  # inherits the base image's own native `ENTRYPOINT ["certbot"]`, so
-  # `command:` below IS the full invocation Compose actually runs. `certbot`'s
-  # `entrypoint:` override (needed to make IT loop forever) would otherwise
-  # swallow any args passed via `docker compose run certbot <args>` — see
-  # docs/merchants/public-https-deploy.md step 3 and decisions-log.md
+  # Overrides `entrypoint:` to a shell script (unlike a plain `certonly`
+  # invocation, and unlike the zero-`entrypoint:`-override approach originally
+  # used here) so it can first clear `nginx-certs-preflight`'s self-signed
+  # placeholder: that placeholder lives at the exact path
+  # (`/etc/letsencrypt/live/${DOMAIN}`) certbot itself wants to use for the
+  # real cert, but has no matching `renewal/${DOMAIN}.conf`, so certbot's own
+  # `new_lineage()` safety check refuses to overwrite it ("live directory
+  # exists for <domain>") — even AFTER successfully obtaining a real cert from
+  # Let's Encrypt, right before the final save-to-disk step. Confirmed live +
+  # in certbot's own source (`storage.py`'s `new_lineage()`). Only clears the
+  # placeholder when no real lineage exists yet (no `renewal/${DOMAIN}.conf`),
+  # so re-running this after a real cert is already in place never touches it
+  # — see docs/merchants/public-https-deploy.md step 3 and decisions-log.md
   # 2026-07-15. ${DOMAIN}/${CERTBOT_EMAIL} are baked in via Compose's own
   # .env interpolation, not typed by the merchant — zero placeholders.
   certbot-init:
@@ -239,17 +246,16 @@ services:
     volumes:
       - certbot-conf:/etc/letsencrypt
       - certbot-www:/var/www/certbot
-    command:
-      - certonly
-      - --webroot
-      - -w
-      - /var/www/certbot
-      - -d
-      - ${DOMAIN}
-      - --email
-      - ${CERTBOT_EMAIL}
-      - --agree-tos
-      - --no-eff-email
+    entrypoint:
+      - sh
+      - -c
+      - |
+        if [ ! -f "/etc/letsencrypt/renewal/${DOMAIN}.conf" ] && [ -d "/etc/letsencrypt/live/${DOMAIN}" ]; then
+          echo "certbot-init: clearing self-signed placeholder for ${DOMAIN} (no existing certbot lineage yet)"
+          rm -rf "/etc/letsencrypt/live/${DOMAIN}" "/etc/letsencrypt/archive/${DOMAIN}"
+        fi
+        certbot certonly --webroot -w /var/www/certbot -d "${DOMAIN}" \
+          --email "${CERTBOT_EMAIL}" --agree-tos --no-eff-email
 
 networks:
   fibergate-net:

@@ -438,14 +438,25 @@ self-inflicted bug: the docs originally told merchants to get their first cert v
 passed this way, spinning up a second infinite loop instead of running `certonly`.
 Confirmed via `docker inspect certbot/certbot:latest` that the upstream image's own
 native `ENTRYPOINT` is `["certbot"]` (`CMD null`) — designed for exactly this
-one-off invocation style. `certbot-init` deliberately omits any `entrypoint:`
-override (inheriting that native entrypoint) and puts the full `certonly`
-invocation in `command:` (list form — Compose's `${VAR}` interpolation keeps each
-value as one argument in list form, but word-splits it after interpolation in
-string form) with `${DOMAIN}`/`${CERTBOT_EMAIL}` baked in from `.env`, so merchants
-just run `docker compose run --rm certbot-init` with zero placeholders. Shares the
-same `certbot-conf`/`certbot-www` volumes as `certbot` — purely additive, no change
-to the existing renew-loop service's behavior.
+one-off invocation style. `${DOMAIN}`/`${CERTBOT_EMAIL}` are baked in from `.env`
+via Compose's own interpolation, so merchants just run `docker compose run --rm
+certbot-init` with zero placeholders. Shares the same `certbot-conf`/`certbot-www`
+volumes as `certbot` — purely additive, no change to the existing renew-loop
+service's behavior.
+
+`certbot-init` DOES now override `entrypoint:` (to `sh -c "<script>"`, unlike a bare
+`certonly` invocation) — added after a second real-deploy failure
+(decisions-log.md 2026-07-15): `nginx-certs-preflight`'s temporary self-signed cert
+is written straight to `/etc/letsencrypt/live/${DOMAIN}/*.pem`, the same path
+certbot itself uses for a real lineage, but with no matching
+`renewal/${DOMAIN}.conf`. certbot's own `new_lineage()` safety check
+(`storage.py`) refuses to overwrite a `live/` directory it doesn't recognize —
+so the very first `certbot-init` run against a real domain would successfully
+register the account and validate the ACME challenge, then abort at the last
+step with `live directory exists for <domain>`. The `entrypoint:` script now
+`rm -rf`s `live/${DOMAIN}`/`archive/${DOMAIN}` first, but ONLY when
+`renewal/${DOMAIN}.conf` doesn't exist yet (i.e., no real lineage present) — so
+re-running `certbot-init` after a real cert is already issued never touches it.
 
 `nginx.conf.template`'s architecture (`docker/nginx/`, templated with
 `envsubst '$DOMAIN'` at container start — exactly one variable, to avoid envsubst

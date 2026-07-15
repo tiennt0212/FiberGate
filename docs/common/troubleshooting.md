@@ -33,6 +33,23 @@ Grouped by area. For the steps these errors tend to come up during, see also
   intact. Full story in [Decisions & trade-offs](../decisions-and-tradeoffs.md).
 
   </details>
+- **`fibergate-core` fails to connect to Postgres with `password authentication failed
+  for user "fibergate"`, even though `.env` looks correct** — almost always a stale
+  `postgres-data` volume from an earlier `docker compose up -d` in the same directory.
+  The official `postgres` image only applies `POSTGRES_USER`/`POSTGRES_PASSWORD`/
+  `POSTGRES_DB` the **first** time it initializes an empty data volume — if you already
+  ran `docker compose up -d` once before (then re-ran `create-fibergate` into the same
+  deploy directory, which generates a brand-new random password each time, or
+  hand-edited `POSTGRES_PASSWORD`), the running Postgres container is silently still
+  using the **old** password baked into the volume, while `fibergate-core` connects
+  with the new one from `.env`.
+  - If there's no real data in that Postgres instance yet (a fresh/test deploy):
+    `docker compose down -v` (drops the volume — **destroys all data in it**) then
+    `docker compose up -d` to reinit fresh against the current `.env`.
+  - If you need to keep existing data (real invoices/webhooks already recorded):
+    don't run `down -v`. Instead, sync the password inside the already-running
+    container to match `.env`:
+    `docker compose exec postgres psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "ALTER USER \"$POSTGRES_USER\" WITH PASSWORD '<the POSTGRES_PASSWORD value from .env>';"`
 
 ## `fiber-node`
 
@@ -79,6 +96,15 @@ of those, keep them in sync.
   providers) — if they don't agree yet, this is likely transient, and simply
   retrying `docker compose run --rm certbot-init` after a few minutes is often
   enough.
+- **`certbot-init` prints `Account registered.` / `Requesting a certificate for
+  $DOMAIN` with no validation error, then fails with `live directory exists for
+  $DOMAIN`** — this means the Let's Encrypt challenge actually succeeded; the
+  failure is a local storage conflict between certbot and
+  `nginx-certs-preflight`'s temporary self-signed placeholder, which
+  `certbot-init` now clears automatically before requesting a real cert (fixed
+  2026-07-15 — if you're on an older image, update and re-run
+  `docker compose run --rm certbot-init`). Not a DNS/port-forwarding issue, and
+  safe to retry immediately (no rate-limit risk from this failure mode).
 - **The real cert is installed and verified server-side (`curl -v https://$DOMAIN`
   shows `SSL certificate verify ok`), but a browser tab still shows "Not secure"**
   — if that tab already had the site open before the fix (e.g. it previously hit
