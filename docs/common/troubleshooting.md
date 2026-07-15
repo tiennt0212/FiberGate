@@ -1,11 +1,11 @@
 # Troubleshooting
 
-Errors you might hit regardless of which path you're on (a `create-fibergate`-scaffolded
-deploy, hand-editing that output for full manual control, or running from source as a
-contributor). Grouped by area — jump to the one that matches your symptom. See also
+Hit a snag? Find your symptom below and jump to the fix. These cover every deploy path — the
+scaffolded wizard output, a hand-edited version of it, or running from source as a contributor.
+
+Grouped by area. For the steps these errors tend to come up during, see also
 [Manual / advanced deployment](../merchants/deployment.md) and
-[Public HTTPS deploy](../merchants/public-https-deploy.md) for the
-steps these errors are most likely to come up during.
+[Public HTTPS deploy](../merchants/public-https-deploy.md).
 
 ## Startup / `.env`
 
@@ -23,11 +23,16 @@ steps these errors are most likely to come up during.
   `ADMIN_PASSWORD_HASH_B64` in `.env` is the base64-encoded hash `create-fibergate`
   generated for you, not the raw `$2y$10$...` hash pasted directly. Decode it locally to
   sanity-check: `echo "$ADMIN_PASSWORD_HASH_B64" | base64 -d` should print a string
-  starting with `$2y$` or `$2b$`. (Root cause, if you're curious: Docker Compose's
-  `.env` interpolation and `dotenv-expand` — used by `pnpm dev`/`build` — each corrupt
-  literal `$` characters differently; base64 has no `$` in its alphabet, so it's the
-  one encoding that survives both paths intact. See
-  [Decisions, trade-offs, and roadmap](../decisions-and-tradeoffs.md).)
+  starting with `$2y$` or `$2b$`.
+
+  <details><summary>Why base64, if you're curious</summary>
+
+  Docker Compose's `.env` interpolation and `dotenv-expand` (used by `pnpm dev`/`build`)
+  each corrupt literal `$` characters differently, and a bcrypt hash is full of them.
+  base64 has no `$` in its alphabet, so it's the one encoding that survives both paths
+  intact. Full story in [Decisions & trade-offs](../decisions-and-tradeoffs.md).
+
+  </details>
 
 ## `fiber-node`
 
