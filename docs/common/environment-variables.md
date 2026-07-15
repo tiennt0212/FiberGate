@@ -1,11 +1,15 @@
 # Environment Variables
 
-A plain-language reference for every `.env` var across the 4 deploy/dev paths in this
-repo. If you just want to get running, `create-fibergate` generates all of these for
-you — see [Quickstart for merchants](../merchants/quickstart.md). This page is for
-when you want to know what a var does, whether it's required, or you're hand-editing
-`.env` for full manual control (see
-[Manual / advanced deployment](../merchants/deployment.md)).
+A plain-language reference for every `.env` variable. This page is for when you want to know what a
+setting does, whether it's required, or you're hand-editing `.env` for full manual control.
+
+::: tip The short version
+For a normal deploy you don't touch any of this by hand — the
+[scaffolding wizard](../merchants/quickstart.md) fills it all in. The only things it asks *you* to
+decide are your **Postgres password**, your **dashboard password**, your **CKB key passphrase**, and
+your **domain**. Everything else (the API secret, the webhook encryption key, the session secret) is
+generated for you.
+:::
 
 > AI-facing canonical version (kept in sync with this page):
 > [`.context/architecture/env-vars.md`](https://github.com/tiennt0212/FiberGate/blob/canary/.context/architecture/env-vars.md).

@@ -32,7 +32,9 @@ Browse online: **https://tiennt0212.github.io/FiberGate/**
 
 | For... | Start here |
 |---|---|
+| **New to FiberGate** — what it is and how it works | [docs/introduction.md](docs/introduction.md) |
 | **Merchants** deploying FiberGate | [docs/merchants/quickstart.md](docs/merchants/quickstart.md) |
+| ...wanting the full journey — deploy, dashboard tour, first live payment | [docs/merchants/walkthrough.md](docs/merchants/walkthrough.md) |
 | ...wanting full manual control, or no Node.js on the deploy host | [docs/merchants/deployment.md](docs/merchants/deployment.md) |
 | ...wanting a public HTTPS domain | [docs/merchants/public-https-deploy.md](docs/merchants/public-https-deploy.md) |
 | ...trying the reference integration example | [docs/merchants/demo-storefront.md](docs/merchants/demo-storefront.md) |
@@ -41,7 +43,8 @@ Browse online: **https://tiennt0212.github.io/FiberGate/**
 | **Maintainers** publishing a release | [docs/maintainers/release-process.md](docs/maintainers/release-process.md) |
 | Anyone hitting an error | [docs/common/troubleshooting.md](docs/common/troubleshooting.md) |
 | Anyone wondering what an env var does | [docs/common/environment-variables.md](docs/common/environment-variables.md) |
-| Judges/reviewers — decisions, trade-offs, roadmap | [docs/decisions-and-tradeoffs.md](docs/decisions-and-tradeoffs.md) |
+| Judges/reviewers — decisions and trade-offs | [docs/decisions-and-tradeoffs.md](docs/decisions-and-tradeoffs.md) |
+| Where FiberGate goes next — roadmap | [docs/roadmap.md](docs/roadmap.md) |
 | Full architecture, API spec, schema, business rules | [.context/INDEX.md](.context/INDEX.md) |
 
 See also [CONTRIBUTING.md](CONTRIBUTING.md), [MAINTAINER.md](MAINTAINER.md), and

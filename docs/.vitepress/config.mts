@@ -19,20 +19,37 @@ export default withMermaid(
     },
     themeConfig: {
       nav: [
+        { text: "Introduction", link: "/introduction" },
         { text: "Merchants", link: "/merchants/quickstart" },
         { text: "Maintainers", link: "/maintainers/getting-started" },
-        { text: "Reference", link: "/architecture" },
+        {
+          text: "Reference",
+          items: [
+            { text: "Architecture", link: "/architecture" },
+            { text: "API Reference", link: "/api-reference" },
+            { text: "Glossary", link: "/glossary" },
+          ],
+        },
         { text: "Troubleshooting", link: "/common/troubleshooting" },
         { text: "Decisions & trade-offs", link: "/decisions-and-tradeoffs" },
+        { text: "Roadmap", link: "/roadmap" },
       ],
       sidebar: [
         {
-          text: "Merchants",
+          text: "Start here",
           items: [
+            { text: "What is FiberGate?", link: "/introduction" },
             {
               text: "Quickstart for merchants",
               link: "/merchants/quickstart",
             },
+            { text: "Merchant walkthrough", link: "/merchants/walkthrough" },
+            { text: "Dashboard tour", link: "/merchants/dashboard-tour" },
+          ],
+        },
+        {
+          text: "Deploying & operating",
+          items: [
             {
               text: "Manual / advanced deployment",
               link: "/merchants/deployment",
@@ -72,8 +89,12 @@ export default withMermaid(
           text: "Decisions & trade-offs",
           items: [
             {
-              text: "Decisions, trade-offs, and roadmap",
+              text: "Decisions and trade-offs",
               link: "/decisions-and-tradeoffs",
+            },
+            {
+              text: "Roadmap",
+              link: "/roadmap",
             },
           ],
         },

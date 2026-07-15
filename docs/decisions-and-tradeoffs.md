@@ -1,4 +1,4 @@
-# Decisions, trade-offs, and roadmap
+# Decisions and trade-offs
 
 This is the narrative version of `.context/processes/decisions-log.md` (a
 chronological, line-by-line engineering log) — written for judges and reviewers who
@@ -97,7 +97,7 @@ against a real handshake.
   "pull back" primitive. A real refund needs the payer to supply a refund address or
   invoice up front, consumes real liquidity to send back, and needs its own
   `send_payment` flow and a new DB table — judged out of proportion to the
-  hackathon's timeframe, deferred to the roadmap below rather than half-built.
+  hackathon's timeframe, deferred to the [roadmap](/roadmap) rather than half-built.
 - **No job queue for webhook retries.** Retry scheduling (`next_retry_at`) is a
   plain interval scanner over `webhook_deliveries`, not Redis/BullMQ or a
   Postgres-native queue engine — the value a queue engine adds (multi-worker
@@ -109,19 +109,8 @@ against a real handshake.
   correct for a single-replica deployment, resets on restart, and would need
   revisiting under horizontal scaling.
 
-## Roadmap
+## Where this goes next
 
-Beyond the hackathon submission, in roughly the order they'd add the most value:
-
-- **Mainnet support** — everything today targets CKB testnet only.
-- **L402 subscription middleware** (pay-per-request API paywall) — a Phase 3 stretch
-  goal, referencing the community `fiber-l402` demo built on `@fiber-pay/sdk`.
-- **Multi-node / high-availability** deployments.
-- **Automatic channel rebalancing** (currently a manual operation).
-- **A real refund flow** — payer-initiated refund address/invoice + a dedicated
-  `send_payment` path and DB table, as described above.
-- **Reconciliation reporting** — cross-checking `invoices` against on-chain/node
-  snapshot data.
-- **A properly multi-asset amount/schema model.** RUSD invoices today reuse the same
-  `amount_shannon`/0.1–1000 CKB-shaped validation as native CKB; that's known to be
-  imprecise for other UDTs and was accepted as a hackathon-scope shortcut.
+Everything above is what shipped for the hackathon and why. For the directions
+FiberGate would grow in beyond the submission — a full node operations console,
+refunds, L402, multi-node HA, mainnet, and more — see the [Roadmap](/roadmap).
