@@ -454,9 +454,16 @@ certbot itself uses for a real lineage, but with no matching
 so the very first `certbot-init` run against a real domain would successfully
 register the account and validate the ACME challenge, then abort at the last
 step with `live directory exists for <domain>`. The `entrypoint:` script now
-`rm -rf`s `live/${DOMAIN}`/`archive/${DOMAIN}` first, but ONLY when
-`renewal/${DOMAIN}.conf` doesn't exist yet (i.e., no real lineage present) — so
-re-running `certbot-init` after a real cert is already issued never touches it.
+`rm -rf`s `live/${DOMAIN}`/`archive/${DOMAIN}`/`renewal/${DOMAIN}.conf` first,
+but ONLY when the lineage isn't already complete — i.e. either
+`renewal/${DOMAIN}.conf` OR `live/${DOMAIN}/cert.pem` is missing — so re-running
+`certbot-init` after a real cert is already issued never touches it. The check
+requires both conditions rather than just the renewal config's existence
+because a *failed* `certonly` run can itself leave behind an orphaned
+`renewal/${DOMAIN}.conf` (certbot creates that file before the checks that can
+abort the run — see `decisions-log.md` 2026-07-15) which would otherwise make
+the next attempt think the domain name is taken and silently save under a
+`-0001`-suffixed name that nginx never looks for.
 
 `nginx.conf.template`'s architecture (`docker/nginx/`, templated with
 `envsubst '$DOMAIN'` at container start — exactly one variable, to avoid envsubst

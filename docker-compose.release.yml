@@ -250,9 +250,24 @@ services:
       - sh
       - -c
       - |
-        if [ ! -f "/etc/letsencrypt/renewal/${DOMAIN}.conf" ] && [ -d "/etc/letsencrypt/live/${DOMAIN}" ]; then
-          echo "certbot-init: clearing self-signed placeholder for ${DOMAIN} (no existing certbot lineage yet)"
-          rm -rf "/etc/letsencrypt/live/${DOMAIN}" "/etc/letsencrypt/archive/${DOMAIN}"
+        DOMAIN_LIVE="/etc/letsencrypt/live/${DOMAIN}"
+        DOMAIN_RENEWAL="/etc/letsencrypt/renewal/${DOMAIN}.conf"
+        # '$$DOMAIN_LIVE'/'$$DOMAIN_RENEWAL' (not single '$'): these are this
+        # script's OWN shell variables, assigned above — must survive Compose's
+        # interpolation pass and reach sh literally, the same escaping reason as
+        # nginx's '$$DOMAIN'/'$$NGINX_PID' below. '${DOMAIN}' stays single-'$'
+        # since that one IS meant to be Compose-interpolated from .env.
+        # A complete, real lineage has BOTH a renewal config AND a live cert.pem.
+        # Anything less is safe to clear before requesting a fresh one: either
+        # nginx-certs-preflight's self-signed placeholder (no renewal config at
+        # all), or an orphaned renewal config left behind by a previously failed
+        # certonly run with no matching live cert (which otherwise makes certbot
+        # think the plain domain name is already taken and silently save the new
+        # cert under a "-0001" suffixed name instead — a name nginx.conf.template
+        # never looks for).
+        if [ ! -f "$$DOMAIN_RENEWAL" ] || [ ! -f "$$DOMAIN_LIVE/cert.pem" ]; then
+          echo "certbot-init: clearing stale/incomplete cert state for ${DOMAIN} (no complete certbot lineage yet)"
+          rm -rf "$$DOMAIN_LIVE" "/etc/letsencrypt/archive/${DOMAIN}" "$$DOMAIN_RENEWAL"
         fi
         certbot certonly --webroot -w /var/www/certbot -d "${DOMAIN}" \
           --email "${CERTBOT_EMAIL}" --agree-tos --no-eff-email

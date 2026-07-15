@@ -105,6 +105,19 @@ of those, keep them in sync.
   2026-07-15 — if you're on an older image, update and re-run
   `docker compose run --rm certbot-init`). Not a DNS/port-forwarding issue, and
   safe to retry immediately (no rate-limit risk from this failure mode).
+- **`certbot-init` reports `Successfully received certificate`, but `docker
+  compose exec nginx nginx -s reload` then fails with `cannot load certificate
+  ... No such file or directory`** — this means the cert got saved under a
+  `-0001`-suffixed name (e.g. `live/$DOMAIN-0001/`) instead of the plain
+  `live/$DOMAIN/` that nginx expects. This happens if you already hit the "live
+  directory exists" error above once and cleaned it up by hand — a failed
+  `certonly` run can leave an orphaned `renewal/$DOMAIN.conf` behind even though
+  it errored, and manually `rm -rf`-ing only `live/`/`archive/` (not that config
+  file too) makes the next run think the domain name is already taken.
+  `certbot-init` now checks for this too (fixed 2026-07-15) — update and clear
+  all of `live/$DOMAIN`, `archive/$DOMAIN`, `renewal/$DOMAIN.conf` (and any
+  `-0001`-suffixed variants already created) before re-running
+  `docker compose run --rm certbot-init`.
 - **The real cert is installed and verified server-side (`curl -v https://$DOMAIN`
   shows `SSL certificate verify ok`), but a browser tab still shows "Not secure"**
   — if that tab already had the site open before the fix (e.g. it previously hit
