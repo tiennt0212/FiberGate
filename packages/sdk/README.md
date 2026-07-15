@@ -60,62 +60,117 @@ const isValid = verifyWebhookSignature(body, signature, secret);
 
 ## API
 
-### `new FiberGate({ baseUrl, internalSecret })`
+At a glance:
 
-- `baseUrl` — your FiberGate deployment's API base URL, including the `/api/v1`
-  suffix, e.g. `http://localhost:3000/api/v1` (see the
-  [API reference](https://tiennt0212.github.io/FiberGate/api-reference)).
-- `internalSecret` — the shared secret set via `FIBERGATE_INTERNAL_SECRET` on
-  your deployment. Sent as `Authorization: Bearer <internalSecret>` on every
+| Call | What it does |
+|---|---|
+| `gateway.invoices.create(input)` | Create an invoice |
+| `gateway.invoices.get(id)` | Fetch one invoice's current status |
+| `gateway.invoices.list(query?)` | List invoices (cursor-paginated) |
+| `gateway.node.getInfo()` | Get node status (public — no auth needed) |
+| `gateway.webhooks.verify(body, signature, secret)` | Verify a webhook signature |
+
+### Creating the client
+
+```ts
+new FiberGate({ baseUrl, internalSecret })
+```
+
+- **`baseUrl`** — your deployment's API base URL, including the `/api/v1` suffix
+  (e.g. `http://localhost:3000/api/v1`). See the full
+  [API reference](https://tiennt0212.github.io/FiberGate/api-reference).
+- **`internalSecret`** — the shared secret from your deployment's
+  `FIBERGATE_INTERNAL_SECRET`. Sent as `Authorization: Bearer <secret>` on every
   request.
 
-Neither value is read from an environment variable by the SDK itself — pass
-them in from your own app's env, as shown above.
+The SDK reads neither value from the environment — pass them in from your own app.
 
-### `gateway.invoices.create(input)`
+### `invoices.create(input)`
 
-`input: { amount: number; asset: "CKB" | "RUSD"; description?: string; expires_in?: number; metadata?: Record<string, unknown> }`
+```ts
+const invoice = await gateway.invoices.create({
+  amount: 2.5,                    // 0.1–1000 CKB
+  asset: "CKB",                   // "CKB" | "RUSD"
+  description: "Order #1234",     // optional
+  expires_in: 3600,              // optional, seconds — default 1 hour, max 24 hours
+  metadata: { orderId: "1234" },  // optional, echoed back on webhooks
+});
+```
 
-Returns the created `Invoice` (`paid_at` omitted — always unpaid at creation).
+Returns the created `Invoice`. Share `invoice.invoice_address` with the payer;
+`paid_at` is absent until it's paid.
 
-### `gateway.invoices.get(id)`
+### `invoices.get(id)`
 
-Returns the current `Invoice` (`paid_at` present, nullable), or throws
-`FiberGateApiError` with `code: "NOT_FOUND"` if no such invoice exists.
+```ts
+const invoice = await gateway.invoices.get(id);
+```
 
-### `gateway.invoices.list(query?)`
+Returns the invoice's current state, or throws `FiberGateApiError` with
+`code: "NOT_FOUND"` if it doesn't exist.
 
-`query: { status?: "pending" | "paid" | "expired" | "failed"; asset?: "CKB" | "RUSD"; limit?: number; cursor?: string }`
+### `invoices.list(query?)`
 
-Returns `{ invoices: Invoice[]; limit: number; next_cursor: string | null }`.
+```ts
+const page = await gateway.invoices.list({
+  status: "paid",   // optional filter: pending | paid | expired | failed
+  asset: "CKB",     // optional filter: CKB | RUSD
+  limit: 20,        // optional
+  cursor: "…",      // optional — a previous page's next_cursor
+});
+// → { invoices: Invoice[], limit: number, next_cursor: string | null }
+```
 
-### `gateway.node.getInfo()`
+Cursor-paginated: keep calling with the returned `next_cursor` until it's `null`.
 
-Returns `{ pubkey, active_channels, inbound_capacity_ckb, outbound_capacity_ckb, status: "online" }`.
-Public endpoint — succeeds even with an invalid/omitted `internalSecret`.
+### `node.getInfo()`
 
-### `gateway.webhooks.verify(body, signature, secret)` / `verifyWebhookSignature(body, signature, secret)`
+```ts
+const node = await gateway.node.getInfo();
+// → { pubkey, active_channels, inbound_capacity_ckb, outbound_capacity_ckb, status: "online" }
+```
+
+A public endpoint — it works even without a valid `internalSecret`.
+
+### `webhooks.verify(body, signature, secret)`
+
+Also available as a standalone `verifyWebhookSignature(body, signature, secret)`.
+
+```ts
+const isValid = gateway.webhooks.verify(rawBody, signatureHeader, secret);
+```
 
 Verifies a `payment.paid` / `invoice.expired` / `invoice.failed` webhook's
-`X-Fiber-Signature` header (`sha256=<hmac-sha256-hex>`) using a constant-time
+`X-Fiber-Signature` header (`sha256=<hmac-sha256-hex>`) with a constant-time
 comparison (`crypto.timingSafeEqual`).
 
-- `body` must be the **raw** JSON string exactly as received — not a
+- **`body`** — the raw request body string, exactly as received. Not a
   `JSON.stringify()` of an already-parsed object.
-- `signature` is the full header value, including the `sha256=` prefix.
-- Returns `false` (never throws) for a malformed or mismatched signature.
+- **`signature`** — the full header value, including the `sha256=` prefix.
+- **Returns** `true` or `false` — never throws, even for a malformed signature.
+
+### The `Invoice` shape
+
+```ts
+interface Invoice {
+  id: string;
+  invoice_address: string;   // the string the payer pays
+  payment_hash: string;
+  amount: number;
+  asset: "CKB" | "RUSD";
+  status: "pending" | "paid" | "expired" | "failed";
+  paid_at?: string | null;   // absent on create; nullable on get/list
+  expires_at: string;
+  created_at: string;
+}
+```
 
 ## Errors
 
-Failed requests reject with `FiberGateApiError`, exposing:
+Failed requests reject with a `FiberGateApiError`, exposing `code`, `message`,
+and the HTTP `status`:
 
-- `code` — one of `INVALID_AMOUNT`, `UNSUPPORTED_ASSET`, `UNAUTHORIZED`,
-  `RATE_LIMITED`, `NODE_UNAVAILABLE`, `NOT_FOUND`, `VALIDATION_ERROR`,
-  `INTERNAL_ERROR` (also exported as the `FiberGateErrorCode` const).
-- `message` — human-readable error message from the API.
-- `status` — the HTTP status code of the response.
-
-```typescript
+```ts
 import { FiberGateApiError } from "@fibergate/sdk";
 
 try {
@@ -126,6 +181,20 @@ try {
   }
 }
 ```
+
+Possible `code` values (also exported as the `FiberGateErrorCode` const):
+
+| Code | Meaning |
+|---|---|
+| `INVALID_AMOUNT` | Amount is outside the 0.1–1000 CKB range |
+| `UNSUPPORTED_ASSET` | `asset` isn't `CKB` or `RUSD` |
+| `ASSET_NOT_CONFIGURED` | Asset is valid but not set up on this node (e.g. RUSD) |
+| `UNAUTHORIZED` | Missing or wrong `internalSecret` |
+| `RATE_LIMITED` | Too many requests |
+| `NODE_UNAVAILABLE` | The Fiber node isn't reachable |
+| `NOT_FOUND` | No such invoice |
+| `VALIDATION_ERROR` | Malformed request body |
+| `INTERNAL_ERROR` | Unexpected server error |
 
 ## Requirements
 
