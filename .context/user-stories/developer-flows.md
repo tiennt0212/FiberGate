@@ -8,66 +8,66 @@ tags: [integration, onboarding, webhook, sdk]
 
 # User Stories — Developer Integration
 
-## US-001: Deploy FiberGate bằng Docker Compose
+## US-001: Deploy FiberGate with Docker Compose
 
-**As a** merchant muốn nhận Fiber payments,
-**I want to** tự deploy FiberGate trên hạ tầng của mình,
-**So that** tôi tự vận hành node và dữ liệu, không phụ thuộc bên thứ ba.
+**As a** merchant who wants to accept Fiber payments,
+**I want to** self-deploy FiberGate on my own infrastructure,
+**So that** I run my own node and data, without depending on a third party.
 
 **Acceptance criteria:**
-- Đường khuyến nghị hiện tại: `npx create-fibergate@latest` — wizard tự sinh `.env`
-  (secrets + admin password hash) và xử lý CKB key hộ, xem
-  `docs/merchants/quickstart.md`. Bên dưới là flow thủ công/from-source (contributor,
-  hoặc merchant muốn full control) — xem `docs/merchants/deployment.md` và
+- Current recommended path: `npx create-fibergate@latest` — a wizard that auto-generates `.env`
+  (secrets + admin password hash) and handles the CKB key for you, see
+  `docs/merchants/quickstart.md`. Below is the manual/from-source flow (for contributors,
+  or merchants who want full control) — see `docs/merchants/deployment.md` and
   `docs/maintainers/getting-started.md`.
-- Clone repo, copy `.env.example` → `.env`, set các biến bắt buộc: `POSTGRES_PASSWORD`, `ADMIN_PASSWORD_HASH_B64`, `DASHBOARD_SESSION_SECRET`, `FIBERGATE_INTERNAL_SECRET` (`FIBER_NODE_URL` đã có sẵn giá trị mặc định cho docker network, không cần đổi; `DATABASE_URL` không tự set — derive từ `POSTGRES_*`)
-- Cung cấp CKB testnet key cho fiber-node (`docker/fiber-node/ckb/key` + `FIBER_SECRET_KEY_PASSWORD`) — xem `docs/maintainers/getting-started.md`'s "Generating a real `.env`"
-- Chạy `docker compose up -d` → khởi động 3 container: fiber-node, postgres, fibergate-core
-- Truy cập dashboard, đăng nhập bằng plaintext password đã dùng để tạo `ADMIN_PASSWORD_HASH_B64` (single-admin, không có sign up)
-- Có thể revoke/rotate `FIBERGATE_INTERNAL_SECRET` bằng cách đổi env var và restart container
+- Clone the repo, copy `.env.example` → `.env`, set the required vars: `POSTGRES_PASSWORD`, `ADMIN_PASSWORD_HASH_B64`, `DASHBOARD_SESSION_SECRET`, `FIBERGATE_INTERNAL_SECRET` (`FIBER_NODE_URL` already has a default value for the docker network, no need to change it; `DATABASE_URL` isn't set directly — it's derived from `POSTGRES_*`)
+- Supply a CKB testnet key for fiber-node (`docker/fiber-node/ckb/key` + `FIBER_SECRET_KEY_PASSWORD`) — see `docs/maintainers/getting-started.md`'s "Generating a real `.env`"
+- Run `docker compose up -d` → starts 3 containers: fiber-node, postgres, fibergate-core
+- Access the dashboard, log in with the plaintext password used to create `ADMIN_PASSWORD_HASH_B64` (single-admin, no sign-up)
+- Can revoke/rotate `FIBERGATE_INTERNAL_SECRET` by changing the env var and restarting the container
 
-## US-002: Tích hợp SDK vào Next.js app
+## US-002: Integrate the SDK into a Next.js app
 
-**As a** developer dùng Next.js,
-**I want to** tích hợp Fiber payment trong 10 phút,
-**So that** users của tôi có thể thanh toán bằng CKB.
+**As a** developer using Next.js,
+**I want to** integrate Fiber payments in 10 minutes,
+**So that** my users can pay with CKB.
 
 **Acceptance criteria:**
 ```bash
 npm install @fibergate/sdk
 ```
 ```typescript
-// Tạo invoice (server-side) — trỏ về FiberGate core tự deploy của bạn
+// Create an invoice (server-side) — points at your self-deployed FiberGate core
 const gateway = new FiberGate({
   baseUrl: process.env.FIBERGATE_BASE_URL,       // http://<merchant-host>:<port>
   internalSecret: process.env.FIBERGATE_INTERNAL_SECRET,
 })
 const invoice = await gateway.invoices.create({ amount: 1, asset: 'CKB' })
 
-// Verify webhook (trong route handler)
+// Verify webhook (in a route handler)
 const isValid = gateway.webhooks.verify(body, signature, secret)
 ```
 
-## US-003: Nhận webhook khi có thanh toán
+## US-003: Receive a webhook when a payment happens
 
 **As a** developer,
-**I want to** nhận HTTP notification khi user thanh toán xong,
-**So that** tôi có thể fulfill order ngay lập tức.
+**I want to** receive an HTTP notification when a user finishes paying,
+**So that** I can fulfill the order immediately.
 
 **Acceptance criteria:**
-- Vào dashboard → Webhooks → Add endpoint
-- Nhập URL và chọn events (payment.paid, invoice.expired)
-- Nhận webhook secret để verify signature
-- Có thể xem lịch sử webhook deliveries (status, response, timestamp)
-- Có nút "Resend" cho failed deliveries
+- Go to dashboard → Webhooks → Add endpoint
+- Enter the URL and select events (payment.paid, invoice.expired)
+- Receive a webhook secret to verify the signature
+- Can view the webhook delivery history (status, response, timestamp)
+- A "Resend" button exists for failed deliveries
 
-## US-004: Monitor trạng thái node và channels
+## US-004: Monitor node and channel status
 
 **As a** developer,
-**I want to** xem trạng thái node và liquidity capacity,
-**So that** tôi biết gateway có đủ khả năng nhận payment không.
+**I want to** view node status and liquidity capacity,
+**So that** I know whether the gateway has enough capacity to accept payments.
 
 **Acceptance criteria:**
-- Dashboard hiển thị: node online/offline, số channels active, inbound/outbound capacity
-- Nếu inbound capacity < 10 CKB → hiển thị warning "Low capacity"
-- GET /api/v1/node/info trả về thông tin này
+- Dashboard shows: node online/offline, number of active channels, inbound/outbound capacity
+- If inbound capacity < 10 CKB → shows a "Low capacity" warning
+- GET /api/v1/node/info returns this information

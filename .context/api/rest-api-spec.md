@@ -7,23 +7,23 @@ tags: [rest-api, endpoints, authentication]
 
 # REST API Specification — FiberGate
 
-> Bản public (VitePress): `docs/api-reference.md`. Sửa 1 trong 2 file thì kiểm tra
-> file còn lại trong cùng lần sửa (xem `.context/INDEX.md`'s "Public docs mirror").
+> Public version (VitePress): `docs/api-reference.md`. If you edit one of the two files,
+> check the other one in the same edit (see `.context/INDEX.md`'s "Public docs mirror").
 
 ## Base URL
-`http://<merchant-host>:<port>/api/v1` — self-hosted, merchant tự đặt host/port lúc deploy docker-compose.
+`http://<merchant-host>:<port>/api/v1` — self-hosted; the merchant sets their own host/port when deploying docker-compose.
 
 ## Authentication
 
-Single-tenant: tất cả endpoints dùng 1 shared secret duy nhất (`FIBERGATE_INTERNAL_SECRET`,
-đặt qua env var lúc deploy), so sánh constant-time, không phân biệt theo client:
+Single-tenant: all endpoints use a single shared secret (`FIBERGATE_INTERNAL_SECRET`,
+set via an env var at deploy time), compared in constant time, with no per-client distinction:
 
 ```
 Authorization: Bearer <FIBERGATE_INTERNAL_SECRET>
 ```
 ## Response Format
 
-Luôn trả về JSON với format:
+Always returns JSON in this format:
 ```typescript
 // Success
 { data: T, error: null, meta?: { ... } }
@@ -35,16 +35,16 @@ Luôn trả về JSON với format:
 ## Endpoints
 
 ### POST /invoices
-Tạo invoice mới.
+Create a new invoice.
 
 **Request:**
 ```json
 {
-  "amount": 1.5,          // số CKB hoặc RUSD (float)
+  "amount": 1.5,          // amount in CKB or RUSD (float)
   "asset": "CKB",         // "CKB" | "RUSD"
   "description": "Order #123",  // optional
   "expires_in": 3600,     // seconds, default 3600, max 86400
-  "metadata": {}          // optional, lưu lại bất kỳ data gì
+  "metadata": {}          // optional, stores arbitrary data
 }
 ```
 
@@ -66,20 +66,20 @@ Tạo invoice mới.
 ```
 
 **Errors:**
-- `400 INVALID_AMOUNT` — amount <= 0 hoặc quá lớn
-- `400 UNSUPPORTED_ASSET` — asset không phải CKB hoặc RUSD
-- `401 UNAUTHORIZED` — token không khớp `FIBERGATE_INTERNAL_SECRET`
-- `429 RATE_LIMITED` — vượt quá 100 invoice/phút trên toàn bộ deployment (BR-RTE-001)
-- `503 NODE_UNAVAILABLE` — Fiber node không phản hồi
-- `503 ASSET_NOT_CONFIGURED` — asset hợp lệ (CKB/RUSD) nhưng node hiện tại chưa whitelist
-  UDT này trong `docker/fiber-node/config.yml`'s `ckb.udt_whitelist` — khác
-  `NODE_UNAVAILABLE`: retry không giúp được gì, cần merchant tự sửa config node
-  (issue #27)
+- `400 INVALID_AMOUNT` — amount <= 0 or too large
+- `400 UNSUPPORTED_ASSET` — asset is not CKB or RUSD
+- `401 UNAUTHORIZED` — token doesn't match `FIBERGATE_INTERNAL_SECRET`
+- `429 RATE_LIMITED` — exceeds 100 invoices/minute across the whole deployment (BR-RTE-001)
+- `503 NODE_UNAVAILABLE` — the Fiber node isn't responding
+- `503 ASSET_NOT_CONFIGURED` — a valid asset (CKB/RUSD) but the node hasn't whitelisted
+  this UDT in `docker/fiber-node/config.yml`'s `ckb.udt_whitelist` — unlike
+  `NODE_UNAVAILABLE`: retrying won't help, the merchant needs to fix the node config
+  themselves (issue #27)
 
 ---
 
 ### GET /invoices/:id
-Lấy trạng thái invoice.
+Get an invoice's status.
 
 **Response 200:**
 ```json
@@ -100,20 +100,20 @@ Lấy trạng thái invoice.
 ```
 
 **Errors:**
-- `401 UNAUTHORIZED` — token không khớp `FIBERGATE_INTERNAL_SECRET`
-- `404 NOT_FOUND` — không tìm thấy invoice với `id` tương ứng
+- `401 UNAUTHORIZED` — token doesn't match `FIBERGATE_INTERNAL_SECRET`
+- `404 NOT_FOUND` — no invoice found with the given `id`
 
 ---
 
 ### GET /invoices
-List invoices có phân trang.
+Paginated invoice listing.
 
 **Query params:** `status`, `asset`, `limit` (default 20, max 100), `cursor`
 
 ---
 
 ### GET /node/info
-Thông tin node hiện tại (public).
+Current node information (public).
 
 **Response 200:**
 ```json
@@ -129,26 +129,28 @@ Thông tin node hiện tại (public).
 }
 ```
 
-`status` là `"online"` (mọi channel active) hoặc `"degraded"` (RPC thành công nhưng
-`active_channels < total_channels` — có channel bị disable, issue #40). Không có giá trị
-`"offline"` ở đây — node không phản hồi được thì endpoint trả lỗi `503 NODE_UNAVAILABLE`
-(xem Errors bên dưới) thay vì trả `200` với `status: "offline"`.
+`status` is either `"online"` (every channel active) or `"degraded"` (RPC succeeded but
+`active_channels < total_channels` — some channel is disabled, issue #40). There's no
+`"offline"` value here — if the node can't be reached, the endpoint returns a
+`503 NODE_UNAVAILABLE` error (see Errors below) instead of `200` with `status: "offline"`.
 
 ---
 
 ### POST /api/cron/poll-invoices
-Không nằm dưới `/api/v1` (base URL ở trên không áp dụng — path đầy đủ là
-`http://<merchant-host>:<port>/api/cron/poll-invoices`). Optional endpoint để trigger
-thủ công 1 chu kỳ poll invoice (nguồn chính vẫn là in-process interval worker chạy mỗi
-10s trong container `fibergate-core`, BR-POL-001) — dùng khi cần force-check ngay thay
-vì đợi tối đa 10s. Cùng logic `runPollCycle()` với worker: bulk-expire các invoice đã
-hết hạn theo đồng hồ (BR-STS-002b), sau đó poll batch `pending` còn lại qua Fiber node
-(BR-POL-002/003/004), cập nhật status và trigger webhook khi chuyển sang terminal state.
+Not under `/api/v1` (the base URL above doesn't apply — the full path is
+`http://<merchant-host>:<port>/api/cron/poll-invoices`). An optional endpoint to
+manually trigger one invoice poll cycle (the primary source is still the in-process
+interval worker running every 10s inside the `fibergate-core` container, BR-POL-001) —
+used when you need to force-check immediately instead of waiting up to 10s. Uses the
+same `runPollCycle()` logic as the worker: bulk-expires invoices past their clock-based
+deadline (BR-STS-002b), then polls the remaining `pending` batch via the Fiber node
+(BR-POL-002/003/004), updating status and triggering webhooks on transition to a
+terminal state.
 
-**Auth:** `Authorization: Bearer <CRON_SECRET>` — secret riêng, **không** dùng
-`FIBERGATE_INTERNAL_SECRET`. Nếu `CRON_SECRET` không được cấu hình (env var optional
-theo `system-design.md`), endpoint coi như bị tắt hoàn toàn và trả `503` trước khi kiểm
-tra token.
+**Auth:** `Authorization: Bearer <CRON_SECRET>` — a separate secret, **not**
+`FIBERGATE_INTERNAL_SECRET`. If `CRON_SECRET` isn't configured (an optional env var per
+`system-design.md`), the endpoint is treated as fully disabled and returns `503` before
+even checking the token.
 
 **Response 200:**
 ```json
@@ -159,16 +161,16 @@ tra token.
 ```
 
 **Errors:**
-- `401 UNAUTHORIZED` — token không khớp `CRON_SECRET`
-- `503 CRON_NOT_CONFIGURED` — `CRON_SECRET` chưa được set, endpoint bị tắt
-- `500 INTERNAL_ERROR` — poll cycle lỗi ngoài dự kiến (không phải Fiber node timeout —
-  timeout từng invoice được skip riêng lẻ theo BR-POL-004, không làm fail cả request)
+- `401 UNAUTHORIZED` — token doesn't match `CRON_SECRET`
+- `503 CRON_NOT_CONFIGURED` — `CRON_SECRET` hasn't been set, the endpoint is disabled
+- `500 INTERNAL_ERROR` — an unexpected poll cycle error (not a Fiber node timeout —
+  per-invoice timeouts are skipped individually per BR-POL-004 and don't fail the whole request)
 
 ---
 
 ## Webhook Payload
 
-Khi invoice paid, POST đến merchant endpoint:
+When an invoice is paid, POST to the merchant's endpoint:
 ```json
 {
   "event": "payment.paid",
@@ -184,8 +186,8 @@ Khi invoice paid, POST đến merchant endpoint:
 }
 ```
 
-Khi invoice expired (cùng `data{}` field set như `payment.paid`, `paid_at` luôn là `null` vì
-invoice chưa từng được trả — bổ sung 2026-07-06, issue #8):
+When an invoice expires (same `data{}` field set as `payment.paid`, `paid_at` is always
+`null` since the invoice was never paid — added 2026-07-06, issue #8):
 ```json
 {
   "event": "invoice.expired",
@@ -201,8 +203,8 @@ invoice chưa từng được trả — bổ sung 2026-07-06, issue #8):
 }
 ```
 
-Khi invoice failed (Fiber node báo cancelled — BR-STS-003; cùng `data{}` field set, `paid_at`
-cũng luôn `null`):
+When an invoice fails (Fiber node reports cancelled — BR-STS-003; same `data{}` field set,
+`paid_at` is also always `null`):
 ```json
 {
   "event": "invoice.failed",
@@ -220,7 +222,7 @@ cũng luôn `null`):
 
 Header: `X-Fiber-Signature: sha256=hmac_hex`
 
-Merchant verify:
+Merchant verification:
 ```typescript
 import crypto from 'crypto'
 const expected = crypto.createHmac('sha256', webhookSecret)

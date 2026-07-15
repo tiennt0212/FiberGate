@@ -6,54 +6,54 @@ last_updated: 2026-07-14
 
 # FiberGate — Context Index
 
-Đây là Single Source of Truth cho toàn bộ project. Claude Code nên đọc file này trước tiên.
+This is the Single Source of Truth for the whole project. Claude Code should read this file first.
 
-## Dự án là gì?
+## What is this project?
 
-**FiberGate** là một self-hosted, open-source merchant payment gateway framework cho Fiber Network (CKB blockchain). Merchant tự deploy bằng `docker compose up -d` (Fiber node + PostgreSQL + FiberGate core) trên hạ tầng của chính mình, rồi gọi REST API nội bộ để tạo invoice và nhận thanh toán — không cần tự viết code kết nối Fiber RPC, quản lý invoice state machine, hay tự build webhook delivery từ đầu.
+**FiberGate** is a self-hosted, open-source merchant payment gateway framework for Fiber Network (CKB blockchain). Merchants deploy it themselves with `docker compose up -d` (Fiber node + PostgreSQL + FiberGate core) on their own infrastructure, then call the internal REST API to create invoices and receive payments — without having to write their own Fiber RPC integration code, manage an invoice state machine, or build webhook delivery from scratch.
 
-> Lưu ý naming: không gọi là "LSP framework" — FiberGate không cung cấp dịch vụ liquidity/mở channel hộ bên thứ ba (đúng nghĩa Lightning Service Provider). Đây là merchant payment gateway, khớp với ví dụ "Merchant checkout SDKs, payment processor prototypes... payment status webhooks" trong category 3 của hackathon.
+> Naming note: don't call this an "LSP framework" — FiberGate doesn't provide liquidity/channel-opening services on behalf of a third party (the proper meaning of Lightning Service Provider). This is a merchant payment gateway, matching the "Merchant checkout SDKs, payment processor prototypes... payment status webhooks" example in the hackathon's category 3.
 
-Dự án được xây dựng cho **Gone in 60ms: Fiber Network Infrastructure Hackathon** (1–15 July 2026), category: Merchant, Liquidity, LSP, and Multi-Asset Infrastructure.
+The project is built for the **Gone in 60ms: Fiber Network Infrastructure Hackathon** (1–15 July 2026), category: Merchant, Liquidity, LSP, and Multi-Asset Infrastructure.
 
-## Cây context
+## Context tree
 
-| File | Nội dung |
-|------|----------|
-| `glossary/fiber-terms.md` | Thuật ngữ Fiber Network, CKB, payment channel |
+| File | Content |
+|------|------|
+| `glossary/fiber-terms.md` | Fiber Network, CKB, payment channel terminology |
 | `business-context/project-vision.md` | Vision, scope, trade-offs, hackathon constraints |
-| `architecture/system-design.md` | Kiến trúc hệ thống, data flow, tech stack |
-| `data-dictionary/database-schema.md` | Toàn bộ PostgreSQL tables, columns, relations |
-| `api/rest-api-spec.md` | REST API spec đầy đủ (request/response/errors) |
-| `business-rules/payment-rules.md` | Logic xử lý invoice, webhook, rate limiting |
-| `guides/webhook-signature.md` | Giải thích HMAC-SHA256 và cách verify webhook signature |
-| `user-stories/developer-flows.md` | User stories từ góc nhìn developer tích hợp |
-| `processes/decisions-log.md` | Quyết định kiến trúc và nghiệp vụ đã được human chốt |
-| `processes/gotchas.md` | Infra/protocol gotchas đã tốn công tìm ra (đọc trước khi đụng Fiber RPC/Docker networking/`.env`) |
-| `processes/definition-of-done.md` | DoD và checklist tự verify cuối mỗi AI coding session |
-| `design/DESIGN.md`, `design/FiberGate.dc.html`, `design/COMPONENTS.dc.html`, `design/CLAUDE.md` | Design tokens/type scale/component patterns + mockup UI đầy đủ (mở bằng browser) |
+| `architecture/system-design.md` | System architecture, data flow, tech stack |
+| `data-dictionary/database-schema.md` | All PostgreSQL tables, columns, relations |
+| `api/rest-api-spec.md` | Full REST API spec (request/response/errors) |
+| `business-rules/payment-rules.md` | Invoice, webhook, rate-limiting logic |
+| `guides/webhook-signature.md` | Explains HMAC-SHA256 and how to verify webhook signatures |
+| `user-stories/developer-flows.md` | User stories from an integrating developer's perspective |
+| `processes/decisions-log.md` | Architecture and business decisions already settled by a human |
+| `processes/gotchas.md` | Infra/protocol gotchas that took real effort to track down (read before touching Fiber RPC/Docker networking/`.env`) |
+| `processes/definition-of-done.md` | DoD and self-verify checklist for the end of each AI coding session |
+| `design/DESIGN.md`, `design/FiberGate.dc.html`, `design/COMPONENTS.dc.html`, `design/CLAUDE.md` | Design tokens/type scale/component patterns + full UI mockup (open in a browser) |
 
 ## Monorepo layout
 
-Xem `CLAUDE.md`'s "Monorepo layout" — bản canonical, đầy đủ nhất, tránh giữ tree trùng lặp ở nhiều nơi.
+See `CLAUDE.md`'s "Monorepo layout" — the canonical, most complete version; avoid keeping a duplicate tree in multiple places.
 
 ## Public docs mirror
 
-Các file sau có bản dịch/adapt sang tiếng Anh trên VitePress site
-(https://tiennt0212.github.io/FiberGate/) — sửa 1 bên thì phải kiểm tra bên còn lại
-trong cùng lần sửa, 2 bên không tự đồng bộ:
+The following files have a translated/adapted English version on the VitePress site
+(https://tiennt0212.github.io/FiberGate/) — if you edit one side, check the other side
+in the same edit; the two don't auto-sync:
 
 | `.context/` source | Mirrored to (VitePress) |
 |---|---|
 | `api/rest-api-spec.md` | `docs/api-reference.md` |
-| `architecture/system-design.md` (phần diagram) | `docs/architecture.md` |
+| `architecture/system-design.md` (diagram section) | `docs/architecture.md` |
 | `business-rules/payment-rules.md` (state diagram) | `docs/architecture.md` |
 | `glossary/fiber-terms.md` | `docs/glossary.md` |
 
-## Quy ước code
+## Code conventions
 
-- TypeScript strict mode toàn bộ
-- Tên hàm: camelCase. Tên type/interface: PascalCase
-- API response luôn theo format: `{ data, error, meta }`
-- Mọi database query (Drizzle) phải có error handling rõ ràng
-- Không hardcode secrets — dùng environment variables
+- TypeScript strict mode throughout
+- Function names: camelCase. Type/interface names: PascalCase
+- API responses always follow the format: `{ data, error, meta }`
+- Every database query (Drizzle) must have explicit error handling
+- Never hardcode secrets — use environment variables

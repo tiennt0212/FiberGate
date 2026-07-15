@@ -8,59 +8,59 @@ tags: [fiber, ckb, payment-channel, lightning]
 
 # Fiber Network — Glossary
 
-> Bản public (VitePress): `docs/glossary.md`. Sửa 1 trong 2 file thì kiểm tra file
-> còn lại trong cùng lần sửa (xem `.context/INDEX.md`'s "Public docs mirror").
+> Public version (VitePress): `docs/glossary.md`. If you edit one of the two files, check the
+> other one in the same edit (see `.context/INDEX.md`'s "Public docs mirror").
 
 ## Fiber Network
-Mạng payment channel peer-to-peer xây dựng trên Nervos CKB. Tương tự Bitcoin Lightning Network nhưng hỗ trợ multi-asset (CKB, RUSD, UDT tokens).
+A peer-to-peer payment channel network built on Nervos CKB. Similar to the Bitcoin Lightning Network but supports multiple assets (CKB, RUSD, UDT tokens).
 
 ## FNN (Fiber Network Node)
-Reference implementation của Fiber protocol. Mỗi participant cần chạy một FNN để tham gia mạng.
+The reference implementation of the Fiber protocol. Each participant runs an FNN to join the network.
 
 ## Payment Channel
-Mối quan hệ trực tiếp giữa hai node. Tạo channel = lock CKB on-chain vào shared script. Sau đó exchange off-chain. Đóng channel = settle on-chain.
+A direct relationship between two nodes. Opening a channel = locking CKB on-chain into a shared script. Payments are then exchanged off-chain. Closing a channel = settling on-chain.
 
 ## Invoice
-Yêu cầu thanh toán dạng Bech32m string (tương tự Lightning invoice). Chứa: amount, asset, payment_hash, expiry, description.
+A payment request in Bech32m string format (similar to a Lightning invoice). Contains: amount, asset, payment_hash, expiry, description.
 
 ## Payment Hash
-Định danh duy nhất của một invoice/payment (0x-prefixed hex). Dùng để query trạng thái thanh toán.
+The unique identifier of an invoice/payment (0x-prefixed hex). Used to query payment status.
 
 ## Shannon
-Đơn vị nhỏ nhất của CKB. 1 CKB = 100,000,000 Shannon. Tương tự satoshi trong Bitcoin.
+The smallest unit of CKB. 1 CKB = 100,000,000 Shannon. Analogous to a satoshi in Bitcoin.
 
 ## HTLC (Hash Time-Locked Contract)
-Cơ chế bảo mật cho multi-hop payment. Đảm bảo hoặc tất cả hops thành công hoặc tất cả revert.
+A security mechanism for multi-hop payments. Guarantees that either all hops succeed or all revert.
 
 ## Multi-hop Routing
-Payment không cần channel trực tiếp giữa sender và receiver. Đi qua intermediate nodes nếu có đủ liquidity.
+A payment doesn't need a direct channel between sender and receiver — it can route through intermediate nodes as long as they have sufficient liquidity.
 
 ## Liquidity
-Capacity khả dụng trong channel. Inbound liquidity = có thể nhận. Outbound liquidity = có thể gửi. Mỗi side phải reserve 99 CKB (không dùng được cho payment).
+The capacity available in a channel. Inbound liquidity = capacity to receive. Outbound liquidity = capacity to send. Each side must reserve 99 CKB (not usable for payments).
 
 ## LSP (Lightning Service Provider)
-Đơn vị cung cấp dịch vụ infrastructure cho payment channel network: quản lý node, liquidity, routing. Đây là vai trò của FiberGate.
+An entity that provides infrastructure services for the payment channel network: node management, liquidity, routing. This is FiberGate's role.
 
 ## UDT (User Defined Token)
-Token tùy chỉnh trên CKB. Ví dụ: RUSD (stablecoin), SEAL.
+A custom token on CKB. Examples: RUSD (stablecoin), SEAL.
 
 ## RUSD
-Stablecoin trên CKB testnet. Type script: `code_hash: 0x1142755a044bf2ee358cba9f2da187ce928c91cd4dc8692ded0337efa677d21a`
+A stablecoin on the CKB testnet. Type script: `code_hash: 0x1142755a044bf2ee358cba9f2da187ce928c91cd4dc8692ded0337efa677d21a`
 
 ## Public Testnet Nodes
 - `fiber-testnet-public-bottle`: pubkey `02b6d4e3ab86a2ca2fad6fae0ecb2e1e559e0b911939872a90abdda6d20302be71`
 - `fiber-testnet-public-bracer`: pubkey `0291a6576bd5a94bd74b27080a48340875338fff9f6d6361fe6b8db8d0d1912fcc`
 
 ## Fiber RPC
-JSON-RPC 2.0 API của FNN node. Default port: `8227`. Các method quan trọng:
-- `new_invoice` — tạo invoice mới
-- `get_invoice` — lấy trạng thái invoice
-- `connect_peer` — kết nối với peer
-- `open_channel` — mở channel
-- `list_channels` — liệt kê channels
+The FNN node's JSON-RPC 2.0 API. Default port: `8227`. Key methods:
+- `new_invoice` — create a new invoice
+- `get_invoice` — get invoice status
+- `connect_peer` — connect to a peer
+- `open_channel` — open a channel
+- `list_channels` — list channels
 
 ## CKBoost
-Platform tổ chức hackathon, dùng CKB testnet tokens để đăng ký và submit.
+The platform organizing the hackathon; uses CKB testnet tokens for registration and submission.
 
-## Internal Secret (trong FiberGate)
-`FIBERGATE_INTERNAL_SECRET` — 1 shared secret duy nhất set qua env var lúc deploy (self-hosted, single-tenant), dùng để storefront app của merchant authenticate khi gọi `/api/v1/*`. Không phải per-client API key — so sánh constant-time, không bao giờ lưu trong DB.
+## Internal Secret (in FiberGate)
+`FIBERGATE_INTERNAL_SECRET` — a single shared secret set via an env var at deploy time (self-hosted, single-tenant), used by the merchant's storefront app to authenticate when calling `/api/v1/*`. Not a per-client API key — compared in constant time, never stored in the DB.
