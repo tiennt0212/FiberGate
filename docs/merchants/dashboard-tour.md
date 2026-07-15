@@ -20,7 +20,7 @@ and version, channel and peer counts, and bars showing how much you can currentl
 **You do:** nothing to change — it's read-only monitoring. Each panel degrades on its own if one data
 source is briefly unavailable, so a hiccup in one area won't blank the whole page.
 
-> 🖼️ `<TODO>` — *The Overview page with stat cards, invoice funnel, and Node Status.*
+![The Overview page with stat cards, invoice funnel, and Node Status](../imgs/overview-dashboard.png)
 
 ## Invoices
 
@@ -33,7 +33,7 @@ amount range, and page through the results. Open any row for a **Receipt drawer*
 detail plus that invoice's webhook delivery history, with a download button. **Export to CSV** pulls
 exactly the rows your current filters and search match, not just the visible page.
 
-> 🖼️ `<TODO>` — *The Invoices list with filters, and the Receipt drawer open over it.*
+![The Invoices list with the Receipt drawer open over it](../imgs/invoice-receipt-drawer.png)
 
 ## Channels
 
@@ -45,7 +45,7 @@ channel state, plus a table of every channel (capacity, state, asset).
 **You do:** click a channel to open a drawer with its local and remote balances, in-flight amounts,
 state, and commitment transaction hashes — and a "View peer →" link that jumps to that peer.
 
-> 🖼️ `<TODO>` — *The Channels page: topology diagram plus the channel table, with a channel drawer open.*
+![The Channels page with a channel drawer open](../imgs/channels-drawer.png)
 
 ## Peers
 
@@ -56,7 +56,7 @@ The nodes yours is connected to.
 **You do:** open a peer to see all the channels you share with it and their total capacity —
 deep-linked to and from the Channels page, so you can trace liquidity from either direction.
 
-> 🖼️ `<TODO>` — *The Peers page with a peer drawer open.*
+![The Peers page with a peer drawer open](../imgs/peers-drawer.png)
 
 ## Webhooks
 
@@ -70,7 +70,7 @@ endpoint, then your list of endpoints.
 manage its **signing secret**. The secret is shown in full **exactly once** when created or
 regenerated — copy it then; afterward it's masked.
 
-> 🖼️ `<TODO>` — *The Webhooks page, the Add Endpoint drawer, and the one-time signing secret panel.*
+![The Webhooks page with the endpoint list, delivery history, and signing secret](../imgs/webhooks-page.png)
 
 ## Delivery Log
 
@@ -83,7 +83,7 @@ when the next retry is due.
 append-only: a resend creates a new row rather than overwriting history, so the audit trail stays
 intact.
 
-> 🖼️ `<TODO>` — *The Delivery Log page.*
+![The Delivery Log page](../imgs/delivery-log.png)
 
 ## Activity
 
@@ -96,7 +96,7 @@ where a settlement shows up the instant it happens.
 **You do:** just watch. The feed auto-refreshes every few seconds. It's an in-memory buffer, so it
 resets when the container restarts (the durable record is the Delivery Log and the Invoices ledger).
 
-> 🖼️ `<TODO>` — *The Activity feed mid-stream, showing the "Live" pill and a payment event.*
+![The Activity feed mid-stream](../imgs/activity-page.png)
 
 ## Quick Start
 
@@ -109,11 +109,11 @@ webhook and test a payment — each with copy-paste code.
 real data (for example, once you actually have a paid invoice and an active webhook endpoint). The
 sidebar shows your progress as "N/5".
 
-> 🖼️ `<TODO>` — *The Quick Start checklist page.*
+![The Quick Start checklist page](../imgs/quick-start-checklist.png)
 
 ## Settings
 
 **You see / do:** change your dashboard admin password. The new password is stored (hashed) in the
 database and takes over from the one you set at scaffolding time — no need to edit any env file.
 
-> 🖼️ `<TODO>` — *The Settings page with the change-password form.*
+![The Settings page with the change-password form](../imgs/settings-change-password.png)

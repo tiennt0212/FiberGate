@@ -1,5 +1,8 @@
 # create-fibergate
 
+[![npm](https://img.shields.io/npm/v/create-fibergate?color=cb3837&logo=npm)](https://www.npmjs.com/package/create-fibergate)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](https://github.com/tiennt0212/FiberGate/blob/canary/LICENSE)
+
 Scaffold a [FiberGate](https://github.com/tiennt0212/FiberGate) merchant deploy
 directory with one interactive command — no manual secret generation, no
 hand-editing `.env`.
@@ -33,9 +36,10 @@ Output directory:
 ```
 my-fibergate-deploy/
   docker-compose.yml
-  .env
+  .env                            # generated secrets — gitignored, chmod 600
+  .gitignore                      # ignores .env and the CKB key
   docker/fiber-node/config.yml
-  docker/fiber-node/ckb/key
+  docker/fiber-node/ckb/key       # your CKB signing key — gitignored, chmod 600
   docker/nginx/nginx.conf.template
 ```
 
@@ -49,8 +53,9 @@ docker compose up -d
 That's it — `fibergate-core` runs pending DB migrations automatically before it
 starts serving, on first install or any later version upgrade.
 
-See the [main repo](https://github.com/tiennt0212/FiberGate) for what
-FiberGate is and the full deploy guide.
+New to FiberGate? See [what it is](https://tiennt0212.github.io/FiberGate/introduction) and the
+[merchant walkthrough](https://tiennt0212.github.io/FiberGate/merchants/walkthrough) for the full
+journey from here to your first payment.
 
 ## Security notes
 

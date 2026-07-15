@@ -16,7 +16,7 @@ It integrates the way any third-party store would:
 If you followed the [Merchant walkthrough](walkthrough.md), this is the app used in its "See it live"
 step.
 
-> 🖼️ `<TODO>` — *The demo storefront product page with a QR code for an unpaid invoice.*
+![The demo storefront product page with a QR code for an unpaid invoice](../imgs/storefront-unpaid.png)
 
 ::: details "Pay with browser wallet" — an extra testing shortcut
 Once an invoice is showing, there's also an experimental **"Pay with browser wallet"** button. It
@@ -53,7 +53,7 @@ setup:
    [Paying a demo invoice locally](../maintainers/local-testing.md). The page updates itself the
    moment the webhook is verified.
 
-> 🖼️ `<TODO>` — *The storefront after payment, showing the "Payment received" state.*
+![The storefront after payment, showing the "Payment received" state](../imgs/storefront-paid.png)
 
 ## Running it via Docker Compose
 
