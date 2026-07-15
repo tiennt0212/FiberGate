@@ -424,10 +424,28 @@ start the first time — the same spirit as `fiber-node-preflight`), `nginx` (th
 official `nginx:1.27-alpine` image, **no custom build needed** — verified that
 `nginx -V` already has `--with-stream`/`--with-stream_ssl_module`/
 `--with-stream_ssl_preread_module` compiled in statically), and `certbot` (a renew
-loop; the first issuance is a one-time manual command — see
-`docs/merchants/public-https-deploy.md`). `nginx` is the ONLY service that publishes a
-real public host port (`80`, `443`, `8228`) — `postgres`/`fiber-node`/`fibergate-core`
-all remain loopback-only.
+loop only — first issuance moved to a dedicated service, see next paragraph).
+`nginx` is the ONLY service that publishes a real public host port (`80`, `443`,
+`8228`) — `postgres`/`fiber-node`/`fibergate-core` all remain loopback-only.
+
+A 4th service, `certbot-init` (`profiles: ["manual"]`, never starts via a plain
+`docker compose up -d`), was added later (decisions-log.md 2026-07-15) to fix a
+self-inflicted bug: the docs originally told merchants to get their first cert via
+`docker compose run --rm certbot certonly ...`, but `docker compose run <service>
+<args>` only overrides CMD, never a Compose-file `entrypoint:` override — and
+`certbot`'s own `entrypoint: sh -c "...while :; do certbot renew ...; done"`
+(needed so it loops forever as a background daemon) silently swallowed any args
+passed this way, spinning up a second infinite loop instead of running `certonly`.
+Confirmed via `docker inspect certbot/certbot:latest` that the upstream image's own
+native `ENTRYPOINT` is `["certbot"]` (`CMD null`) — designed for exactly this
+one-off invocation style. `certbot-init` deliberately omits any `entrypoint:`
+override (inheriting that native entrypoint) and puts the full `certonly`
+invocation in `command:` (list form — Compose's `${VAR}` interpolation keeps each
+value as one argument in list form, but word-splits it after interpolation in
+string form) with `${DOMAIN}`/`${CERTBOT_EMAIL}` baked in from `.env`, so merchants
+just run `docker compose run --rm certbot-init` with zero placeholders. Shares the
+same `certbot-conf`/`certbot-www` volumes as `certbot` — purely additive, no change
+to the existing renew-loop service's behavior.
 
 `nginx.conf.template`'s architecture (`docker/nginx/`, templated with
 `envsubst '$DOMAIN'` at container start — exactly one variable, to avoid envsubst

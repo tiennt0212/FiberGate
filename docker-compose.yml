@@ -1,17 +1,19 @@
 # FiberGate self-hosted bundle. Merchant deploy: `docker compose up -d`.
-# 6 services on one internal network (postgres, fiber-node, fibergate-core,
-# nginx-certs-preflight, nginx, certbot) — a bare `docker compose up -d` only
-# ever starts these, see below.
+# 6 always-on services on one internal network (postgres, fiber-node,
+# fibergate-core, nginx-certs-preflight, nginx, certbot) — a bare
+# `docker compose up -d` only ever starts these, see below. There's also a
+# 7th service, `certbot-init`, gated behind `profiles: [manual]` — it never
+# starts via plain `up -d`, see the comment on that service for why it exists.
 #
 # nginx is the ONLY service that publishes genuinely public host ports (80,
 # 443, 8228) — it TLS-terminates fibergate-core's dashboard/API (443) and
 # fiber-node's P2P port over WSS (8228, dual-mode: also passes through plain
 # TCP for regular Fiber peers). Requires DOMAIN + CERTBOT_EMAIL in .env, and
 # those ports actually reachable from the internet (DNS + firewall/router
-# port-forwarding) — see README.md "Public HTTPS deploy" for the full runbook,
-# including the one-time manual certbot command to get a real cert (nginx
-# boots with a temporary self-signed one until then, via
-# nginx-certs-preflight). fibergate-core, fiber-node, and postgres all publish
+# port-forwarding) — see docs/merchants/public-https-deploy.md for the full
+# runbook, including the one-time `docker compose run --rm certbot-init` to
+# get a real cert (nginx boots with a temporary self-signed one until then,
+# via nginx-certs-preflight). fibergate-core, fiber-node, and postgres all publish
 # loopback-only (127.0.0.1) host ports instead, for local dev convenience
 # (`pnpm dev`, `pnpm --filter web db:migrate` running on the host) and direct
 # debugging — none of the three is reachable from outside the machine running
@@ -195,8 +197,8 @@ services:
 
   # Generates a temporary self-signed cert if a real one doesn't exist yet at
   # ${DOMAIN}'s Let's Encrypt path, so nginx can start on first boot before
-  # certbot has ever issued anything (see README.md "Public HTTPS deploy" for
-  # the one-time command that replaces it with a real cert). Same
+  # certbot has ever issued anything (see docs/merchants/public-https-deploy.md
+  # for the one-time command that replaces it with a real cert). Same
   # fail-fast-with-a-clear-message spirit as fiber-node-preflight above, just
   # solving a bootstrap problem instead of a missing-file one.
   nginx-certs-preflight:
@@ -218,7 +220,7 @@ services:
             -out "$$CERT_DIR/fullchain.pem" \
             -subj "/CN=${DOMAIN}"
           echo "nginx-certs-preflight: generated a temporary self-signed cert for ${DOMAIN} so nginx can start."
-          echo "Run the certbot command in README.md 'Public HTTPS deploy' to get a real one, then: docker compose exec nginx nginx -s reload"
+          echo "Run 'docker compose run --rm certbot-init' (see docs/merchants/public-https-deploy.md) to get a real one, then: docker compose exec nginx nginx -s reload"
         else
           echo "nginx-certs-preflight OK: cert already exists for ${DOMAIN}"
         fi
@@ -264,10 +266,15 @@ services:
     networks:
       - fibergate-net
 
-  # Renews the Let's Encrypt cert on a loop (initial issuance is a one-time
-  # manual command — see README.md "Public HTTPS deploy" — certbot can't
-  # obtain a first cert until nginx is already serving the ACME challenge
-  # path on a real, publicly-reachable domain).
+  # Renews the Let's Encrypt cert on a loop ONLY — does NOT handle first
+  # issuance (see certbot-init below for that). This service has its own
+  # entrypoint: override so it loops forever as a background daemon; that's
+  # exactly why first issuance needed a dedicated service instead of reusing
+  # this one — `docker compose run <service> <args>` only overrides CMD, never
+  # a Compose-file `entrypoint:` override, so any one-off args passed to THIS
+  # service (e.g. `certonly ...`) get silently swallowed by the loop below
+  # instead of running — see docs/merchants/public-https-deploy.md step 3 and
+  # decisions-log.md 2026-07-15.
   certbot:
     image: certbot/certbot:latest
     restart: unless-stopped
@@ -275,6 +282,36 @@ services:
       - certbot-conf:/etc/letsencrypt
       - certbot-www:/var/www/certbot
     entrypoint: sh -c "trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot --quiet; sleep 12h & wait $$!; done"
+
+  # One-time, manual-only: obtains the FIRST real Let's Encrypt cert. Never
+  # starts via `docker compose up -d` (profiles: [manual]) — run explicitly,
+  # only once DNS + port-forwarding (step 1 of the runbook) are confirmed
+  # live: `docker compose run --rm certbot-init`. Deliberately has NO
+  # `entrypoint:` override (unlike `certbot` above) — it inherits the base
+  # image's own native `ENTRYPOINT ["certbot"]`, so `command:` below IS the
+  # full invocation Compose actually runs. `certbot`'s `entrypoint:` override
+  # (needed to make IT loop forever) would otherwise swallow any args passed
+  # via `docker compose run certbot <args>` — see
+  # docs/merchants/public-https-deploy.md step 3 and decisions-log.md
+  # 2026-07-15. ${DOMAIN}/${CERTBOT_EMAIL} are baked in via Compose's own
+  # .env interpolation, not typed by the merchant — zero placeholders.
+  certbot-init:
+    image: certbot/certbot:latest
+    profiles: ["manual"]
+    volumes:
+      - certbot-conf:/etc/letsencrypt
+      - certbot-www:/var/www/certbot
+    command:
+      - certonly
+      - --webroot
+      - -w
+      - /var/www/certbot
+      - -d
+      - ${DOMAIN}
+      - --email
+      - ${CERTBOT_EMAIL}
+      - --agree-tos
+      - --no-eff-email
 
   # ---- Below: local-testing-only, NOT part of the merchant-facing bundle.
   # Gated behind `profiles: [payer]` — never starts via a bare

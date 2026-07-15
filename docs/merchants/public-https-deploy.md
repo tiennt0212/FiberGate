@@ -37,7 +37,7 @@ flowchart TD
     A["1. Point DNS at this host +<br/>forward ports 80/443/8228"] --> B["2. Set DOMAIN/CERTBOT_EMAIL in .env<br/>docker compose up -d"]
     B --> C{"dig +short $DOMAIN<br/>resolves publicly?"}
     C -->|No, fix DNS/forwarding| A
-    C -->|Yes| D["3. certbot certonly<br/>(one-time, real cert)"]
+    C -->|Yes| D["3. docker compose run<br/>--rm certbot-init<br/>(one-time, real cert)"]
     D --> E["Dashboard/API reachable via<br/>trusted https://DOMAIN"]
     E --> F{"Need browser-wallet<br/>WSS payments?"}
     F -->|No| G["Done"]
@@ -88,17 +88,34 @@ Only run this once DNS + port-forwarding from step 1 are actually live — Let's
 Encrypt needs to reach port 80 on this host from the public internet:
 
 ```bash
-docker compose run --rm certbot certonly \
-  --webroot -w /var/www/certbot \
-  -d "$DOMAIN" --email "$CERTBOT_EMAIL" --agree-tos --no-eff-email
+docker compose run --rm certbot-init
 
 docker compose exec nginx nginx -s reload
 ```
+
+`certbot-init` reads `DOMAIN`/`CERTBOT_EMAIL` straight from `.env` (same values you
+set in step 2) — there's nothing to fill in or substitute yourself. It's a separate,
+one-time-only service from the always-running `certbot` service; see
+`docker-compose.yml`'s comments on both if you're curious why they're split.
 
 The `certbot` service keeps running afterward and renews automatically (checks
 twice daily; Let's Encrypt certs are valid 90 days, renewed around day 60) — nginx
 reloads itself every 6h to pick up renewed certs, so no manual reload is needed
 again after this first one.
+
+::: warning Changed DOMAIN after nginx already started once?
+A plain `docker compose exec nginx nginx -s reload` is **not** enough. `nginx.conf`
+is only generated from `nginx.conf.template` via `envsubst` once, at container
+startup — reload just re-reads the already-generated file, it doesn't regenerate
+it. If you change `DOMAIN` in `.env` after `nginx` has already been created once
+(e.g. you switched domains, or bought a real domain after first testing with a
+placeholder), run this instead so the container re-reads `.env` and regenerates
+`nginx.conf` pointing at the right cert path:
+
+```bash
+docker compose up -d --force-recreate nginx
+```
+:::
 
 Verify:
 ```bash
