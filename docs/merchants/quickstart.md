@@ -27,7 +27,7 @@ docker compose up -d
 
 That's a working local/testnet deployment.
 
-> 🖼️ `<TODO>` — *The create-fibergate wizard running through its prompts.*
+![The create-fibergate wizard running through its prompts](../imgs/create-fibergate-prompts.png)
 
 ## What the wizard asks
 
@@ -67,7 +67,7 @@ migrations automatically before it starts serving — on first install and on ev
   [API Reference](../api-reference.md) to call the REST endpoint directly.
 - **Register a webhook** from the dashboard to get notified the moment an invoice is paid.
 
-> 🖼️ `<TODO>` — *The dashboard Overview right after first login.*
+![The dashboard Overview right after first login](../imgs/overview-first-login.png)
 
 ## Upgrading
 

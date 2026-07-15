@@ -31,7 +31,7 @@ docker compose up -d
 The wizard walks you through Postgres credentials, your dashboard password, your CKB key, and your
 domain. For a blow-by-blow of each prompt, see [Quickstart for merchants](quickstart.md).
 
-> 🖼️ `<TODO>` — *The create-fibergate wizard running in a terminal, part-way through its prompts.*
+![The create-fibergate wizard running in a terminal, part-way through its prompts](../imgs/create-fibergate-prompts-partway.png)
 
 Give the containers a minute to pull and start, then check they're all up:
 
@@ -41,7 +41,7 @@ docker compose ps
 
 You're looking for `postgres`, `fiber-node`, and `fibergate-core` all reporting healthy.
 
-> 🖼️ `<TODO>` — *`docker compose ps` output showing the services healthy.*
+![docker compose ps output showing the services healthy](../imgs/docker-compose-ps.png)
 
 ::: details What's actually running?
 Six services boot together: your **Fiber node** (on CKB testnet), **PostgreSQL**, **fibergate-core**
@@ -60,7 +60,7 @@ during scaffolding.
 You land on **Overview**: a live snapshot of paid volume, pending invoices, your success rate, and
 your node's health (channels, peers, and how much you can send and receive).
 
-> 🖼️ `<TODO>` — *The Overview page right after first login.*
+![The Overview page right after first login](../imgs/overview-first-login.png)
 
 Take a moment to click through the sidebar — Invoices, Channels, Peers, Webhooks, Delivery Log,
 Activity. The [Dashboard tour](dashboard-tour.md) explains what each page is for; you'll use several
@@ -121,7 +121,7 @@ Full request/response and error shapes are in the [API Reference](../api-referen
 
 The new invoice shows up immediately in the dashboard under **Invoices**, marked `pending`.
 
-> 🖼️ `<TODO>` — *The Invoices page with the freshly created pending invoice.*
+![The Invoices page with the freshly created pending invoice](../imgs/invoices-pending.png)
 
 ## Step 4 — Get notified when it's paid
 
@@ -134,7 +134,7 @@ URL the instant an invoice changes. Set one up from the dashboard.
 3. Save. FiberGate shows you a **signing secret exactly once** — copy it now; you can't see it again
    (only regenerate it).
 
-> 🖼️ `<TODO>` — *The Add Endpoint drawer, and the one-time signing secret panel.*
+![The Add Endpoint drawer, with the signing secret panel visible](../imgs/webhooks-add-endpoint.png)
 
 In your webhook handler, verify every request with that secret before trusting it. The SDK ships the
 check:
@@ -170,7 +170,7 @@ it to see the whole loop without building a store first.
 2. **Open a payment page** — click **Buy now**. The storefront creates an invoice and shows its QR
    code with a countdown.
 
-   > 🖼️ `<TODO>` — *The demo storefront showing a QR code for an unpaid invoice.*
+   ![The demo storefront showing a QR code for an unpaid invoice](../imgs/storefront-unpaid.png)
 
 3. **Pay it.** Any Fiber testnet wallet with an open channel to your node works. If you don't have
    one handy, the repo includes a throwaway "payer" node just for this — see
@@ -178,7 +178,7 @@ it to see the whole loop without building a store first.
 4. **Watch it land.** The moment your node settles the payment, the dashboard's **Activity** feed
    logs the event and the storefront flips to **Payment received** on its own.
 
-   > 🖼️ `<TODO>` — *Side by side: the Activity feed logging the payment, and the storefront showing "Payment received".*
+   ![The Activity feed logging the payment event the moment it settles](../imgs/activity-page.png)
 
 ::: details Why is this instant, and not every 30 seconds?
 fibergate-core holds a live WebSocket subscription to your node's store-changes stream, so it hears
@@ -197,17 +197,17 @@ Every payment leaves a full paper trail in the dashboard.
 - **Invoices → open any row** for a **Receipt drawer**: the full invoice detail plus that invoice's
   webhook delivery history, with a download button.
 
-  > 🖼️ `<TODO>` — *The Receipt drawer for a paid invoice.*
+  ![The Receipt drawer for a paid invoice](../imgs/invoice-receipt-drawer.png)
 
 - **Export to CSV** from the Invoices page. The export respects whatever filters and search you
   currently have applied, so you can pull exactly the slice you want.
 
-  > 🖼️ `<TODO>` — *The Invoices page with filters applied and the Export CSV button.*
+  ![The Invoices page with the filter controls and the Export CSV button](../imgs/invoices-pending.png)
 
 - **Delivery Log** shows every webhook attempt across all endpoints — status, response, signature,
   and retries — so you can confirm exactly what your store received (and retry a failed one by hand).
 
-  > 🖼️ `<TODO>` — *The Delivery Log page.*
+  ![The Delivery Log page](../imgs/delivery-log.png)
 
 ## You're done — what next?
 

@@ -13,7 +13,7 @@ FiberGate is a self-hosted merchant payment gateway for the [Fiber Network](http
 **"Gone in 60ms: Fiber Network Infrastructure Hackathon"** (1–15 July 2026), in the *Merchant,
 Liquidity, LSP, and Multi-Asset Infrastructure* category.
 
-> 🖼️ `<TODO>` — *The FiberGate dashboard (hero screenshot for the repo landing page).*
+![The FiberGate dashboard](docs/imgs/overview-dashboard.png)
 
 ## Why FiberGate
 

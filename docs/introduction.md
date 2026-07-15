@@ -7,7 +7,7 @@ a REST API and SDK to create invoices, and webhooks to tell your app the moment 
 You run it yourself. One `docker compose up -d` brings up everything you need, and every payment
 flows through infrastructure you own and control.
 
-> 🖼️ `<TODO>` — *The FiberGate dashboard Overview page (the "hero" shot for this intro).*
+![The FiberGate dashboard Overview page](./imgs/overview-dashboard.png)
 
 ## The problem it solves
 
