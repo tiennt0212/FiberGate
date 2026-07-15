@@ -2,7 +2,7 @@
 type: process
 module: infra-gotchas
 version: 1.0
-last_updated: 2026-07-14
+last_updated: 2026-07-15
 tags: [gotchas, infra, fiber, docker, ai-agent]
 ---
 
@@ -65,3 +65,52 @@ tags: [gotchas, infra, fiber, docker, ai-agent]
   the full command `docker compose -f docker-compose.yml -f
   apps/demo-storefront/docker-compose.demo.yml up -d` from the correct working
   directory.
+
+- **`nginx-certs-preflight`'s temporary self-signed cert collides with certbot's own
+  storage path** — it writes directly to `/etc/letsencrypt/live/${DOMAIN}/*.pem` (the
+  same path certbot uses for a real lineage) without a matching
+  `renewal/${DOMAIN}.conf`, so `certbot-init`'s first real `certonly` run succeeds
+  against Let's Encrypt (account registered, challenge validated) but then aborts
+  with `live directory exists for <domain>` at the final save-to-disk step, since
+  certbot refuses to overwrite a `live/` directory it doesn't recognize as its own.
+  Fixed by making `certbot-init` clear that placeholder itself (only when no real
+  `renewal/${DOMAIN}.conf` exists yet) before calling `certonly` — see
+  `decisions-log.md` 2026-07-15.
+
+- **A failed `certbot certonly` run leaves an orphaned `renewal/<domain>.conf`
+  behind even though it errored out** — certbot's `new_lineage()` opens/creates
+  the renewal config file *before* checking whether `live`/`archive` already
+  exist, and never deletes it on that error path. If you manually clean up after
+  a failed run by only `rm -rf`-ing `live/<domain>` and `archive/<domain>` (not
+  the renewal config too), the next `certonly` attempt sees the leftover config,
+  assumes the plain domain name is taken, and silently saves the new cert under
+  a `-0001`-suffixed name instead — which `nginx.conf.template` never looks for,
+  so `nginx -s reload` fails with a cryptic "no such file" error with no
+  connection back to the original problem. Always clear all three together:
+  `live/<domain>`, `archive/<domain>`, AND `renewal/<domain>.conf`. `certbot-init`
+  now checks for both `renewal/${DOMAIN}.conf` and `live/${DOMAIN}/cert.pem`
+  before deciding whether to self-heal — see `decisions-log.md` 2026-07-15.
+
+- **A hand-typed shell variable inside a Compose `command:`/`entrypoint:` block
+  must use `$$`, not `$`, even though it "looks like" it should just work** —
+  Compose's own interpolation pass runs first and silently treats any single
+  `$VAR` as ITS OWN variable to substitute (logging a barely-visible `variable is
+  not set, defaulting to blank string` warning), not as a variable for the
+  container's shell to resolve at runtime. This reduced an `if [ ! -f "$X" ]`
+  check to comparing against an empty string without erroring loudly — caught
+  only by running `docker compose config` and reading the fully-resolved script
+  before it ever reached a container. Only `${DOMAIN}`/`${CERTBOT_EMAIL}`-style
+  values that are genuinely meant to be baked in from `.env` at Compose-parse
+  time should stay single-`$`; anything the script assigns/computes itself needs
+  `$$`.
+
+- **The `postgres` image only applies `POSTGRES_USER`/`POSTGRES_PASSWORD`/`POSTGRES_DB`
+  on first init of an empty `postgres-data` volume** — if that volume already exists
+  from an earlier `docker compose up -d`, a newer `.env` (e.g. after re-running
+  `create-fibergate` into the same deploy directory, or hand-editing
+  `POSTGRES_PASSWORD`) is silently ignored by Postgres itself, so `fibergate-core`
+  ends up authenticating with a password that no longer matches what's actually in
+  the volume — `password authentication failed for user "fibergate"`. Fix: `docker
+  compose down -v` (destroys the volume — only safe if there's no real data to
+  keep) then `up -d` to reinit against the current `.env`; if real data needs to be
+  preserved, sync the password inside the running container instead of wiping it.

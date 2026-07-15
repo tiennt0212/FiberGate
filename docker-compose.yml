@@ -286,12 +286,19 @@ services:
   # One-time, manual-only: obtains the FIRST real Let's Encrypt cert. Never
   # starts via `docker compose up -d` (profiles: [manual]) — run explicitly,
   # only once DNS + port-forwarding (step 1 of the runbook) are confirmed
-  # live: `docker compose run --rm certbot-init`. Deliberately has NO
-  # `entrypoint:` override (unlike `certbot` above) — it inherits the base
-  # image's own native `ENTRYPOINT ["certbot"]`, so `command:` below IS the
-  # full invocation Compose actually runs. `certbot`'s `entrypoint:` override
-  # (needed to make IT loop forever) would otherwise swallow any args passed
-  # via `docker compose run certbot <args>` — see
+  # live: `docker compose run --rm certbot-init`. Overrides `entrypoint:` to a
+  # shell script (unlike a plain `certonly` invocation, and unlike the
+  # zero-`entrypoint:`-override approach originally used here) so it can
+  # first clear `nginx-certs-preflight`'s self-signed placeholder: that
+  # placeholder lives at the exact path (`/etc/letsencrypt/live/${DOMAIN}`)
+  # certbot itself wants to use for the real cert, but has no matching
+  # `renewal/${DOMAIN}.conf`, so certbot's own `new_lineage()` safety check
+  # refuses to overwrite it ("live directory exists for <domain>") — even
+  # AFTER successfully obtaining a real cert from Let's Encrypt, right before
+  # the final save-to-disk step. Confirmed live + in certbot's own source
+  # (`storage.py`'s `new_lineage()`). Only clears the placeholder when no real
+  # lineage exists yet (no `renewal/${DOMAIN}.conf`), so re-running this after
+  # a real cert is already in place never touches it — see
   # docs/merchants/public-https-deploy.md step 3 and decisions-log.md
   # 2026-07-15. ${DOMAIN}/${CERTBOT_EMAIL} are baked in via Compose's own
   # .env interpolation, not typed by the merchant — zero placeholders.
@@ -301,17 +308,31 @@ services:
     volumes:
       - certbot-conf:/etc/letsencrypt
       - certbot-www:/var/www/certbot
-    command:
-      - certonly
-      - --webroot
-      - -w
-      - /var/www/certbot
-      - -d
-      - ${DOMAIN}
-      - --email
-      - ${CERTBOT_EMAIL}
-      - --agree-tos
-      - --no-eff-email
+    entrypoint:
+      - sh
+      - -c
+      - |
+        DOMAIN_LIVE="/etc/letsencrypt/live/${DOMAIN}"
+        DOMAIN_RENEWAL="/etc/letsencrypt/renewal/${DOMAIN}.conf"
+        # '$$DOMAIN_LIVE'/'$$DOMAIN_RENEWAL' (not single '$'): these are this
+        # script's OWN shell variables, assigned above — must survive Compose's
+        # interpolation pass and reach sh literally, the same escaping reason as
+        # nginx's '$$DOMAIN'/'$$NGINX_PID' below. '${DOMAIN}' stays single-'$'
+        # since that one IS meant to be Compose-interpolated from .env.
+        # A complete, real lineage has BOTH a renewal config AND a live cert.pem.
+        # Anything less is safe to clear before requesting a fresh one: either
+        # nginx-certs-preflight's self-signed placeholder (no renewal config at
+        # all), or an orphaned renewal config left behind by a previously failed
+        # certonly run with no matching live cert (which otherwise makes certbot
+        # think the plain domain name is already taken and silently save the new
+        # cert under a "-0001" suffixed name instead — a name nginx.conf.template
+        # never looks for).
+        if [ ! -f "$$DOMAIN_RENEWAL" ] || [ ! -f "$$DOMAIN_LIVE/cert.pem" ]; then
+          echo "certbot-init: clearing stale/incomplete cert state for ${DOMAIN} (no complete certbot lineage yet)"
+          rm -rf "$$DOMAIN_LIVE" "/etc/letsencrypt/archive/${DOMAIN}" "$$DOMAIN_RENEWAL"
+        fi
+        certbot certonly --webroot -w /var/www/certbot -d "${DOMAIN}" \
+          --email "${CERTBOT_EMAIL}" --agree-tos --no-eff-email
 
   # ---- Below: local-testing-only, NOT part of the merchant-facing bundle.
   # Gated behind `profiles: [payer]` — never starts via a bare

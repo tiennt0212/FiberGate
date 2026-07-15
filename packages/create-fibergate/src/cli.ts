@@ -21,7 +21,11 @@ import {
 } from "./lib/scaffold";
 import { validateSecretChars } from "./lib/validate-secret";
 
-const TEMPLATES_DIR = join(dirname(fileURLToPath(import.meta.url)), "..", "templates");
+const PACKAGE_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
+const TEMPLATES_DIR = join(PACKAGE_ROOT, "templates");
+const CLI_VERSION = (
+  JSON.parse(readFileSync(join(PACKAGE_ROOT, "package.json"), "utf-8")) as { version: string }
+).version;
 
 async function promptTargetDir(): Promise<string> {
   const argDir = process.argv[2];
@@ -154,7 +158,7 @@ async function promptDeployValues(): Promise<{ domain: string; ghcrNamespace: st
 }
 
 async function main() {
-  intro("create-fibergate — scaffold a FiberGate merchant deploy");
+  intro(`create-fibergate v${CLI_VERSION} — scaffold a FiberGate merchant deploy`);
 
   const targetDir = await promptTargetDir();
   const postgres = await promptPostgres();
