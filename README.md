@@ -1,19 +1,43 @@
 # FiberGate
 
-Self-hosted, open-source merchant payment gateway framework prototype for the
-[Fiber Network](https://www.fiber.world/) (CKB blockchain), built for the
-**"Gone in 60ms: Fiber Network Infrastructure Hackathon"** (1–15 July 2026),
-category *Merchant, Liquidity, LSP, and Multi-Asset Infrastructure*.
+**Accept Fiber Network payments from your own server** — a dashboard, REST API, SDK, and webhooks you
+host yourself, on infrastructure you own.
 
-A merchant deploys FiberGate on their own infrastructure (`docker compose up -d` —
-Fiber node + PostgreSQL + FiberGate core), then calls a REST API to create invoices
-and receive payments — without writing Fiber RPC integration, an invoice state
-machine, or webhook delivery from scratch. Single-tenant: each deployment serves one
-merchant.
+[![@fibergate/sdk on npm](https://img.shields.io/npm/v/@fibergate/sdk?label=%40fibergate%2Fsdk&color=cb3837&logo=npm)](https://www.npmjs.com/package/@fibergate/sdk)
+[![create-fibergate on npm](https://img.shields.io/npm/v/create-fibergate?label=create-fibergate&color=cb3837&logo=npm)](https://www.npmjs.com/package/create-fibergate)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+[![Docs](https://img.shields.io/badge/docs-online-2ea44f)](https://tiennt0212.github.io/FiberGate/)
 
-> Not an LSP — FiberGate does not provide liquidity or open channels on behalf of a
-> third party. See `.context/glossary/fiber-terms.md` for terminology and
-> `.context/business-context/project-vision.md` for full scope.
+FiberGate is a self-hosted merchant payment gateway for the [Fiber Network](https://www.fiber.world/)
+(CKB blockchain). It's an open-source prototype built for the
+**"Gone in 60ms: Fiber Network Infrastructure Hackathon"** (1–15 July 2026), in the *Merchant,
+Liquidity, LSP, and Multi-Asset Infrastructure* category.
+
+> 🖼️ `<TODO>` — *The FiberGate dashboard (hero screenshot for the repo landing page).*
+
+## Why FiberGate
+
+Accepting Fiber payments the hard way means running a node, managing channel liquidity, hand-writing
+JSON-RPC calls, building your own invoice state machine, and delivering signed webhooks — all
+yourself. FiberGate collapses that into a few commands and one REST API. You bring a node key and a
+domain; it handles the rest.
+
+What you get:
+
+- **Deploy in three commands** — one `docker compose up -d` brings up your Fiber node, PostgreSQL, and
+  the gateway together.
+- **A dashboard** — log in with one password to watch invoices, channels, peers, node health, and
+  webhook deliveries.
+- **A REST API + TypeScript SDK** — create and look up invoices from your storefront in a few lines.
+- **Webhooks with real-time detection** — get a signed notification within seconds of a payment
+  settling, over a live subscription to your node (not slow polling).
+
+Single-tenant by design: each deployment serves exactly one merchant — you — with no hosted
+middleman holding your funds.
+
+> **Not an LSP.** FiberGate doesn't open channels or provide liquidity on anyone's behalf; it sits on
+> top of a node you already run and fund. See [What is FiberGate?](docs/introduction.md) for the full
+> picture and [Glossary](docs/glossary.md) for terminology.
 
 ## Quickstart
 
@@ -23,12 +47,13 @@ cd fibergate-deploy
 docker compose up -d
 ```
 
-→ **[docs/merchants/quickstart.md](docs/merchants/quickstart.md)** for what this
-does and what to do next (creating your first invoice, registering a webhook).
+Then open the dashboard and log in. The [Merchant walkthrough](docs/merchants/walkthrough.md) takes
+you from here to your first live payment; the [Quickstart](docs/merchants/quickstart.md) explains what
+each step does.
 
 ## Documentation
 
-Browse online: **https://tiennt0212.github.io/FiberGate/**
+Browse the full docs online: **https://tiennt0212.github.io/FiberGate/**
 
 | For... | Start here |
 |---|---|
@@ -50,7 +75,9 @@ Browse online: **https://tiennt0212.github.io/FiberGate/**
 See also [CONTRIBUTING.md](CONTRIBUTING.md), [MAINTAINER.md](MAINTAINER.md), and
 [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
 
-## Monorepo layout
+## Repository layout
+
+For contributors — the pieces that make up the monorepo:
 
 ```
 apps/web/               — Next.js 14 App Router (fibergate-core: dashboard + API routes)
@@ -77,4 +104,4 @@ docs/                   — split developer/merchant/maintainer documentation (t
 
 ## License
 
-MIT.
+MIT — see [LICENSE](LICENSE).
