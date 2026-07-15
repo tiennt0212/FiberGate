@@ -19,7 +19,19 @@ fiber:
   # the two connected to each other — see decisions-log.md 2026-07-09.
   bootnode_addrs: []
   announce_listening_addr: true
+  # A fake but harmless /dns4 entry — NOT meant to be actually dialable (this
+  # node is never meant to be discovered/connected to by real peers, see the
+  # file-level comment above). Required purely to pass fiber-node's own
+  # NodeAnnouncement validation: fiber-lib's is_addr_reachable() treats any
+  # /dns4//dns6//onion3 address as reachable without ever actually probing it,
+  # while an empty announced_addrs list (the previous value here) produces a
+  # NodeAnnouncement with zero addresses, which fiber-node rejects outright as
+  # "private address node announcement" (ProcessingError -> PolicyRejectedMessage
+  # -> peer flagged malicious) the moment it active-syncs gossip from this peer
+  # — see decisions-log.md 2026-07-15 (supersedes the "root cause not yet
+  # identified" note in the 2026-07-13 entry).
   announced_addrs:
+    - "/dns4/localhost/tcp/8228"
   chain: testnet
   # Disables this node's own outbound active gossip sync entirely (it would
   # otherwise request fiber-node's full accumulated gossip backlog on first
