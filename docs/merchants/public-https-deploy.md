@@ -1,15 +1,17 @@
 # Public HTTPS deploy
 
-Fronts `fibergate-core`'s dashboard/API and `fiber-node`'s P2P port with TLS via an
-`nginx` + `certbot` (Let's Encrypt) service pair, folded directly into
-`docker-compose.yml` — a plain `docker compose up -d` requires `DOMAIN` and
-`CERTBOT_EMAIL` set in `.env` to become fully reachable over HTTPS. Two things
-become reachable once this is fully set up:
+Want a real `https://` address that customers or judges can reach? This puts a TLS reverse proxy
+(nginx + Let's Encrypt via certbot) in front of your gateway. It's already built into the compose
+file — you just supply a domain and a couple of settings in `.env`.
 
-- a trusted `https://$DOMAIN` for the dashboard/API — useful for judges/customers
-  trying a hosted demo
-- WSS for `fiber-node`'s P2P port — unlocks the demo storefront's
+Once it's set up, two things become reachable:
+
+- a trusted `https://your-domain` for the dashboard and API — handy for a hosted demo
+- WSS for your node's P2P port — which unlocks the demo storefront's
   ["Pay with browser wallet"](demo-storefront.md) button
+
+**What you'll need:** a domain you control, pointed at this host, with ports 80/443/8228 forwarded to
+it.
 
 ```mermaid
 flowchart LR

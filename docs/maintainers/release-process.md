@@ -1,5 +1,8 @@
 # Release process
 
+How each FiberGate artifact gets published. Most of it is automatic on a push to `canary`; the manual
+parts are one-time account setup, called out where they apply.
+
 ## `fibergate-core` (Docker image)
 
 Published to GHCR automatically on every push to `canary` via
@@ -19,48 +22,38 @@ settings) before `docker compose pull` will work for anyone outside the org.
 
 ## `create-fibergate` and `@fibergate/sdk` (npm packages)
 
-Published automatically to npm by `.github/workflows/npm-publish.yml` (issue #56)
-on every push to `canary` that touches `packages/create-fibergate/**` or
-`packages/sdk/**` (also runnable manually via `workflow_dispatch` to test before
-trusting the automatic trigger, same as the Docker image). Each package gets its
-own job; a job only runs `npm publish` when that package's `package.json` version
-differs from what's already published — maintainers still bump `version` by hand
-in a PR, CI only handles the `npm publish` step once that change lands on `canary`.
-For `@fibergate/sdk`, also bump the `SDK_VERSION` const in
-`packages/sdk/src/index.ts` to match — it's not derived from `package.json`
-automatically.
+Both publish to npm via `.github/workflows/npm-publish.yml` (issue #56) on any push to `canary` that
+touches their package directory — or manually via `workflow_dispatch`. Each package has its own job,
+and a job only runs `npm publish` when its `package.json` version differs from what's already on npm.
 
-`@fibergate/sdk` is a **scoped** package (`@fibergate/*`), which npm only allows
-under either your own username as scope, or an npm **Organization** named exactly
-`fibergate` — this project's npm account is `tiennt0212`, not `fibergate`, so the
-org doesn't exist automatically. Confirmed via `npm org ls fibergate` → `404 Scope
-not found`: the name is free, but someone with admin access needs to create it once
-on npmjs.com (Organizations → Create Organization → `fibergate`, free tier is fine
-since the package publishes with `publishConfig.access: "public"`) before
-`@fibergate/sdk` can be published at all. `create-fibergate` is unscoped and needs
-no org — it publishes straight under the personal account.
+So the everyday release flow is: **bump `version` by hand in a PR; CI publishes once it lands on
+`canary`.** For `@fibergate/sdk`, also bump the `SDK_VERSION` constant in `packages/sdk/src/index.ts`
+to match — it isn't derived from `package.json` automatically.
 
-Auth is npm **Trusted Publishing** (OIDC) — no `NPM_TOKEN` secret stored or
-rotated in this repo, matching `docker-publish.yml`'s "only the built-in
-`GITHUB_TOKEN`" posture. This sidesteps the fact this project's npm account only
-has passkey/security-key 2FA enrolled, which doesn't work non-interactively in CI.
-**One-time manual setup required** (npm account owner only, can't be automated):
-on npmjs.com, for each package's Settings page, add a Trusted Publisher pointing
-at `tiennt0212/FiberGate` and the workflow file `.github/workflows/npm-publish.yml`.
-`@fibergate/sdk` has never been published, and Trusted Publisher is configured
-per-*package* (not per-org) on a Settings page that only exists once the package
-does — so the order for its first release is: create the `fibergate` org above →
-one manual `npm publish --auth-type=web` (browser approval flow, works around the
-passkey-only 2FA) from `packages/sdk` to create the package under that org → *then*
-add the Trusted Publisher for every CI-driven version after that.
+### First-time npm setup (one-time, npm account owner only)
 
-Before publishing a new `create-fibergate` version (by hand or via CI), make sure
-`pnpm --filter create-fibergate build` has run — its `prebuild` step
-(`scripts/copy-templates.mjs`) copies `docker-compose.release.yml`,
-`docker/fiber-node/config.yml`, `docker/nginx/nginx.conf.template`, and
-`.env.release.example` from the repo root into `templates/` (gitignored) so the
-scaffolded output can never silently drift from those files. The CI workflow runs
-this automatically as part of its build step.
+These are account-level actions on npmjs.com that can't be automated:
+
+1. **Create the `fibergate` org** — needed only for the scoped `@fibergate/sdk`. npm allows a scoped
+   package (`@fibergate/*`) only under a matching username or org, and this project's account is
+   `tiennt0212`. Create it once (Organizations → Create Organization → `fibergate`; the free tier is
+   fine, since the package publishes with public access). `create-fibergate` is unscoped and needs
+   none of this.
+2. **Publish `@fibergate/sdk` once by hand** to create the package: `npm publish --auth-type=web` from
+   `packages/sdk`. The browser approval flow works around this account's passkey-only 2FA (which can't
+   run non-interactively in CI).
+3. **Add a Trusted Publisher** for each package, on its own npmjs.com Settings page, pointing at
+   `tiennt0212/FiberGate` and the workflow file `.github/workflows/npm-publish.yml`. This is what lets
+   CI publish with no stored `NPM_TOKEN` (auth is OIDC / npm Trusted Publishing, matching the Docker
+   workflow's "built-in `GITHUB_TOKEN` only" posture). It's configured per-package on a page that only
+   exists once the package does — which is why step 2 comes first.
+
+### Before publishing a new `create-fibergate`
+
+Make sure `pnpm --filter create-fibergate build` has run first — its `prebuild` step
+(`scripts/copy-templates.mjs`) copies `docker-compose.release.yml`, the fiber-node config, the nginx
+template, and `.env.release.example` into `templates/` so the scaffolded output can never silently
+drift from those files. CI does this automatically as part of its build.
 
 ## If repo/npm org ownership changes later (e.g. hackathon handover)
 
