@@ -53,7 +53,7 @@ setup:
    [Paying a demo invoice locally](../maintainers/local-testing.md). The page updates itself the
    moment the webhook is verified.
 
-> 🖼️ `<TODO>` — *The storefront after payment, showing the "Payment received" state.*
+![The storefront after payment, showing the "Payment received" state](../imgs/storefront-paid.png)
 
 ## Running it via Docker Compose
 

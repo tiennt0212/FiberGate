@@ -180,6 +180,8 @@ it to see the whole loop without building a store first.
 
    ![The Activity feed logging the payment event the moment it settles](../imgs/activity-page.png)
 
+   ![The demo storefront flipping to "Payment received" on its own](../imgs/storefront-paid.png)
+
 ::: details Why is this instant, and not every 30 seconds?
 fibergate-core holds a live WebSocket subscription to your node's store-changes stream, so it hears
 about a settlement within seconds. The 30-second interval poller is still there as a fallback in case
