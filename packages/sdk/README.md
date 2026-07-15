@@ -1,13 +1,17 @@
 # @fibergate/sdk
 
-TypeScript client for [FiberGate](../../README.md) — a self-hosted merchant
-payment gateway for the Fiber Network. Wraps your FiberGate deployment's
-`/api/v1/invoices` and `/api/v1/node/info` REST endpoints, plus a
-constant-time webhook signature verifier.
+[![npm](https://img.shields.io/npm/v/@fibergate/sdk?color=cb3837&logo=npm)](https://www.npmjs.com/package/@fibergate/sdk)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](https://github.com/tiennt0212/FiberGate/blob/canary/LICENSE)
 
-FiberGate is single-tenant and self-hosted: this SDK just talks to *your own*
-deployment's HTTP API over the base URL and internal secret you provide — it
-does not call any FiberGate-operated service.
+TypeScript client for [FiberGate](https://github.com/tiennt0212/FiberGate) — a self-hosted merchant
+payment gateway for the Fiber Network. It wraps your deployment's invoice and node REST endpoints and
+includes a constant-time webhook signature verifier.
+
+FiberGate is single-tenant and self-hosted, so this SDK only ever talks to *your own* deployment's
+HTTP API — using the base URL and internal secret you provide. It never calls a FiberGate-operated
+service.
+
+📖 Full guide and API reference: **https://tiennt0212.github.io/FiberGate/**
 
 ## Install
 
@@ -58,9 +62,9 @@ const isValid = verifyWebhookSignature(body, signature, secret);
 
 ### `new FiberGate({ baseUrl, internalSecret })`
 
-- `baseUrl` — your FiberGate deployment's API base URL (matches
-  `.context/api/rest-api-spec.md`'s "Base URL"), e.g.
-  `http://localhost:3000/api/v1`.
+- `baseUrl` — your FiberGate deployment's API base URL, including the `/api/v1`
+  suffix, e.g. `http://localhost:3000/api/v1` (see the
+  [API reference](https://tiennt0212.github.io/FiberGate/api-reference)).
 - `internalSecret` — the shared secret set via `FIBERGATE_INTERNAL_SECRET` on
   your deployment. Sent as `Authorization: Bearer <internalSecret>` on every
   request.
