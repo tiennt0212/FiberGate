@@ -27,7 +27,7 @@ tags: [env, config, secrets, ai-agent]
 | `POSTGRES_PASSWORD` | **Required** | (no safe default) | " |
 | `FIBER_SECRET_KEY_PASSWORD` | **Required** | — | Password to unlock the CKB signing key file at `docker/fiber-node/ckb/key`. Only read by `fiber-node`, not an app-level var, but still kept in `.env.example` so `cp .env.example .env` surfaces all required values at once. |
 | `DOMAIN` | **Required** | (no usable default) | Public domain for nginx/certbot — needs DNS pointed at the host, ports 80/443/8228 open to the internet. |
-| `CERTBOT_EMAIL` | Optional | — | Email to receive Let's Encrypt cert expiry notifications. Not read during `docker compose up -d` (a temporary self-signed cert is always generated) — only needed when actually running `certbot certonly`. |
+| `CERTBOT_EMAIL` | Optional | — | Email to receive Let's Encrypt cert expiry notifications. Not read during `docker compose up -d` (a temporary self-signed cert is always generated) — only needed when actually running `docker compose run --rm certbot-init`. |
 | `ADMIN_PASSWORD_HASH_B64` | **Required** | — | Base64-encoded bcrypt hash for the dashboard's single-admin login — **not** the raw `$2y$10$...` hash (see the `.env` `$` corruption gotcha). |
 | `DASHBOARD_SESSION_SECRET` | **Required** | — | Signs the session cookie (httpOnly JWT) for `app/(dashboard)/**`. Deliberately kept separate from `FIBERGATE_INTERNAL_SECRET` (BR-SEC-004). |
 | `FIBERGATE_INTERNAL_SECRET` | **Required** | — | The single shared secret for `/api/v1/*` — the storefront app uses it as a Bearer token. |

@@ -55,15 +55,31 @@ of those, keep them in sync.
 ## Public HTTPS / TLS / WSS
 
 - **`https://$DOMAIN` shows a certificate warning / "not secure"** — expected until
-  you've run the one-time certbot command in
+  you've run the one-time `docker compose run --rm certbot-init` in
   [Public HTTPS deploy](../merchants/public-https-deploy.md). Until
   then `nginx` is serving the temporary self-signed cert `nginx-certs-preflight`
   generated so it could start at all — normal on first boot, not a bug.
-- **The certbot command fails with a challenge/timeout error** — almost always DNS or
+- **`certbot-init` fails with a challenge/timeout error** — almost always DNS or
   port-forwarding, not `.env`. Confirm `DOMAIN` actually resolves to this host's
   public IP (`dig +short $DOMAIN` from a machine that isn't this one) and that ports
   80/443/8228 are forwarded to it — Let's Encrypt has to reach port 80 on this host
   from the public internet to validate the challenge.
+- **`certbot-init` fails with a DNS-related timeout during Let's Encrypt's
+  validation, even though DNS and port-forwarding are both actually correct** —
+  free/dynamic DNS providers can have slow or unreliable authoritative DNS
+  answering, which can cause Let's Encrypt's multi-perspective ("secondary
+  validation") checks to fail even when your own setup is fine. Confirm this is
+  the cause by checking DNS resolution consistency for `$DOMAIN` across a couple
+  of different public resolvers (e.g. a DNS-over-HTTPS query to two different
+  providers) — if they don't agree yet, this is likely transient, and simply
+  retrying `docker compose run --rm certbot-init` after a few minutes is often
+  enough.
+- **The real cert is installed and verified server-side (`curl -v https://$DOMAIN`
+  shows `SSL certificate verify ok`), but a browser tab still shows "Not secure"**
+  — if that tab already had the site open before the fix (e.g. it previously hit
+  the temporary self-signed cert's warning), the browser can keep showing cached
+  "insecure" state for that origin. Try a hard refresh, or open the URL in a
+  private/incognito window, before assuming the server-side fix didn't work.
 - **"Pay with browser wallet" in the demo storefront still can't connect after
   setting up WSS** — double-check `docker/fiber-node/config.yml`'s `announced_addrs`
   was actually uncommented/edited with the real domain and `fiber-node` was restarted

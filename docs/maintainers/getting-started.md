@@ -79,12 +79,15 @@ pnpm --filter web db:migrate    # apply pending migrations to POSTGRES_* (run ma
 
 ## Running the full stack from source
 
-Brings up all 6 services — `postgres`, `fiber-node` (CKB testnet), `fibergate-core`
-(dashboard + API), and `nginx`/`certbot`/`nginx-certs-preflight` — on one
-internal-only Docker network, building `fibergate-core` from source
+Brings up all 6 always-on services — `postgres`, `fiber-node` (CKB testnet),
+`fibergate-core` (dashboard + API), and `nginx`/`certbot`/`nginx-certs-preflight` —
+on one internal-only Docker network, building `fibergate-core` from source
 (`docker compose build`) rather than pulling a published image. Use this when
 you're modifying FiberGate's code and need to test the real container build; use
-`pnpm dev` above for faster iteration on `apps/web` alone.
+`pnpm dev` above for faster iteration on `apps/web` alone. There's also a 7th
+service, `certbot-init` (`profiles: [manual]`), for one-time real-cert issuance —
+it never starts via this command, see
+[Public HTTPS deploy](../merchants/public-https-deploy.md).
 
 ```bash
 docker compose build
