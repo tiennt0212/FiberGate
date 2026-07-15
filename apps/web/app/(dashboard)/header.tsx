@@ -25,7 +25,7 @@ export function Header() {
       <div className="flex items-center gap-2">
         {pathname === ROUTE.QUICK_START ? (
           <a
-            href="https://www.fiber.world/docs"
+            href="https://tiennt0212.github.io/FiberGate/"
             target="_blank"
             rel="noreferrer"
             className="inline-flex items-center gap-1.5 rounded-md bg-accent px-3.5 py-1.5 text-[13px] font-medium text-white no-underline! hover:bg-accent-hover"

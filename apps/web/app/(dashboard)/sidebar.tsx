@@ -100,7 +100,7 @@ export function Sidebar({ step4Done, step5Done }: { step4Done: boolean; step5Don
 
       <div className="flex flex-col gap-0.5 border-t border-border-focus px-2.5 pb-3 pt-2.5">
         <a
-          href="https://www.fiber.world/docs"
+          href="https://tiennt0212.github.io/FiberGate/"
           target="_blank"
           rel="noreferrer"
           className="flex items-center gap-2 rounded-md px-2.5 py-1.5 text-[13px] text-text-muted no-underline! hover:bg-surface-hover hover:text-text-strong"
