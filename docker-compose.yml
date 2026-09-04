@@ -102,6 +102,39 @@ services:
     environment:
       # Password for the CKB key at docker/fiber-node/ckb/key (merchant-supplied).
       FIBER_SECRET_KEY_PASSWORD: ${FIBER_SECRET_KEY_PASSWORD}
+      # What this node announces about itself to the Fiber network. Without an
+      # announced address the node is rejected and banned by every peer it
+      # meets and can never be paid — see gotchas.md.
+      #
+      # Deliberately NOT derived from DOMAIN here, unlike
+      # docker-compose.release.yml — this is the contributor/dev file, where
+      # DOMAIN is normally "localhost". Announcing that would tell the whole
+      # public testnet to reach this node at "localhost:8228", an address that
+      # means *the listener's own machine* on every node that stores it. fnn
+      # would not object (is_addr_reachable() waves any /dns4 through without
+      # resolving it), so nothing would ever flag it — it would just quietly
+      # litter the shared network graph from every developer's laptop.
+      #
+      # A dev node therefore announces nothing unless someone names a genuinely
+      # public hostname for it. Set FIBER_P2P_DOMAIN in .env to opt in.
+      #
+      # Both forms are announced: plain TCP for native Fiber peers, /wss for
+      # browser/WASM wallets. nginx already serves both on :8228 (its stream{}
+      # block splits them by ssl_preread), so nothing extra has to be switched
+      # on. The /wss half only really works once certbot has issued a real cert
+      # (docker compose run --rm certbot-init) — until then browsers refuse the
+      # self-signed placeholder, while native peers keep using the TCP address.
+      #
+      # Set here rather than in config.yml because that file is copied verbatim
+      # into create-fibergate's templates (scripts/copy-templates.mjs) and so
+      # can't carry a per-deploy value. fnn reads this env var natively
+      # (FIBER_ANNOUNCED_ADDRS, fiber/config.rs) and it overrides the file.
+      #
+      # The `:+` guard is load-bearing: a blank DOMAIN must produce an EMPTY
+      # value, not "/dns4//tcp/8228" — fnn panics at boot on an unparseable
+      # multiaddr, while an empty value it handles gracefully (announces
+      # nothing). Both verified against nervos/fiber:0.9.0-rc6.
+      FIBER_ANNOUNCED_ADDRS: ${FIBER_P2P_DOMAIN:+/dns4/${FIBER_P2P_DOMAIN}/tcp/8228,/dns4/${FIBER_P2P_DOMAIN}/tcp/8228/wss}
       RUST_LOG: info
     volumes:
       # Pre-seeded config.yml, plus the merchant's ckb/key and node runtime state.
@@ -331,7 +364,21 @@ services:
           echo "certbot-init: clearing stale/incomplete cert state for ${DOMAIN} (no complete certbot lineage yet)"
           rm -rf "$$DOMAIN_LIVE" "/etc/letsencrypt/archive/${DOMAIN}" "$$DOMAIN_RENEWAL"
         fi
-        certbot certonly --webroot -w /var/www/certbot -d "${DOMAIN}" \
+        # When FIBER_P2P_DOMAIN names a second (non-proxied) DNS record for
+        # this same host, fiber-node's /wss announced address uses THAT name —
+        # so the certificate has to cover it too, or browser wallets fail
+        # hostname validation even though the chain itself is valid. '-'
+        # (not ':-') in '$${FIBER_P2P_DOMAIN-}' keeps Compose from warning when
+        # the var simply isn't set; '$$EXTRA_DOMAIN' is this script's own shell
+        # variable, escaped like $$DOMAIN_LIVE above. --expand lets certbot add
+        # the name to an ALREADY-issued lineage instead of refusing; it's a
+        # no-op on a first issuance.
+        EXTRA_DOMAIN=""
+        if [ -n "${FIBER_P2P_DOMAIN-}" ] && [ "${FIBER_P2P_DOMAIN-}" != "${DOMAIN}" ]; then
+          EXTRA_DOMAIN="-d ${FIBER_P2P_DOMAIN-}"
+          echo "certbot-init: also requesting ${FIBER_P2P_DOMAIN-} (fiber-node's P2P/WSS name)"
+        fi
+        certbot certonly --webroot -w /var/www/certbot -d "${DOMAIN}" $$EXTRA_DOMAIN --expand \
           --email "${CERTBOT_EMAIL}" --agree-tos --no-eff-email
 
   # ---- Below: local-testing-only, NOT part of the merchant-facing bundle.

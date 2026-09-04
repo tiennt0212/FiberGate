@@ -75,6 +75,21 @@ services:
         condition: service_completed_successfully
     environment:
       FIBER_SECRET_KEY_PASSWORD: ${FIBER_SECRET_KEY_PASSWORD}
+      # What this node announces about itself to the Fiber network, derived
+      # from DOMAIN — plain TCP for regular Fiber peers, /wss for browser
+      # wallets (nginx serves both on :8228 already). A node that announces
+      # nothing is rejected and banned by every peer, never enters the public
+      # routing graph, and so can never be paid — if DOMAIN is blank, expect
+      # exactly that. Set FIBER_P2P_DOMAIN in .env only if your DOMAIN sits
+      # behind a CDN proxy (e.g. Cloudflare's orange cloud), which drops the
+      # non-HTTP port 8228 at the edge — point it at a second, NON-proxied DNS
+      # record for this host. Unset means "same as DOMAIN".
+      #
+      # Falling back to DOMAIN is safe here and deliberately NOT done in the
+      # dev compose file: a merchant deploy cannot run without a real public
+      # DOMAIN (nginx/certbot need one), whereas a contributor's DOMAIN is
+      # usually "localhost" — see that file's comment on this same variable.
+      FIBER_ANNOUNCED_ADDRS: ${DOMAIN:+/dns4/${FIBER_P2P_DOMAIN:-$DOMAIN}/tcp/8228,/dns4/${FIBER_P2P_DOMAIN:-$DOMAIN}/tcp/8228/wss}
       RUST_LOG: info
     volumes:
       - ./docker/fiber-node:/fiber
@@ -269,7 +284,21 @@ services:
           echo "certbot-init: clearing stale/incomplete cert state for ${DOMAIN} (no complete certbot lineage yet)"
           rm -rf "$$DOMAIN_LIVE" "/etc/letsencrypt/archive/${DOMAIN}" "$$DOMAIN_RENEWAL"
         fi
-        certbot certonly --webroot -w /var/www/certbot -d "${DOMAIN}" \
+        # When FIBER_P2P_DOMAIN names a second (non-proxied) DNS record for
+        # this same host, fiber-node's /wss announced address uses THAT name —
+        # so the certificate has to cover it too, or browser wallets fail
+        # hostname validation even though the chain itself is valid. '-'
+        # (not ':-') in '$${FIBER_P2P_DOMAIN-}' keeps Compose from warning when
+        # the var simply isn't set; '$$EXTRA_DOMAIN' is this script's own shell
+        # variable, escaped like $$DOMAIN_LIVE above. --expand lets certbot add
+        # the name to an ALREADY-issued lineage instead of refusing; it's a
+        # no-op on a first issuance.
+        EXTRA_DOMAIN=""
+        if [ -n "${FIBER_P2P_DOMAIN-}" ] && [ "${FIBER_P2P_DOMAIN-}" != "${DOMAIN}" ]; then
+          EXTRA_DOMAIN="-d ${FIBER_P2P_DOMAIN-}"
+          echo "certbot-init: also requesting ${FIBER_P2P_DOMAIN-} (fiber-node's P2P/WSS name)"
+        fi
+        certbot certonly --webroot -w /var/www/certbot -d "${DOMAIN}" $$EXTRA_DOMAIN --expand \
           --email "${CERTBOT_EMAIL}" --agree-tos --no-eff-email
 
 networks:
