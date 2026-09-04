@@ -141,6 +141,10 @@ See `apps/web/CLAUDE.md` — Auth flow for API routes, Service layer pattern, Da
 Full details + how they were verified: `.context/processes/gotchas.md`. Don't repeat these:
 
 - `0.0.0.0` is treated as "public" by `fnn` even inside a private Docker network
+- A Fiber node announcing no *reachable* address is banned by every peer — silently, and it can never be paid (announced via `FIBER_ANNOUNCED_ADDRS`, derived from `DOMAIN` in compose, never hardcoded in `config.yml`)
+- Env-var changes in `.env` need `docker compose up -d <svc>`; `restart` reuses the old values
+- A CDN proxy (Cloudflare orange cloud) drops P2P port 8228 at the edge while 443 keeps working — use a DNS-only record via `FIBER_P2P_DOMAIN`
+- `openssl s_client` says `Verify return code: 0 (ok)` even on a hostname mismatch — pass `-verify_hostname` or the check is meaningless
 - `.env` corrupts the `$` character (2 different ways, depending on the reader)
 - `ckb-cli` key export produces the wrong format for what `fnn` needs
 - `pubsub` is not in FNN's default `enabled_modules`
@@ -166,9 +170,46 @@ When you need information about the CKB protocol or Fiber Network, look it up in
 - **Official, used for the core (Phase 1/2):** `@ckb-ccc/fiber` (SDK for `lib/fiber/client.ts`), `fnn-cli` + `ckb-cli` (setup/bootstrap channels during dev, not a runtime dependency of the app).
 - **Community, used only as a reference for Phase 3 (L402, optional stretch) — specific to `apps/web`:** `@fiber-pay/sdk` — see the reference demo [`fiber-l402`](https://github.com/RetricSu/fiber-l402) (Express + Astro + React, using this exact library to build L402 paywall middleware). **Do not use `@fiber-pay/react` in `apps/web`/`fibergate-core`.**
 - **`apps/demo-storefront` (a fully separate app) does use the real `@fiber-pay/react` + `@nervosnetwork/fiber-js`** — the "Pay with browser wallet" button, running a Fiber node WASM right in the browser. See `apps/demo-storefront/app/BrowserWalletPay.tsx`, `docs/merchants/demo-storefront.md`. Reasoning/history: `decisions-log.md` 2026-07-08 (issue #12).
-- **The Fiber WSS Config Manual** (`nervosnetwork/fiber/blob/v0.9.0-rc6/docs/fiber-node-wss.md`, pinned to the exact tag matching the image in use) — guide for exposing the node's P2P over `wss://` (Nginx+TLS) to a browser/WASM client. **Does not apply to `fibergate-core` itself**: it calls JSON-RPC on `fiber-node` over the docker internal network (plain HTTP), no TLS/WSS needed. `docker-compose.yml`'s `nginx` service implements this recipe (`stream{}` + `ssl_preread` on port `8228`, distinguishing regular raw TCP P2P from TLS/WSS browser traffic) — requires `DOMAIN` to be configured + a manual addition of `/dns4/<DOMAIN>/tcp/8228/wss` to `docker/fiber-node/config.yml`'s `announced_addrs`. **Not yet live-verified against a real domain/Let's Encrypt/real browser wallet** — only smoke-tested locally with a self-signed cert (`DOMAIN=localhost`). Architecture details: `system-design.md`'s "TLS/WSS reverse proxy (nginx + certbot)"; runbook: `docs/merchants/public-https-deploy.md`; history: `decisions-log.md` 2026-07-09 (issue #17).
+- **The Fiber WSS Config Manual** (`nervosnetwork/fiber/blob/v0.9.0-rc6/docs/fiber-node-wss.md`, pinned to the exact tag matching the image in use) — guide for exposing the node's P2P over `wss://` (Nginx+TLS) to a browser/WASM client. **Does not apply to `fibergate-core` itself**: it calls JSON-RPC on `fiber-node` over the docker internal network (plain HTTP), no TLS/WSS needed. `docker-compose.yml`'s `nginx` service implements this recipe (`stream{}` + `ssl_preread` on port `8228`, distinguishing regular raw TCP P2P from TLS/WSS browser traffic). The `/wss` announced address is derived automatically from `DOMAIN` (or `FIBER_P2P_DOMAIN`) — no manual `config.yml` edit, see `env-vars.md`. **Transport live-verified 2026-09-04** against a real Let's Encrypt cert on a real domain: TLS handshake passes `-verify_hostname`, and a WebSocket upgrade returns `HTTP/1.1 101 Switching Protocols` proxied through to `fiber-node`. **Still unverified**: an actual browser wallet completing a payment over that transport. Architecture details: `system-design.md`'s "TLS/WSS reverse proxy (nginx + certbot)"; runbook: `docs/merchants/public-https-deploy.md`; history: `decisions-log.md` 2026-07-09 (issue #17).
 
 ## Principles for working with the AI Agent
+
+### How to communicate
+
+These govern *how* work is reported, not what work is done. They apply to every report, question, and explanation — including the two subsections below.
+
+**Language.** Reply in whatever language the user wrote in. Keep technical terms in English regardless — invoice, channel, webhook, poller, migration, standalone. Never translate them ("hóa đơn", "kênh thanh toán" read as machine translation). Drop bureaucratic phrasing ("Tôi đã tiến hành thực hiện việc sửa đổi..." → "Đã sửa..."), and drop social filler ("Câu hỏi hay!", "Hy vọng giúp ích").
+
+**Say it in the world, not in the code.** Before any mechanism, spend 2–4 short lines on what actually happens and who it happens to. Mechanism explains something the reader has already been made to care about — lead with it and they are decoding, not understanding. Vocabulary from the tooling and from your own process (guard, interpolation, fallback, altitude, finding, nesting, agent) is yours, not theirs: name the effect instead.
+
+> ❌ "Guard `${DOMAIN:+…}` chỉ chặn DOMAIN rỗng, không chặn `localhost`, nên node vẫn announce."
+>
+> ✅ "Khi bạn chạy local, `.env` ghi `DOMAIN=localhost`. Node sẽ nói với toàn bộ testnet: 'gọi tôi ở `localhost:8228`'. Nhưng `localhost` trên máy người khác là máy của chính họ. Nên mọi node nghe được đều ghi vào sổ một địa chỉ vô nghĩa."
+
+**One idea per sentence.** Compression is not clarity: four clauses packed into one sentence are harder to use than four short sentences, even though they are shorter. Break them up. When brevity and clarity conflict, clarity wins.
+
+**Reports.** Lead with the outcome in the user's terms — not a table of contents of what was edited, and not the shape of the process that produced it (which review pass, which agent, which phase; the user is not debugging your workflow). Then at most 3–4 bullets, each with a clickable `file:line`, covering only what changes the user's decisions. Always separate what was actually verified from what is inferred — say "chưa live-verify" explicitly rather than letting a passing typecheck imply the feature works. Close with exactly one thing needed from the user, if there is one.
+
+> ❌ "I have completed the implementation. Summary of changes: — Modified `apps/web/lib/services/invoice.ts` … — Ran `pnpm typecheck`: passed. All changes are complete and verified."
+>
+> ✅ "Invoice giờ hết hạn đúng thật — nguyên nhân là `new_invoice` thiếu param `expiry`, không phải Fiber không hỗ trợ.
+> - `lib/fiber/client.ts:88` — truyền `expiry` (giây) xuống FNN
+> - `lib/services/invoice.ts:142` — đọc từ `INVOICE_EXPIRY_SECONDS`, default 900
+>
+> Typecheck + lint pass. **Chưa live-verify** — cần một invoice thật trên testnet mới chắc FNN tôn trọng param này.
+> Cần bạn quyết: bạn tự chạy `docker compose up` thử, hay để tôi dựng?"
+
+**Option questions** — this refines step 3 of "Ask before doing" below. Give a recommendation first with its reason, then the alternatives, then what the user gives up by taking the recommendation. Express every trade-off in domain terms — merchant, invoice state machine, poller, deploy risk — never abstract ones ("more flexible", "cleaner"). One question at a time, phrased so it can be answered in one word. A question that has already gone unanswered once was the wrong question: turn it into a concrete proposal to confirm rather than asking it again.
+
+> ❌ "Option A: revert status. Option B: new invoice. Option C: keep as is. Which would you prefer?"
+>
+> ✅ "Tôi nghiêng về **B — mở invoice mới, đánh dấu cái cũ `expired_paid`**: giữ audit trail, không phải sửa state machine.
+> - **A** (revert về `paid`): sạch cho merchant nhưng phá invariant 'expired là terminal' — poller đang dựa vào đó.
+> - **C** (để nguyên): rẻ nhất, nhưng merchant mất tiền trong im lặng — không chấp nhận được với payment gateway."
+
+**Explanations.** Situation first (see "Say it in the world" above), then the mechanism, then the code. If `.context/` already documents it (a gotcha, a settled decision, a term), link to that file instead of re-explaining it.
+
+**Uncertainty.** State it once, plainly, then keep going — no repeated hedging, no apologizing in circles.
 
 ### Ask before doing
 When facing an unclear request or one with multiple possible approaches, Claude Code

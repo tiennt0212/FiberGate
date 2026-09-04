@@ -490,10 +490,27 @@ Docker Compose `$`-escaping gotcha noted in `decisions-log.md` 2026-07-02):
 container's own private network namespace; `nginx` reaches it over the internal Docker
 network (`fiber-node:8228`), with no host port published directly for this port
 (unlike RPC's `172.28.0.10:8227` — the P2P port isn't governed by fnn's "public
-address refusal" check, only RPC is). `announced_addrs` is the one place that needs a
-manual edit (this file is read directly by `fiber-node`, not through Docker Compose
-interpolation) to add `/dns4/<DOMAIN>/tcp/8228/wss` — see the comment in that file
-itself.
+address refusal" check, only RPC is). What the node *announces* about itself is separate from
+what it listens on, and is passed to `fnn` through the `FIBER_ANNOUNCED_ADDRS` env
+var rather than `config.yml` — that file is copied verbatim into
+`create-fibergate`'s templates and so cannot carry a per-deploy value. Both compose
+files build it from `.env`'s `DOMAIN` and announce **both** transports at once:
+`/dns4/${DOMAIN}/tcp/8228` for native Fiber peers and `/dns4/${DOMAIN}/tcp/8228/wss`
+for browser/WASM wallets — `nginx`'s `stream{}` block already serves both on the same
+port, so no extra switch is involved. `DOMAIN` is the only input in the ordinary case;
+`FIBER_P2P_DOMAIN` overrides just the hostname when the two genuinely have to differ,
+which happens for exactly one reason in practice: a `DOMAIN` behind a CDN proxy. A
+Cloudflare-proxied record resolves to Cloudflare, which forwards only HTTP/HTTPS
+ports — 8228 dies at the edge, so the node announces a name that cannot be dialled
+while the dashboard on 443 is unaffected. The answer is a DNS-only record for P2P
+alone; `certbot-init` adds that name to the certificate so the `/wss` form still
+passes hostname validation. With no CDN in play the var stays unset and `DOMAIN`
+remains the single source. The
+`${DOMAIN:+...}` guard is load-bearing — a blank `DOMAIN` must yield an empty value
+rather than the unparseable `/dns4//tcp/8228`, which `fnn` panics on at boot. None of
+this is cosmetic: a node announcing no *reachable* address is rejected and banned by
+every peer, never enters the public routing graph, and can never be paid — see
+`gotchas.md`.
 
 **Decided scope**: `nginx` only fronts `fibergate-core` (dashboard/API +
 `fiber-node`'s P2P/WSS), it does NOT front `apps/demo-storefront` (a fully separate
