@@ -64,6 +64,110 @@ Grouped by area. For the steps these errors tend to come up during, see also
   `ckb-cli account export --extended-privkey-path`, that file has 2 lines (private
   key + chain code) — `head -n 1` it first. Only after ruling that out, check whether
   `FIBER_SECRET_KEY_PASSWORD` actually matches the passphrase used to encrypt the key.
+::: danger A node that announces no address gets banned by the whole network
+**`fiber-node` starts fine, but never connects to other Fiber nodes — `list_peers`
+stays empty or peers drop within seconds, and no payment can be routed to you.**
+Check what the node announces about itself:
+
+```bash
+docker compose logs fiber-node 2>&1 | grep -m1 "announced addresses"
+docker compose logs fiber-node 2>&1 | grep -c "Malicious gossip peer"
+```
+
+If the first prints `announced addresses []` and the second is above `0`, this is it.
+A `NodeAnnouncement` carrying no *reachable* address is rejected by every peer as
+`ProcessingError("private address node announcement")`, which flags your node as a
+malicious gossip peer and bans it — so it never enters the public routing graph.
+
+**Fix:** set `DOMAIN` in `.env` (the compose file derives `FIBER_ANNOUNCED_ADDRS`
+from it), then recreate the container:
+
+```bash
+docker compose up -d fiber-node   # NOT `restart` — that reuses the old env values
+```
+
+Then confirm it end to end. The value passes through four hands, and it can be lost
+at any one of them — check each rather than only the last:
+
+```bash
+# 1. .env holds a real domain. FIBER_P2P_DOMAIN is normally blank — it only
+#    gets a value when a CDN proxy fronts DOMAIN (see further down)
+grep -E '^(DOMAIN|FIBER_P2P_DOMAIN)=' .env
+
+# 2. Compose resolves it (catches a blank DOMAIN, or a compose file predating this
+#    var — an older generated deploy directory won't have the line at all)
+docker compose config | grep FIBER_ANNOUNCED_ADDRS
+
+# 3. It actually reached the running container (catches a container that was never
+#    recreated, e.g. after a plain `restart`)
+docker compose exec fiber-node env | grep FIBER_ANNOUNCED_ADDRS
+
+# 4. fnn accepted it — must come back non-empty
+curl -s -X POST http://127.0.0.1:8227 -H 'content-type: application/json' \
+  --data '{"id":1,"jsonrpc":"2.0","method":"node_info","params":[]}' | jq '.result.addresses'
+```
+
+Where it stops tells you which layer to fix: nothing at step 2 means the compose
+file itself is missing the `FIBER_ANNOUNCED_ADDRS` line (add it to `fiber-node`'s
+`environment:` block — deploy directories generated before this fix don't have it);
+right at step 2 but nothing at step 3 means the container is stale, so
+`docker compose up -d fiber-node` again; present at step 3 but `[]` at step 4 means
+`fnn` rejected the address as unreachable — a private/LAN IP or a bare `0.0.0.0`
+won't pass, only `/dns4`, `/dns6`, `/onion3`, or a genuinely public IP.
+
+Port **8228** must also be genuinely reachable from the internet for peers to open
+channels to you — passing the checks above only proves the node is *advertising* a
+usable address, not that packets arrive. Test that from **another machine**, never
+from the server itself (many routers don't do NAT hairpin, so a local test can
+report either answer regardless of the truth):
+
+```bash
+# from somewhere else entirely
+timeout 5 bash -c 'cat < /dev/null > /dev/tcp/<your-domain>/8228' && echo OPEN || echo CLOSED
+```
+
+**`CLOSED` here while your dashboard works fine on 443?** Check whether the name
+points at a CDN rather than at your host:
+
+```bash
+getent ahosts <your-domain>        # then look up who owns the IP
+```
+
+A Cloudflare-proxied record ("orange cloud") resolves to Cloudflare, which forwards
+only a fixed set of HTTP/HTTPS ports — 8228 isn't one of them, so P2P traffic is
+dropped at the edge and never reaches you. The dashboard keeps working on 443, which
+is what makes this so easy to miss. Fix: add a second, **DNS-only ("grey cloud")**
+record for the same host and set it as `FIBER_P2P_DOMAIN` in `.env`, then
+`docker compose up -d fiber-node`. Re-run `certbot-init` afterwards so the
+certificate covers the new name as well — otherwise the `/wss` half fails hostname
+validation. Verify that with:
+
+```bash
+openssl s_client -connect <p2p-domain>:8228 -servername <p2p-domain> \
+  -verify_hostname <p2p-domain> </dev/null 2>&1 | grep "Verify return code"
+```
+
+`-verify_hostname` is not optional here: without it `s_client` reports
+`Verify return code: 0 (ok)` even when the name doesn't match the certificate,
+because it only validates the chain.
+
+::: warning The P2P record becomes permanent once it's in the certificate
+`certbot-init` adds `FIBER_P2P_DOMAIN` to the **same** certificate lineage as
+`DOMAIN`, and the renewal loop revalidates every name on it. If you later delete
+that DNS record, or its port 80 stops reaching nginx, `certbot renew` fails for the
+whole lineage — taking the **dashboard's** certificate down with it, not just WSS.
+Keep the record (and its port 80 path) alive for as long as the deploy exists, or
+re-issue a certificate without it before removing it.
+:::
+
+`FIBER_P2P_DOMAIN` covers the one case that needs a different hostname — a CDN
+proxy in front of `DOMAIN`. Announcing something that isn't a hostname at all (a
+bare IP, an onion address) means editing the `FIBER_ANNOUNCED_ADDRS` line in
+`docker-compose.yml`'s `fiber-node` service directly; there's deliberately no
+`.env` setting for that shape, since anything beyond "which host is this" would
+be a second place to state a fact `DOMAIN` already carries.
+:::
+
 ::: danger `0.0.0.0` counts as "public", even inside a private Docker network
 **`fiber-node` starts but then exits with "Cannot listen on a public address without
 a biscuit public key set in the config"** — don't change
@@ -124,11 +228,13 @@ of those, keep them in sync.
   the temporary self-signed cert's warning), the browser can keep showing cached
   "insecure" state for that origin. Try a hard refresh, or open the URL in a
   private/incognito window, before assuming the server-side fix didn't work.
-- **"Pay with browser wallet" in the demo storefront still can't connect after
-  setting up WSS** — double-check `docker/fiber-node/config.yml`'s `announced_addrs`
-  was actually uncommented/edited with the real domain and `fiber-node` was restarted
-  (`docker compose restart fiber-node`) — this file isn't templated from `.env`, it's
-  a manual edit.
+- **"Pay with browser wallet" in the demo storefront still can't connect** — the
+  `/wss` address is announced automatically alongside the plain-TCP one, so there's
+  nothing to switch on; check instead that (a) `node_info`'s `addresses` actually
+  lists the `/wss` entry, and (b) certbot has issued a **real** cert. Browsers
+  refuse `nginx-certs-preflight`'s self-signed placeholder, so WSS stays broken
+  until `docker compose run --rm certbot-init` has run, even though native Fiber
+  peers connect fine over the TCP address the whole time.
 
 ## Testing payments with `fiber-node-payer`
 

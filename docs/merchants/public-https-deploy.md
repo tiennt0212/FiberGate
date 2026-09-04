@@ -41,10 +41,8 @@ flowchart TD
     C -->|No, fix DNS/forwarding| A
     C -->|Yes| D["3. docker compose run<br/>--rm certbot-init<br/>(one-time, real cert)"]
     D --> E["Dashboard/API reachable via<br/>trusted https://DOMAIN"]
-    E --> F{"Need browser-wallet<br/>WSS payments?"}
-    F -->|No| G["Done"]
-    F -->|Yes| H["4. Uncomment announced_addrs in<br/>fiber-node config.yml, restart"]
-    H --> I["WSS P2P reachable —<br/>unlocks Pay with browser wallet"]
+    E --> K["4. Verify: node_info.addresses<br/>is non-empty — fiber-node has been<br/>announcing since step 2"]
+    K --> G["Done — payments can route in,<br/>browser wallet works"]
 ```
 
 ## 1. Get a domain and point it at this host
@@ -57,6 +55,27 @@ that supports it. Once you have one:
   machine's LAN IP. All three are used by `nginx`: 80 for the ACME HTTP-01 challenge
   + HTTPS redirect, 443 for the dashboard/API, 8228 for `fiber-node`'s P2P/WSS
   traffic.
+::: warning Using Cloudflare (or any CDN proxy)? Port 8228 will not survive it
+If your DNS record has Cloudflare's proxy switched on (the orange cloud), the name
+resolves to Cloudflare rather than to your host, and Cloudflare forwards only a fixed
+set of HTTP/HTTPS ports. **8228 is not one of them**, so `fiber-node` ends up
+announcing an address no peer can dial — while your dashboard on 443 works perfectly,
+which makes it look like everything is fine.
+
+Add a second record for the same host with the proxy **off** ("grey cloud") — e.g.
+`fiber.your-domain` — and put it in `.env` as `FIBER_P2P_DOMAIN`.
+
+One catch for step 3 below: if your CDN has something like Cloudflare's "Always Use
+HTTPS" turned on, the ACME challenge on port 80 is redirected to 443 — and nginx's
+`:443` server block only proxies to the dashboard, it has no
+`/.well-known/acme-challenge/` location (only the `:80` block does). First issuance
+then fails for a reason nothing reports clearly. Either turn the proxy off for the
+one-time `certbot-init` run and back on afterwards, or use a DNS-01 challenge. Your dashboard keeps
+the apex record and its CDN protection; only P2P bypasses it. `certbot-init` in step 3
+picks that name up and includes it in the certificate, so the WSS address keeps
+validating.
+:::
+
 - Confirm it actually resolves from outside your network before continuing —
   `dig +short $DOMAIN` from a machine that isn't this one, or any public "DNS
   checker" website.
@@ -129,30 +148,51 @@ for the `Secure` attribute (browser dev tools' Application/Storage tab, or `curl
 on the login request) — confirms `X-Forwarded-Proto` is being forwarded and read
 correctly end to end.
 
-## 4. Enable WSS for fiber-node (unlocks the browser wallet button)
+## 4. Verify your node is actually on the Fiber network
 
-Optional — only needed for the demo storefront's "Pay with browser wallet" button.
-Skip this if you only care about the dashboard/API being on HTTPS.
+Nothing to configure in this step — `fiber-node` announces itself automatically from
+the `DOMAIN` you set in step 2, in both forms at once: `/dns4/<DOMAIN>/tcp/8228` for
+native Fiber peers and `/dns4/<DOMAIN>/tcp/8228/wss` for browser/WASM wallets (which
+is what powers the demo storefront's ["Pay with browser wallet"](demo-storefront.md)
+button). `nginx` already serves both on port 8228 and tells them apart by itself.
 
-1. Edit `docker/fiber-node/config.yml`'s `announced_addrs` — uncomment the
-   `/dns4/...` line already there and replace `YOUR-DOMAIN` with your real `DOMAIN`.
-2. `docker compose restart fiber-node`.
-3. Verify the node's pubkey and that a peer can connect through the WSS path (from
-   this host, since `fiber-node`'s RPC stays loopback-only):
-   ```bash
-   curl -s -X POST http://127.0.0.1:8227 \
-     -H "Content-Type: application/json" \
-     -d '{"id": 1, "jsonrpc": "2.0", "method": "node_info", "params": []}' | jq -r '.result.pubkey'
-   ```
-   Full connect/verify flow (from a separate node or the browser wallet itself) is
-   in the official guide this setup is adapted from: `nervosnetwork/fiber`'s
-   `docs/fiber-node-wss.md` (pinned to tag `v0.9.0-rc6`, matching this project's
-   pinned `nervos/fiber` image).
+But do check it landed, because the failure mode is silent — a node that announces
+nothing looks perfectly healthy from the outside while the whole network quietly
+refuses it:
 
-::: info Not yet verified against a real domain as of this writing
-This setup was built and smoke-tested locally (self-signed cert, `DOMAIN=localhost`)
-but not against real Let's Encrypt issuance or a live browser-wallet payment. Both
-are next steps once a real domain is live.
+```bash
+curl -s -X POST http://127.0.0.1:8227 \
+  -H "Content-Type: application/json" \
+  -d '{"id": 1, "jsonrpc": "2.0", "method": "node_info", "params": []}' \
+  | jq '{pubkey: .result.pubkey, addresses: .result.addresses}'
+```
+
+(From this host — `fiber-node`'s RPC stays loopback-only.) `addresses` must be
+non-empty and list both entries. If it comes back `[]`, your node is announcing
+nothing, is being banned by every peer it meets, and cannot be paid — see
+[Troubleshooting](../common/troubleshooting.md) for the step-by-step fix.
+
+::: warning The /wss half needs a real cert
+Native Fiber peers use the plain-TCP address and work as soon as step 2 is done. The
+WSS address is announced from that same moment, but browsers will refuse it until
+step 3 has replaced the self-signed placeholder with a real Let's Encrypt cert.
+:::
+
+The full connect/verify flow from a separate node or the browser wallet itself is in
+the official guide this setup is adapted from: `nervosnetwork/fiber`'s
+`docs/fiber-node-wss.md` (pinned to tag `v0.9.0-rc6`, matching this project's pinned
+`nervos/fiber` image).
+
+::: info What has and hasn't been proven end to end
+The WSS transport is verified against a real domain and a real Let's Encrypt
+certificate: the TLS handshake passes hostname verification, and a WebSocket upgrade
+on port 8228 returns `HTTP/1.1 101 Switching Protocols` proxied through to
+`fiber-node`. A native Fiber node from outside the network also connects over the
+plain-TCP address and holds the connection.
+
+What is still unverified is a real browser wallet completing an actual payment over
+that transport — everything underneath it now checks out, but the wallet itself
+hasn't been driven end to end.
 :::
 
 Something not working? See [Troubleshooting](../common/troubleshooting.md).
