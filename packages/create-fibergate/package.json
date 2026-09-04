@@ -33,6 +33,7 @@
   "scripts": {
     "prebuild": "node scripts/copy-templates.mjs",
     "build": "pnpm run prebuild && tsup",
+    "dev": "pnpm run build && node dist/cli.js",
     "typecheck": "tsc --noEmit",
     "test:unit": "vitest run",
     "test": "vitest run"

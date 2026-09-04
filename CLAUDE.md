@@ -56,7 +56,9 @@ packages/create-fibergate/ — npm package `create-fibergate` (issue #48):
                      docker/fiber-node/config.yml,
                      docker/nginx/nginx.conf.template, and
                      .env.release.example — see scripts/copy-templates.mjs —
-                     so it can never drift from those files.
+                     so it can never drift from those files. That also means a plain
+                     `node dist/cli.js` scaffolds STALE templates after you edit any of
+                     those four — use `pnpm create-fibergate:dev` (see Commands), which rebuilds first.
 docker-compose.yml — Fiber node + PostgreSQL + fibergate-core + nginx/certbot (TLS/WSS
                      reverse proxy, issue #17 — see CKB/Fiber References below),
                      builds fibergate-core from source — used for contributor/dev, not
@@ -112,6 +114,7 @@ pnpm lint                       # lint everything
 pnpm --filter web typecheck     # TypeScript strict check for the web app
 pnpm --filter sdk build         # build only the sdk package
 pnpm --filter create-fibergate build  # build the CLI (runs scripts/copy-templates.mjs before tsup)
+pnpm create-fibergate:dev /tmp/try-wizard  # rebuild the CLI, then run the wizard into a throwaway dir
 pnpm --filter web dev           # run only the web app
 pnpm docker:dev                 # run dev mode: only postgres + fiber-node (no fibergate-core)
 pnpm docker:dev:down            # stop postgres + fiber-node in dev mode
