@@ -5,6 +5,16 @@ import { validateSecretChars } from "./validate-secret";
 
 const HOSTNAME_RE = /^(localhost|(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?\.)+[a-zA-Z]{2,})$/;
 
+/**
+ * Shared by every hostname prompt so the rule and its wording stay in one
+ * place. Returns undefined when valid, matching clack's `validate:` contract.
+ */
+function validateHostname(value: string | undefined): string | undefined {
+  return HOSTNAME_RE.test((value ?? "").trim())
+    ? undefined
+    : "Not a valid hostname (no port, no protocol).";
+}
+
 /** Unwraps a clack prompt result, exiting cleanly if the user cancelled (Ctrl+C). */
 export async function ask<T>(promise: Promise<T | symbol>): Promise<T> {
   const result = await promise;
@@ -75,11 +85,62 @@ export async function promptDomain(): Promise<string> {
         "Domain for this deploy — e.g. localhost (local testing, self-signed cert), or " +
         "deploy.example.com (DNS must point at this host for a real TLS cert):",
       initialValue: "localhost",
-      validate: (value) =>
-        HOSTNAME_RE.test((value ?? "").trim()) ? undefined : "Not a valid hostname (no port, no protocol).",
+      validate: validateHostname,
     }),
   );
   return domain.trim();
+}
+
+/**
+ * `localhost` is the wizard's own default DOMAIN for local testing and is never
+ * fronted by a CDN, so asking about proxying there is pure noise. Exported so
+ * the branch is testable without driving an interactive prompt.
+ */
+export function needsP2pDomainPrompt(domain: string): boolean {
+  return domain.trim().toLowerCase() !== "localhost";
+}
+
+/**
+ * Asks whether `domain` is served through a CDN proxy and, if so, collects the
+ * DNS-only hostname `fiber-node` should announce instead. Returns "" when the
+ * question doesn't apply or the answer is no — the compose files fall back to
+ * DOMAIN, which is right for every deploy with nothing in front of it.
+ *
+ * Worth one extra prompt because the failure it prevents is completely silent:
+ * a proxied record forwards only HTTP/HTTPS ports, so port 8228 dies at the CDN
+ * edge while the dashboard on 443 keeps working perfectly. The node then
+ * announces an address no peer can dial, passes every health check, and simply
+ * never receives a payment. See .context/processes/gotchas.md.
+ */
+export async function promptP2pDomain(domain: string): Promise<string> {
+  if (!needsP2pDomainPrompt(domain)) return "";
+
+  const proxied = await ask(
+    confirm({
+      message: `Is ${domain} served through a CDN proxy? (Cloudflare: is the cloud icon orange, not grey?)`,
+      initialValue: false,
+    }),
+  );
+  if (!proxied) return "";
+
+  log.warn(
+    `A proxied record forwards only HTTP/HTTPS ports, so fiber-node's port 8228 never reaches this host.\n` +
+      `Add a second DNS record pointing at this same machine with the proxy turned OFF\n` +
+      `(Cloudflare: grey cloud), then enter it below. ${domain} keeps its CDN for the dashboard.`,
+  );
+
+  const p2pDomain = await ask(
+    text({
+      message: "DNS-only hostname for fiber-node's P2P/WSS address:",
+      placeholder: `fiber.${domain}`,
+      validate: (value) =>
+        validateHostname(value) ??
+        ((value ?? "").trim() === domain.trim()
+          ? "Must differ from the domain above — that one is proxied."
+          : undefined),
+    }),
+  );
+  return p2pDomain.trim();
 }
 
 /** Asks `message`; if declined, cancels and exits the process (never returns `false`). */

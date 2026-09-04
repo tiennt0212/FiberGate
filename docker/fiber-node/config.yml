@@ -5,9 +5,13 @@
 # matching the pinned image tag in docker-compose.yml — keep this ref in sync with
 # that tag when bumping the image, to avoid config schema drift.
 #
-# One change from upstream: rpc.listening_addr is 0.0.0.0:8227 instead of
-# 127.0.0.1:8227, so fibergate-core can reach it over the internal docker network
-# (see the `rpc:` section below for why this is safe here).
+# Two changes from upstream, both inside the `rpc:` block below:
+#   1. rpc.listening_addr is this container's static IP instead of 127.0.0.1,
+#      so fibergate-core can reach it over the internal docker network.
+#   2. rpc.enabled_modules is listed explicitly, to add `pubsub`.
+# Everything else is byte-for-byte upstream — including the empty
+# `announced_addrs` below, which is deliberately left blank here; see its own
+# comment for why that value has to come from an env var instead.
 
 # This configuration file only contains the necessary configurations for the testnet deployment.
 # All options' descriptions can be found via `fnn --help` and be overridden by command line arguments or environment variables.
@@ -23,18 +27,24 @@ fiber:
     - "/ip4/16.163.7.105/tcp/8228/p2p/QmdyQWjPtbK4NWWsvy8s69NGJaQULwgeQDT5ZpNDrTNaeV"
   announce_listening_addr: true
   announced_addrs:
-    # If you want to announce your fiber node public address to the network, you need to add the address here, please change the ip to your public ip accordingly.
-    # - "/ip4/YOUR-FIBER-NODE-PUBLIC-IP/tcp/8228"
+    # DELIBERATELY EMPTY — don't fill this in. The address this node announces
+    # is built in docker-compose.yml from .env's DOMAIN and handed to fnn as
+    # FIBER_ANNOUNCED_ADDRS (both the plain-TCP and /wss forms). It has to work
+    # that way because this file is copied verbatim into create-fibergate's
+    # templates (packages/create-fibergate/scripts/copy-templates.mjs) —
+    # anything hardcoded here would ship to every merchant.
     #
-    # WSS (lets browser/WASM clients — e.g. apps/demo-storefront's "Pay with
-    # browser wallet" button — connect to this node, since browsers can't open
-    # raw TCP sockets): requires docker-compose.yml's nginx service to be
-    # running with a real TLS cert for DOMAIN (see README.md "Public HTTPS
-    # deploy" for the one-time certbot step — nginx boots with a temporary
-    # self-signed cert otherwise, which browsers will refuse for this). Once
-    # that's done, uncomment and replace YOUR-DOMAIN with the same value as
-    # root .env's DOMAIN, then `docker compose restart fiber-node`:
-    # - "/dns4/YOUR-DOMAIN/tcp/8228/wss"
+    # Why it matters: a node announcing no *reachable* address is rejected by
+    # every peer as ProcessingError("private address node announcement"),
+    # which flags it a malicious gossip peer and gets it banned — so it never
+    # enters the public routing graph and can never be paid. `announce_listening_addr:
+    # true` above does NOT cover for this: fnn filters the 0.0.0.0 listening
+    # address back out as unreachable. See gotchas.md.
+    #
+    # The WSS form is announced automatically alongside the TCP one, so
+    # browser/WASM wallets (apps/demo-storefront's "Pay with browser wallet")
+    # need nothing switched on here — only a real TLS cert on nginx, see
+    # docs/merchants/public-https-deploy.md.
   chain: testnet
 
   ## SOCKS5 proxy settings

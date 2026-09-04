@@ -149,6 +149,11 @@ export default async function OverviewPage() {
                   <strong>Warning:</strong> Some payment channels are unavailable. Existing channels still process payments.
                 </div>
               ) : null}
+              {nodeStatus?.is_isolated ? (
+                <div className="mb-3.5 rounded-md border border-status-degraded-border bg-status-degraded-bg px-3 py-2.5 text-[12px] leading-relaxed text-status-degraded-text">
+                  <strong>Action required:</strong> not connected to any Fiber peer, so no payment can reach you. Usually the address this node announces is empty or points somewhere unreachable — check <code className="rounded bg-status-danger-bg px-1.5 py-0.5 font-mono text-[11px]">DOMAIN</code> in <code className="rounded bg-status-danger-bg px-1.5 py-0.5 font-mono text-[11px]">.env</code>, then see Troubleshooting.
+                </div>
+              ) : null}
               <div className="mb-3.5 flex flex-col gap-2.5">
                 <div className="flex items-center justify-between">
                   <span className="text-[12.5px] text-text-muted">Node ID</span>

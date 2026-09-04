@@ -28,6 +28,11 @@ merchant deploy needs, then writes a ready-to-run directory:
 - `DOMAIN` (defaults to `localhost`) / `GHCR_NAMESPACE` for the public HTTPS deploy —
   `CERTBOT_EMAIL` isn't prompted for, it's optional and only needed once you get a
   real TLS cert later
+- Whether that domain is served through a CDN proxy (Cloudflare's orange cloud).
+  Only asked for a real domain, and the answer is normally no. If it is, the
+  wizard collects a second, DNS-only hostname for `fiber-node` to announce
+  (`FIBER_P2P_DOMAIN`) — a proxied record forwards only HTTP/HTTPS ports, so the
+  P2P port never reaches your host and the node silently can't be paid
 - 3 secrets generated automatically (`DASHBOARD_SESSION_SECRET`,
   `FIBERGATE_INTERNAL_SECRET`, `WEBHOOK_SECRET_ENCRYPTION_KEY`)
 

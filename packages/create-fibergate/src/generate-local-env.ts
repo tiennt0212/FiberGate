@@ -15,6 +15,7 @@ import {
   confirmOrExit,
   promptAdminPassword,
   promptDomain,
+  promptP2pDomain,
   promptPostgres,
 } from "./lib/prompts";
 import { randomHex32 } from "./lib/secrets";
@@ -33,6 +34,7 @@ async function main() {
   const postgres = await promptPostgres();
   const adminPasswordHashB64 = await promptAdminPassword();
   const domain = await promptDomain();
+  const p2pDomain = await promptP2pDomain(domain);
   const ckbKeyPath = join(REPO_ROOT, "docker", "fiber-node", "ckb", "key");
   const fiberSecretKeyPassword = await askSecretValue(
     existsSync(ckbKeyPath)
@@ -48,6 +50,7 @@ async function main() {
     POSTGRES_PASSWORD: postgres.password,
     FIBER_SECRET_KEY_PASSWORD: fiberSecretKeyPassword,
     DOMAIN: domain,
+    FIBER_P2P_DOMAIN: p2pDomain,
     ADMIN_PASSWORD_HASH_B64: adminPasswordHashB64,
     DASHBOARD_SESSION_SECRET: randomHex32(),
     FIBERGATE_INTERNAL_SECRET: randomHex32(),

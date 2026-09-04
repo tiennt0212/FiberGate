@@ -2,7 +2,7 @@
 type: process
 module: infra-gotchas
 version: 1.0
-last_updated: 2026-07-15
+last_updated: 2026-09-03
 tags: [gotchas, infra, fiber, docker, ai-agent]
 ---
 
@@ -28,6 +28,50 @@ tags: [gotchas, infra, fiber, docker, ai-agent]
   code), but `fnn` only accepts a single raw hex line** — the resulting
   `aead::Error` on decrypt looks like a wrong password but is actually a format
   mismatch.
+
+- **A Fiber node that announces no *reachable* address is banned by every peer it
+  meets** — and the failure is silent from the app's side: the node boots healthy,
+  `docker compose ps` is green, RPC answers, but `list_peers` stays empty and no
+  payment can ever route to it. Peers reject its `NodeAnnouncement` with
+  `ProcessingError("private address node announcement")` →
+  `PolicyRejectedMessage` → `MaliciousPeerFound` → ban. Three traps stacked on top
+  of each other here: (1) upstream's own `config/testnet/config.yml` ships
+  `announced_addrs` empty, so inheriting it verbatim inherits the bug — it's a
+  template with a blank the operator is expected to fill; (2)
+  `announce_listening_addr: true` does NOT compensate — `fnn` pushes the listening
+  address then filters it right back out via `is_addr_reachable()`, since `0.0.0.0`
+  isn't reachable (`crates/fiber-lib/src/fiber/network.rs`, the `retain` call);
+  (3) only `/dns4`, `/dns6`, `/onion3` or a genuinely public IP passes that check —
+  an RFC1918 Docker IP does not. Announce via the `FIBER_ANNOUNCED_ADDRS` env var
+  (set in `docker-compose.yml`, derived from `.env`'s `DOMAIN`), never by editing
+  `config.yml` — that file is copied verbatim into `create-fibergate`'s templates,
+  so a value hardcoded there ships to every merchant. Diagnose with
+  `docker compose logs fiber-node | grep "announced addresses"` — `[]` means it's
+  announcing nothing.
+
+- **A CDN proxy silently swallows the P2P port, and every layer still reports
+  success** — if `DOMAIN` is a Cloudflare record with the proxy on ("orange
+  cloud"), the name resolves to Cloudflare, not to your host. Cloudflare only
+  forwards a fixed set of HTTP/HTTPS ports, and 8228 is not among them, so P2P
+  connections die at the edge and never reach the server at all. Every check you
+  would naturally run still passes: the node logs a correct `announced
+  addresses [...]`, `node_info` returns both multiaddrs, the origin has 8228 open,
+  nginx holds a valid Let's Encrypt cert, and `is_addr_reachable()` accepts the
+  address because it never resolves or dials a `/dns4` name — it only checks the
+  protocol component. Confirmed live: `443` open through the proxied name while
+  `8228` was refused on the same name, and both open on the origin IP directly.
+  Fix: a second, DNS-only ("grey cloud") record for the same host, set as
+  `FIBER_P2P_DOMAIN`. The certificate must cover that name too — `openssl
+  s_client -verify_hostname <name>` is the check that catches it, since a plain
+  `s_client` reports `Verify return code: 0 (ok)` on a **mismatched** name (it
+  validates the chain, not the hostname, unless asked).
+
+- **Changing an env var in `.env` needs `docker compose up -d <svc>`, not
+  `docker compose restart <svc>`** — `restart` reuses the existing container with
+  the values it was created with, so the edit appears to do nothing. Only bites
+  vars read by the container itself (e.g. `FIBER_ANNOUNCED_ADDRS`); a
+  volume-mounted config file like `config.yml` *is* re-read by a plain `restart`,
+  which makes the inconsistency easy to trip over.
 
 - **`pubsub` is not in FNN's default `enabled_modules`** — it must be explicitly
   declared in `docker/fiber-node/config.yml`; setting this field REPLACES the

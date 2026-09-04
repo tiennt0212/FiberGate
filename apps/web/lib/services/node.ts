@@ -63,6 +63,17 @@ export interface NodeStatusDetail extends NodeStatusResult {
   total_channels: number;
   peer_count: number;
   version: string;
+  /**
+   * Zero peers means this node is cut off from the Fiber network: it can't
+   * learn routes and no payment can reach it. Surfaced as its own flag rather
+   * than left as a "0" among five other numbers, because every *other* signal
+   * on the Overview panel still looks healthy in that state — the RPC answers,
+   * channels list fine, status reads "online". That gap is precisely how the
+   * empty-`announced_addrs` bug survived a production deploy unnoticed (see
+   * .context/processes/gotchas.md). Dashboard-only: deliberately NOT added to
+   * NodeStatusResult, which backs the documented public GET /node/info.
+   */
+  is_isolated: boolean;
 }
 
 export async function getNodeStatusDetail(): Promise<NodeStatusDetail> {
@@ -76,5 +87,6 @@ export async function getNodeStatusDetail(): Promise<NodeStatusDetail> {
     outbound_capacity_ckb: shannonToCkb(info.outboundCapacityShannon),
     version: info.version,
     status: deriveNodeStatus(info),
+    is_isolated: info.peerCount === 0,
   };
 }
