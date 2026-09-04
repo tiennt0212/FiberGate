@@ -11,6 +11,7 @@ import {
   confirmOrExit,
   promptAdminPassword,
   promptDomain,
+  promptP2pDomain,
   promptPostgres,
 } from "./lib/prompts";
 import { randomHex32 } from "./lib/secrets";
@@ -142,8 +143,15 @@ async function promptCkbKey(): Promise<CkbKeyResult> {
   return flow === "fresh" ? promptFreshKey() : promptReusedKey();
 }
 
-async function promptDeployValues(): Promise<{ domain: string; ghcrNamespace: string }> {
+async function promptDeployValues(): Promise<{
+  domain: string;
+  p2pDomain: string;
+  ghcrNamespace: string;
+}> {
   const domain = await promptDomain();
+  // "" unless the merchant says DOMAIN is behind a CDN proxy — the compose
+  // files fall back to DOMAIN on an empty value.
+  const p2pDomain = await promptP2pDomain(domain);
   const ghcrNamespace = await ask(
     text({
       message: "GitHub org/user the fibergate-core image was published under (GHCR_NAMESPACE):",
@@ -154,7 +162,7 @@ async function promptDeployValues(): Promise<{ domain: string; ghcrNamespace: st
       validate: (value) => ((value ?? "").trim() ? undefined : "Required."),
     }),
   );
-  return { domain, ghcrNamespace: ghcrNamespace.trim() };
+  return { domain, p2pDomain, ghcrNamespace: ghcrNamespace.trim() };
 }
 
 async function main() {
@@ -172,6 +180,7 @@ async function main() {
     POSTGRES_PASSWORD: postgres.password,
     FIBER_SECRET_KEY_PASSWORD: ckbKey.passphrase,
     DOMAIN: deployValues.domain,
+    FIBER_P2P_DOMAIN: deployValues.p2pDomain,
     ADMIN_PASSWORD_HASH_B64: adminPasswordHashB64,
     DASHBOARD_SESSION_SECRET: randomHex32(),
     FIBERGATE_INTERNAL_SECRET: randomHex32(),

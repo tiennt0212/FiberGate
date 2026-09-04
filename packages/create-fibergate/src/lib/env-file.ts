@@ -18,6 +18,9 @@ export const REQUIRED_ENV_VARS = [
   "POSTGRES_PASSWORD",
   "FIBER_SECRET_KEY_PASSWORD",
   "DOMAIN",
+  // Supplied as "" unless the merchant reports a CDN proxy in front of DOMAIN;
+  // an empty value makes the compose files fall back to DOMAIN.
+  "FIBER_P2P_DOMAIN",
   "ADMIN_PASSWORD_HASH_B64",
   "DASHBOARD_SESSION_SECRET",
   "FIBERGATE_INTERNAL_SECRET",

@@ -109,5 +109,31 @@ describe("buildEnvFile", () => {
       expect(result).toContain("FIBER_NODE_URL=http://fiber-node:8227");
       expect(result).toContain(extraLine);
     });
+
+    // FIBER_P2P_DOMAIN is the one wizard-supplied var whose *empty* value is
+    // meaningful: both compose files read it as `${FIBER_P2P_DOMAIN:-$DOMAIN}`,
+    // so blank means "same host as DOMAIN". Lives here rather than beside the
+    // prompt that collects it, to reuse the template/required-vars pairing
+    // above — a commented-out or missing line would otherwise fail silently,
+    // and a node announcing the wrong host still looks completely healthy.
+    describe("FIBER_P2P_DOMAIN", () => {
+      const withP2p = (value: string) =>
+        buildEnvFile(
+          template,
+          Object.fromEntries(requiredVars.map((n) => [n, n === "FIBER_P2P_DOMAIN" ? value : "x"])),
+        );
+
+      it("is an assignable line, not a commented-out example", () => {
+        expect(template).toMatch(/^FIBER_P2P_DOMAIN=/m);
+      });
+
+      it("round-trips an empty value (no CDN — the common case)", () => {
+        expect(withP2p("")).toMatch(/^FIBER_P2P_DOMAIN=$/m);
+      });
+
+      it("round-trips a real P2P hostname (CDN in front of DOMAIN)", () => {
+        expect(withP2p("fiber.example.com")).toMatch(/^FIBER_P2P_DOMAIN=fiber\.example\.com$/m);
+      });
+    });
   });
 });
