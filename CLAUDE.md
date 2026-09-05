@@ -181,6 +181,8 @@ When you need information about the CKB protocol or Fiber Network, look it up in
 
 These govern *how* work is reported, not what work is done. They apply to every report, question, and explanation — including the two subsections below.
 
+**Presentation.** Match the form to the content: a table when comparing along shared axes, bullets only for parallel items with no logic between them, prose for anything with a *because* or a *but* in it — bullets shred an argument into fragments the reader has to reassemble. Concrete before abstract: show the case, then name the rule. Anchor a new idea to one the reader already holds ("same as X, except Y"). Ration bold — three in a paragraph point at nothing. Signpost anything long before starting it, and reserve code blocks for actual code.
+
 **Language.** Reply in whatever language the user wrote in. Keep technical terms in English regardless — invoice, channel, webhook, poller, migration, standalone. Never translate them ("hóa đơn", "kênh thanh toán" read as machine translation). Drop bureaucratic phrasing ("Tôi đã tiến hành thực hiện việc sửa đổi..." → "Đã sửa..."), and drop social filler ("Câu hỏi hay!", "Hy vọng giúp ích").
 
 **Say it in the world, not in the code.** Before any mechanism, spend 2–4 short lines on what actually happens and who it happens to. Mechanism explains something the reader has already been made to care about — lead with it and they are decoding, not understanding. Vocabulary from the tooling and from your own process (guard, interpolation, fallback, altitude, finding, nesting, agent) is yours, not theirs: name the effect instead.
