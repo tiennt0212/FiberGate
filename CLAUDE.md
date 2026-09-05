@@ -32,77 +32,37 @@ apps/web/          — Next.js 14 App Router (fibergate-core: dashboard + API ro
   lib/db/          — Drizzle client + schema + helpers
   lib/fiber/       — Fiber JSON-RPC client (wraps FNN node calls)
   lib/services/    — Business logic route.ts delegates to (see "Service layer pattern" in apps/web/CLAUDE.md)
-apps/demo-storefront/ — Reference merchant app (issue #12) — an app fully separate
-  from apps/web, does NOT import shared code, only calls @fibergate/sdk over HTTP
-  (FIBERGATE_BASE_URL/FIBERGATE_INTERNAL_SECRET) exactly like a real third-party
-  merchant — demo QR checkout + receives real webhooks (POST /api/webhook, verified
-  with the SDK's verifyWebhookSignature) pushing updates over Server-Sent Events.
-  Has its own Dockerfile + docker-compose.demo.yml right in this directory (not in
-  the root docker/ — fully self-contained). See docs/merchants/demo-storefront.md.
+apps/demo-storefront/ — Reference merchant app, fully separate from apps/web: does NOT import
+                     shared code, only calls @fibergate/sdk over HTTP exactly like a real
+                     third-party merchant. Self-contained (own Dockerfile +
+                     docker-compose.demo.yml here, not in root docker/).
+                     See docs/merchants/demo-storefront.md.
 packages/sdk/      — npm package @fibergate/sdk (TypeScript, tsup)
-packages/create-fibergate/ — npm package `create-fibergate` (issue #48):
-                     `npx create-fibergate@latest` — interactive wizard
-                     (@clack/prompts) scaffolding a merchant deploy directory
-                     from docker-compose.release.yml, generating `.env`
-                     (secrets via Node's crypto, admin password bcrypt-hashed
-                     via bcryptjs) and placing the CKB testnet key, so a
-                     merchant never hand-edits `.env` or generates secrets by
-                     hand. Also validates a passphrase against an
-                     already-encrypted key reused from a prior deploy
-                     (offline, mirroring fnn's own scrypt+AES-256-GCM key
-                     file format — see lib/ckb-key-crypto.ts) before writing
-                     anything. `templates/` (gitignored) is auto-copied at
-                     build time from docker-compose.release.yml,
-                     docker/fiber-node/config.yml,
-                     docker/nginx/nginx.conf.template, and
-                     .env.release.example — see scripts/copy-templates.mjs —
-                     so it can never drift from those files. That also means a plain
-                     `node dist/cli.js` scaffolds STALE templates after you edit any of
-                     those four — use `pnpm create-fibergate:dev` (see Commands), which rebuilds first.
-docker-compose.yml — Fiber node + PostgreSQL + fibergate-core + nginx/certbot (TLS/WSS
-                     reverse proxy, issue #17 — see CKB/Fiber References below),
-                     builds fibergate-core from source — used for contributor/dev, not
-                     the recommended merchant deploy path (see the line below)
-docker-compose.release.yml — issue #21 + #41: same 6 services as docker-compose.yml,
-                     but fibergate-core uses image: ghcr.io/<GHCR_NAMESPACE>/
-                     fibergate-core (published via .github/workflows/docker-publish.yml,
-                     tagged by git commit SHA + latest) instead of build: — a merchant only
-                     needs this file + .env, no need to clone the repo, see docs/merchants/deployment.md
-.github/workflows/docker-publish.yml — builds + pushes fibergate-core to GHCR on every
-                     push to canary (+ workflow_dispatch for manual triggering)
-docker/            — docker/fibergate-core/Dockerfile, fiber-node config,
-                     docker/nginx/nginx.conf.template (nginx + certbot service, TLS
-                     for the fibergate-core dashboard/API + WSS for fiber-node P2P — does NOT
-                     front apps/demo-storefront, see docs/merchants/public-https-deploy.md)
-docs/              — Documentation for humans (not AI), split by audience —
-                     see README.md's "Documentation" table to know which file is for whom:
-                     docs/merchants/* (deploy/quickstart/demo-storefront), docs/maintainers/*
-                     (local dev/release process), docs/common/troubleshooting.md (common
-                     errors, shared), docs/decisions-and-tradeoffs.md (a narrative
-                     write-up for judges/reviewers — doesn't replace .context/processes/
-                     decisions-log.md, just an easier-to-read version of it)
-CONTRIBUTING.md, CODE_OF_CONDUCT.md, MAINTAINER.md — contribution/release conventions, at
-                     root per GitHub's auto-recognized convention
+packages/create-fibergate/ — npm package `create-fibergate`: the merchant scaffolding wizard.
+                     `templates/` is gitignored and auto-copied at build time from
+                     docker-compose.release.yml, docker/fiber-node/config.yml,
+                     docker/nginx/nginx.conf.template and .env.release.example
+                     (scripts/copy-templates.mjs). So: DO NOT edit templates/ directly, and
+                     after changing any of those four run `pnpm create-fibergate:dev` — a
+                     plain `node dist/cli.js` scaffolds STALE templates.
+docker-compose.yml — 6 services, builds fibergate-core from source. Contributor/dev path.
+docker-compose.release.yml — same 6 services, but pulls fibergate-core from GHCR instead of
+                     building. The recommended merchant path (this file + .env, no clone) —
+                     see docs/merchants/deployment.md
+.github/workflows/docker-publish.yml — pushes fibergate-core to GHCR on every push to canary
+docker/            — fibergate-core Dockerfile, fiber-node config, nginx.conf.template
+                     (TLS for the dashboard/API + WSS for fiber-node P2P; does NOT front
+                     apps/demo-storefront — see docs/merchants/public-https-deploy.md)
+docs/              — Human-facing docs, not written for the agent. Audience map: the
+                     "Documentation" table in README.md.
 .context/          — Project context files (Single Source of Truth)
-.context/design/   — Full UI mockup, committed directly to the repo (not just tokens anymore):
-                     - FiberGate.dc.html — the real dashboard mockup (open directly in a browser)
-                     - COMPONENTS.dc.html — an artboard catalog: every component pattern in DESIGN.md
-                       rendered visually with captions mapping to the Antd v5 component + how to override it
-                       (Card/Tag/Table/Button/Segmented/Progress/Alert/Badge/Modal/Menu...) — open in a
-                       browser to look up which Antd component to use when coding UI, instead of guessing
-                     - support.js — helper script for the mockup
-                     - DESIGN.md — design tokens/type scale/component patterns (reference when coding UI)
-                     Origin: Claude Design (project ID above), but due to sharing limits with
-                     teammates, the copy in the repo is the one the whole team can actually use. The human
-                     manually syncs it when there are changes on the Claude Design side — the copy in the
-                     repo may lag behind the original, it doesn't mirror in real-time automatically.
+.context/design/   — FiberGate.dc.html (dashboard mockup) + COMPONENTS.dc.html (which Antd
+                     component to use for each pattern) + DESIGN.md (tokens) + support.js.
+                     How to use them when coding UI: "When implementing a new feature" below.
+                     Origin: Claude Design project 15b01139-c51f-472e-81df-e7c0777dd47d,
+                     synced by hand — the repo copy may lag behind.
+CONTRIBUTING.md, CODE_OF_CONDUCT.md, MAINTAINER.md — contribution/release conventions
 ```
-
-## Project IDs
-
-| Service | ID | Note |
-|---------|-----|---------|
-| Claude Design | `15b01139-c51f-472e-81df-e7c0777dd47d` | UI mockups |
 
 ## Commands
 
