@@ -143,17 +143,15 @@ Reasons and history: `decisions-log.md` 2026-07-01 (SDK choice), 2026-07-08 (iss
 
 These govern *how* work is reported, not what work is done. They apply to every report, question, and explanation — including the two subsections below.
 
-**Presentation.** Match the form to the content: a table when comparing along shared axes, bullets only for parallel items with no logic between them, prose for anything with a *because* or a *but* in it — bullets shred an argument into fragments the reader has to reassemble. Concrete before abstract: show the case, then name the rule. Anchor a new idea to one the reader already holds ("same as X, except Y"). Ration bold — three in a paragraph point at nothing. Signpost anything long before starting it, and reserve code blocks for actual code.
+**Presentation.** Match the form to the content: a table when comparing along shared axes, bullets only for parallel items with no logic between them, prose for anything with a *because* or a *but* in it — bullets shred an argument into fragments the reader has to reassemble. Concrete before abstract: show the case, then name the rule. Anchor a new idea to one the reader already holds ("same as X, except Y"). Ration bold — three in a paragraph point at nothing. Signpost anything long before starting it, and reserve code blocks for actual code. One idea per sentence — compression is not clarity, and four clauses packed into one sentence are harder to use than four short ones. When brevity and clarity conflict, clarity wins.
 
 **Language.** Reply in whatever language the user wrote in. Keep technical terms in English regardless — invoice, channel, webhook, poller, migration, standalone. Never translate them ("hóa đơn", "kênh thanh toán" read as machine translation). Drop bureaucratic phrasing ("Tôi đã tiến hành thực hiện việc sửa đổi..." → "Đã sửa..."), and drop social filler ("Câu hỏi hay!", "Hy vọng giúp ích").
 
-**Say it in the world, not in the code.** Before any mechanism, spend 2–4 short lines on what actually happens and who it happens to. Mechanism explains something the reader has already been made to care about — lead with it and they are decoding, not understanding. Vocabulary from the tooling and from your own process (guard, interpolation, fallback, altitude, finding, nesting, agent) is yours, not theirs: name the effect instead.
+**Explanations — say it in the world, not in the code.** Before any mechanism, spend 2–4 short lines on what actually happens and who it happens to. Mechanism explains something the reader has already been made to care about — lead with it and they are decoding, not understanding. Vocabulary from the tooling and from your own process (guard, interpolation, fallback, altitude, finding, nesting, agent) is yours, not theirs: name the effect instead. If `.context/` already documents it (a gotcha, a settled decision, a term), link to that file instead of re-explaining it.
 
 > ❌ "Guard `${DOMAIN:+…}` chỉ chặn DOMAIN rỗng, không chặn `localhost`, nên node vẫn announce."
 >
 > ✅ "Khi bạn chạy local, `.env` ghi `DOMAIN=localhost`. Node sẽ nói với toàn bộ testnet: 'gọi tôi ở `localhost:8228`'. Nhưng `localhost` trên máy người khác là máy của chính họ. Nên mọi node nghe được đều ghi vào sổ một địa chỉ vô nghĩa."
-
-**One idea per sentence.** Compression is not clarity: four clauses packed into one sentence are harder to use than four short sentences, even though they are shorter. Break them up. When brevity and clarity conflict, clarity wins.
 
 **Reports.** Lead with the outcome in the user's terms — not a table of contents of what was edited, and not the shape of the process that produced it (which review pass, which agent, which phase; the user is not debugging your workflow). Then at most 3–4 bullets, each with a clickable `file:line`, covering only what changes the user's decisions. Always separate what was actually verified from what is inferred — say "chưa live-verify" explicitly rather than letting a passing typecheck imply the feature works. Close with exactly one thing needed from the user, if there is one.
 
@@ -173,8 +171,6 @@ These govern *how* work is reported, not what work is done. They apply to every 
 > ✅ "Tôi nghiêng về **B — mở invoice mới, đánh dấu cái cũ `expired_paid`**: giữ audit trail, không phải sửa state machine.
 > - **A** (revert về `paid`): sạch cho merchant nhưng phá invariant 'expired là terminal' — poller đang dựa vào đó.
 > - **C** (để nguyên): rẻ nhất, nhưng merchant mất tiền trong im lặng — không chấp nhận được với payment gateway."
-
-**Explanations.** Situation first (see "Say it in the world" above), then the mechanism, then the code. If `.context/` already documents it (a gotcha, a settled decision, a term), link to that file instead of re-explaining it.
 
 **Uncertainty.** State it once, plainly, then keep going — no repeated hedging, no apologizing in circles.
 
