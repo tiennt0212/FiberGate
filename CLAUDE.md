@@ -168,7 +168,7 @@ When you need information about the CKB protocol or Fiber Network, look it up in
 
 **FiberGate only uses Fiber at the application layer (JSON-RPC calls). Do NOT write CKB Scripts. No need to understand the Cell Model unless debugging channel issues.**
 
-### SDK/tooling — official vs community (per `fiber-hackathon-docs/resources.md`)
+### SDK/tooling — official vs community
 
 - **Official, used for the core (Phase 1/2):** `@ckb-ccc/fiber` (SDK for `lib/fiber/client.ts`), `fnn-cli` + `ckb-cli` (setup/bootstrap channels during dev, not a runtime dependency of the app).
 - **Community, used only as a reference for Phase 3 (L402, optional stretch) — specific to `apps/web`:** `@fiber-pay/sdk` — see the reference demo [`fiber-l402`](https://github.com/RetricSu/fiber-l402) (Express + Astro + React, using this exact library to build L402 paywall middleware). **Do not use `@fiber-pay/react` in `apps/web`/`fibergate-core`.**
