@@ -183,12 +183,6 @@ When facing an unclear request or one with multiple possible approaches, Claude 
 3. If needed, propose 2-3 options and ask which to choose
 4. Only implement after receiving an answer
 
-**Example situations that call for asking:**
-- A feature request that doesn't specify edge cases
-- Multiple possible implementations with different trade-offs
-- Unclear scope: does "create a webhook" mean backend only, or UI too?
-- Unclear error behavior: retry or fail immediately?
-
 ### Don't decide these on your own (stop and ask):
 - Changing the database schema
 - Changing the API response format (breaking change)
